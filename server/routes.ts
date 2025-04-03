@@ -2,7 +2,12 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertCategorySchema, insertTransactionSchema } from "@shared/schema";
+import { 
+  insertCategorySchema, 
+  insertTransactionSchema, 
+  persons, 
+  recurringIntervals 
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -10,6 +15,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
   
   // Transactions endpoints
+  router.get("/recurring-transactions", async (_req: Request, res: Response) => {
+    try {
+      const recurringTransactions = await storage.getRecurringTransactions();
+      
+      // For each transaction, attach its category if it has one
+      const transactionsWithCategories = await Promise.all(
+        recurringTransactions.map(async (transaction) => {
+          if (transaction.categoryId) {
+            const category = await storage.getCategoryById(transaction.categoryId);
+            if (category) {
+              return { ...transaction, category };
+            }
+          }
+          return transaction;
+        })
+      );
+      
+      res.json(transactionsWithCategories);
+    } catch (error) {
+      console.error("Error getting recurring transactions:", error);
+      res.status(500).json({ message: "Failed to get recurring transactions" });
+    }
+  });
+  
   router.get("/transactions", async (req: Request, res: Response) => {
     try {
       const transactions = await storage.getTransactions();
@@ -63,6 +92,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   router.post("/transactions", async (req: Request, res: Response) => {
     try {
+      // Convert string date to Date object if needed
+      if (req.body.date && typeof req.body.date === 'string') {
+        req.body.date = new Date(req.body.date);
+      }
+      if (req.body.recurringEndDate && typeof req.body.recurringEndDate === 'string') {
+        req.body.recurringEndDate = new Date(req.body.recurringEndDate);
+      }
+
       const transactionData = insertTransactionSchema.parse(req.body);
       
       // If a categoryId is provided, ensure it exists
@@ -92,14 +129,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid transaction ID" });
       }
       
-      // Validate request body
+      // Convert dates if needed
+      if (req.body.date && typeof req.body.date === 'string') {
+        req.body.date = new Date(req.body.date);
+      }
+      if (req.body.recurringEndDate && typeof req.body.recurringEndDate === 'string') {
+        req.body.recurringEndDate = new Date(req.body.recurringEndDate);
+      }
+      
+      // Validate request body with all new fields
       const validFields = z.object({
         title: z.string().optional(),
         amount: z.number().positive().optional(),
-        date: z.string().or(z.date()).optional(),
-        notes: z.string().optional(),
+        date: z.date().optional(),
+        notes: z.string().nullable().optional(),
         isExpense: z.boolean().optional(),
-        categoryId: z.number().optional().nullable(),
+        categoryId: z.number().nullable().optional(),
+        personLabel: z.enum(persons).nullable().optional(),
+        isRecurring: z.boolean().nullable().optional(),
+        recurringInterval: z.enum(recurringIntervals).nullable().optional(),
+        recurringEndDate: z.date().nullable().optional(),
       }).parse(req.body);
       
       const updatedTransaction = await storage.updateTransaction(id, validFields);

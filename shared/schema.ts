@@ -2,6 +2,18 @@ import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp } f
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Custom transformers
+const dateTransformer = z.preprocess((val) => {
+  // Handle string dates
+  if (typeof val === 'string') {
+    // Create a date object from the string
+    const date = new Date(val);
+    if (isNaN(date.getTime())) return undefined;
+    return date;
+  }
+  return val;
+}, z.date());
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -27,6 +39,14 @@ export const insertCategorySchema = createInsertSchema(categories).pick({
   isExpense: true,
 });
 
+// Person labels for transactions
+export const persons = ["Beni", "Fabi", "Michał"] as const;
+export type PersonLabel = typeof persons[number];
+
+// Recurring intervals
+export const recurringIntervals = ["daily", "weekly", "monthly", "yearly"] as const;
+export type RecurringInterval = typeof recurringIntervals[number];
+
 // Transactions can be either expenses or income
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
@@ -36,15 +56,24 @@ export const transactions = pgTable("transactions", {
   notes: text("notes"),
   isExpense: boolean("is_expense").notNull(),
   categoryId: integer("category_id"),
+  personLabel: text("person_label"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringInterval: text("recurring_interval"), // 'daily', 'weekly', 'monthly', 'yearly'
+  recurringEndDate: timestamp("recurring_end_date"),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).pick({
-  title: true,
-  amount: true,
-  date: true,
-  notes: true,
-  isExpense: true,
-  categoryId: true,
+// Override the auto-generated schema with our custom validations
+export const insertTransactionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  date: dateTransformer,
+  notes: z.string().nullable().optional(),
+  isExpense: z.boolean(),
+  categoryId: z.number().nullable().optional(),
+  personLabel: z.enum(persons).nullable().optional(),
+  isRecurring: z.boolean().nullable().optional(),
+  recurringInterval: z.enum(recurringIntervals).nullable().optional(),
+  recurringEndDate: dateTransformer.nullable().optional(),
 });
 
 // Types

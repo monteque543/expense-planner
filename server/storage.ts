@@ -16,6 +16,7 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined>;
   deleteTransaction(id: number): Promise<boolean>;
+  getRecurringTransactions(): Promise<Transaction[]>;
   
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -85,6 +86,12 @@ export class MemStorage implements IStorage {
     return Array.from(this.transactions.values());
   }
   
+  async getRecurringTransactions(): Promise<Transaction[]> {
+    return Array.from(this.transactions.values()).filter(
+      transaction => transaction.isRecurring === true
+    );
+  }
+  
   async getTransactionById(id: number): Promise<Transaction | undefined> {
     return this.transactions.get(id);
   }
@@ -98,7 +105,20 @@ export class MemStorage implements IStorage {
   
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
     const id = this.transactionId++;
-    const transaction: Transaction = { ...insertTransaction, id };
+    // Create a proper transaction object with all fields
+    const transaction: Transaction = {
+      id,
+      title: insertTransaction.title,
+      amount: insertTransaction.amount,
+      date: insertTransaction.date,
+      notes: insertTransaction.notes || null,
+      isExpense: insertTransaction.isExpense,
+      categoryId: insertTransaction.categoryId || null,
+      personLabel: insertTransaction.personLabel || null,
+      isRecurring: insertTransaction.isRecurring || false,
+      recurringInterval: insertTransaction.recurringInterval || null,
+      recurringEndDate: insertTransaction.recurringEndDate || null
+    };
     this.transactions.set(id, transaction);
     return transaction;
   }
@@ -127,7 +147,13 @@ export class MemStorage implements IStorage {
   
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
     const id = this.categoryId++;
-    const category: Category = { ...insertCategory, id };
+    // Ensure isExpense is always a boolean
+    const category: Category = {
+      id,
+      name: insertCategory.name,
+      color: insertCategory.color,
+      isExpense: insertCategory.isExpense !== undefined ? insertCategory.isExpense : true,
+    };
     this.categories.set(id, category);
     return category;
   }

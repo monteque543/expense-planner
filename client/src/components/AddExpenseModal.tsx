@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Category, Transaction } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
+import { Category, Transaction, persons, recurringIntervals } from "@shared/schema";
 import { X } from "lucide-react";
 
 interface AddExpenseModalProps {
@@ -24,6 +25,10 @@ const expenseFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
   categoryId: z.coerce.number().optional(),
+  personLabel: z.enum(persons).optional(),
+  isRecurring: z.boolean().optional().default(false),
+  recurringInterval: z.enum(recurringIntervals).optional(),
+  recurringEndDate: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
@@ -43,11 +48,27 @@ export default function AddExpenseModal({
       date: new Date().toISOString().split('T')[0],
       notes: "",
       categoryId: undefined,
+      personLabel: undefined,
+      isRecurring: false,
+      recurringInterval: undefined,
+      recurringEndDate: undefined,
     },
   });
 
   function onSubmit(data: ExpenseFormValues) {
-    onAddExpense(data);
+    // Convert string dates to Date objects
+    const formattedData = {
+      ...data,
+      date: new Date(data.date),
+      notes: data.notes || null,
+      categoryId: data.categoryId || null,
+      personLabel: data.personLabel || null,
+      isRecurring: data.isRecurring || false,
+      recurringInterval: data.isRecurring ? data.recurringInterval || null : null,
+      recurringEndDate: data.isRecurring && data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+    };
+    
+    onAddExpense(formattedData);
   }
 
   return (
@@ -87,9 +108,9 @@ export default function AddExpenseModal({
                   <FormControl>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                        <span className="text-gray-500">PLN</span>
                       </div>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} className="pl-7" />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} className="pl-12" />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -141,6 +162,36 @@ export default function AddExpenseModal({
               />
             </div>
             
+            <div className="grid grid-cols-1 gap-4">
+              <FormField
+                control={form.control}
+                name="personLabel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Person</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select person" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {persons.map((person) => (
+                          <SelectItem key={person} value={person}>
+                            {person}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="notes"
@@ -154,6 +205,73 @@ export default function AddExpenseModal({
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="isRecurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Recurring Expense</FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      This expense will repeat based on the selected interval
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {form.watch("isRecurring") && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="recurringInterval"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Repeat Interval</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select interval" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {recurringIntervals.map((interval) => (
+                            <SelectItem key={interval} value={interval}>
+                              {interval.charAt(0).toUpperCase() + interval.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="recurringEndDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date (optional)</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
             
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={onClose}>
