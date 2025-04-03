@@ -139,13 +139,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate request body with all new fields
       const validFields = z.object({
-        title: z.string().optional(),
-        amount: z.number().positive().optional(),
+        title: z.string().min(1, "Title is required").optional(),
+        amount: z.number().positive("Amount must be positive").optional(),
         date: z.date().optional(),
         notes: z.string().nullable().optional(),
         isExpense: z.boolean().optional(),
-        categoryId: z.number().nullable().optional(),
-        personLabel: z.enum(persons).nullable().optional(),
+        categoryId: z.number().refine(val => val !== undefined && val !== null, {
+          message: "Category is required"
+        }).optional(),
+        personLabel: z.enum(persons, {
+          required_error: "Person is required",
+          invalid_type_error: "Person must be selected"
+        }).optional(),
         isRecurring: z.boolean().nullable().optional(),
         recurringInterval: z.enum(recurringIntervals).nullable().optional(),
         recurringEndDate: z.date().nullable().optional(),

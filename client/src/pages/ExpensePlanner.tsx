@@ -5,6 +5,7 @@ import ExpenseCalendar from "@/components/ExpenseCalendar";
 import ExpenseSidebar from "@/components/ExpenseSidebar";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
+import EditTransactionModal from "@/components/EditTransactionModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Category, Transaction, TransactionWithCategory } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
@@ -20,6 +21,8 @@ import { Keyboard } from "lucide-react";
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithCategory | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'month' | 'week' | 'year'>('month');
@@ -101,6 +104,56 @@ export default function ExpensePlanner() {
       });
     }
   });
+  
+  // Update transaction mutation
+  const updateTransaction = useMutation({
+    mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
+      return apiRequest('PATCH', `/api/transactions/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      setShowEditModal(false);
+      setSelectedTransaction(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update transaction: ${error}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete transaction mutation
+  const deleteTransaction = useMutation({
+    mutationFn: (id: number) => {
+      return apiRequest('DELETE', `/api/transactions/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete transaction: ${error}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handler for editing a transaction
+  const handleEditTransaction = (transaction: TransactionWithCategory) => {
+    setSelectedTransaction(transaction);
+    setShowEditModal(true);
+  };
 
   // Date manipulation for current view
   const currentMonthYear = format(selectedDate, 'MMMM yyyy');
@@ -251,6 +304,8 @@ export default function ExpensePlanner() {
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
           onSelectToday={handleToday}
+          onEditTransaction={handleEditTransaction}
+          onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
           isLoading={isLoadingTransactions}
         />
 
@@ -261,6 +316,8 @@ export default function ExpensePlanner() {
           currentMonthYear={currentMonthYear}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
+          onEditTransaction={handleEditTransaction}
+          onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
           isLoading={isLoadingTransactions || isLoadingCategories}
         />
       </main>
@@ -279,6 +336,18 @@ export default function ExpensePlanner() {
         onClose={() => setShowIncomeModal(false)}
         onAddIncome={(data) => addTransaction.mutate({ ...data, isExpense: false })}
         isPending={addTransaction.isPending}
+      />
+      
+      <EditTransactionModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedTransaction(null);
+        }}
+        onUpdateTransaction={(id, data) => updateTransaction.mutate({ id, data })}
+        transaction={selectedTransaction}
+        categories={categories}
+        isPending={updateTransaction.isPending}
       />
     </div>
   );

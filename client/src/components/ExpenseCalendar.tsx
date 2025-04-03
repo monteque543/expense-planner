@@ -22,6 +22,8 @@ interface ExpenseCalendarProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onSelectToday: () => void;
+  onEditTransaction: (transaction: TransactionWithCategory) => void;
+  onDeleteTransaction: (id: number) => void;
   isLoading: boolean;
 }
 
@@ -32,6 +34,8 @@ export default function ExpenseCalendar({
   onPrevMonth,
   onNextMonth,
   onSelectToday,
+  onEditTransaction,
+  onDeleteTransaction,
   isLoading
 }: ExpenseCalendarProps) {
   const calendarDays = useMemo(() => {

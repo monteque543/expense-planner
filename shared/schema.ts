@@ -69,8 +69,13 @@ export const insertTransactionSchema = z.object({
   date: dateTransformer,
   notes: z.string().nullable().optional(),
   isExpense: z.boolean(),
-  categoryId: z.number().nullable().optional(),
-  personLabel: z.enum(persons).nullable().optional(),
+  categoryId: z.number().refine(val => val !== undefined && val !== null, {
+    message: "Category is required"
+  }),
+  personLabel: z.enum(persons, {
+    required_error: "Person is required",
+    invalid_type_error: "Person must be selected"
+  }),
   isRecurring: z.boolean().nullable().optional(),
   recurringInterval: z.enum(recurringIntervals).nullable().optional(),
   recurringEndDate: dateTransformer.nullable().optional(),
