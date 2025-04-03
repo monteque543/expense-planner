@@ -5,6 +5,7 @@ import ExpenseCalendar from "@/components/ExpenseCalendar";
 import ExpenseSidebar from "@/components/ExpenseSidebar";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
+import ThemeToggle from "@/components/ThemeToggle";
 import type { Category, Transaction, TransactionWithCategory } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -154,28 +155,30 @@ export default function ExpensePlanner() {
     : transactions;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Expense Planner</h1>
+          <h1 className="text-2xl font-bold text-foreground">Expense Planner</h1>
           <div className="flex items-center space-x-4">
-            <div className="hidden sm:flex rounded-md overflow-hidden border border-gray-200 shadow-sm mr-2">
+            <ThemeToggle />
+            
+            <div className="hidden sm:flex rounded-md overflow-hidden border border-border shadow-sm mr-2">
               <button 
                 onClick={() => setActiveView('week')}
-                className={`px-3 py-1 text-xs font-medium ${activeView === 'week' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'week' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
               >
                 Week
               </button>
               <button 
                 onClick={() => setActiveView('month')}
-                className={`px-3 py-1 text-xs font-medium ${activeView === 'month' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'month' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
               >
                 Month
               </button>
               <button 
                 onClick={() => setActiveView('year')}
-                className={`px-3 py-1 text-xs font-medium ${activeView === 'year' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'year' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
               >
                 Year
               </button>
@@ -215,7 +218,7 @@ export default function ExpensePlanner() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="p-2 text-gray-500 hover:text-gray-700 transition">
+                  <button className="p-2 text-muted-foreground hover:text-foreground transition">
                     <Keyboard className="h-5 w-5" />
                   </button>
                 </TooltipTrigger>

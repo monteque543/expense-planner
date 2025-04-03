@@ -65,8 +65,8 @@ export default function ExpenseSidebar({
 
   if (isLoading) {
     return (
-      <div className="w-full md:w-96 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+      <div className="w-full md:w-96 bg-card border-l border-border flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-border">
           <Skeleton className="h-6 w-32 mb-2" />
           <div className="flex space-x-2 overflow-x-auto pb-2">
             <Skeleton className="h-5 w-16 rounded-full" />
@@ -77,7 +77,7 @@ export default function ExpenseSidebar({
         <div className="flex-1 overflow-y-auto">
           <Skeleton className="h-full w-full" />
         </div>
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
+        <div className="border-t border-border p-4 bg-muted">
           <Skeleton className="h-40 w-full" />
         </div>
       </div>
@@ -85,13 +85,13 @@ export default function ExpenseSidebar({
   }
 
   return (
-    <div className="w-full md:w-96 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+    <div className="w-full md:w-96 bg-card border-l border-border flex flex-col overflow-hidden">
       {/* Sidebar Header with Filters */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-medium text-gray-800 mb-2">{currentMonthYear}</h2>
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-medium text-foreground mb-2">{currentMonthYear}</h2>
         <div className="flex space-x-2 overflow-x-auto pb-2">
           <button 
-            className={`px-3 py-1 ${activeFilter === null ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-gray-600'} rounded-full text-xs font-medium whitespace-nowrap`}
+            className={`px-3 py-1 ${activeFilter === null ? 'bg-muted text-foreground' : 'bg-muted/50 text-muted-foreground'} rounded-full text-xs font-medium whitespace-nowrap`}
             onClick={() => onFilterChange(null)}
           >
             All
@@ -102,8 +102,8 @@ export default function ExpenseSidebar({
               key={category.id}
               className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap`}
               style={{ 
-                backgroundColor: activeFilter === category.name ? `${category.color}30` : 'rgb(243 244 246)',
-                color: activeFilter === category.name ? category.color : 'rgb(31 41 55)'
+                backgroundColor: activeFilter === category.name ? `${category.color}30` : 'hsl(var(--muted))',
+                color: activeFilter === category.name ? category.color : 'hsl(var(--foreground))'
               }}
               onClick={() => onFilterChange(category.name)}
             >
@@ -117,20 +117,20 @@ export default function ExpenseSidebar({
       <div className="flex-1 overflow-y-auto">
         {groupedTransactions.length > 0 ? (
           groupedTransactions.map((dateGroup, idx) => (
-            <div key={idx} className="border-b border-gray-200">
-              <div className="bg-gray-50 px-4 py-2 font-medium text-sm text-gray-600">
+            <div key={idx} className="border-b border-border">
+              <div className="bg-muted px-4 py-2 font-medium text-sm text-muted-foreground">
                 {dateGroup.formattedDate}
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border">
                 {dateGroup.items.map((transaction, itemIdx) => {
                   const category = categories.find(c => c.id === transaction.categoryId);
                   
                   return (
-                    <div key={itemIdx} className="px-4 py-3 hover:bg-gray-50">
+                    <div key={itemIdx} className="px-4 py-3 hover:bg-muted/40">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
-                            <span className="font-medium text-gray-800">{transaction.title}</span>
+                            <span className="font-medium text-foreground">{transaction.title}</span>
                             {category && (
                               <span 
                                 className="ml-2 px-2 py-0.5 text-xs rounded-full"
@@ -140,11 +140,11 @@ export default function ExpenseSidebar({
                               </span>
                             )}
                             {!category && transaction.isExpense === false && (
-                              <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full">Income</span>
+                              <span className="ml-2 px-2 py-0.5 bg-muted text-foreground text-xs rounded-full">Income</span>
                             )}
                           </div>
                           {transaction.notes && (
-                            <div className="text-sm text-gray-500 mt-0.5">{transaction.notes}</div>
+                            <div className="text-sm text-muted-foreground mt-0.5">{transaction.notes}</div>
                           )}
                         </div>
                         <div className="flex flex-col items-end">
@@ -154,7 +154,7 @@ export default function ExpenseSidebar({
                           {transaction.personLabel && (
                             <div className="flex items-center mt-1">
                               <div className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: personColors[transaction.personLabel as keyof typeof personColors] }}></div>
-                              <span className="text-xs text-gray-500">{transaction.personLabel}</span>
+                              <span className="text-xs text-muted-foreground">{transaction.personLabel}</span>
                             </div>
                           )}
                         </div>
@@ -166,7 +166,7 @@ export default function ExpenseSidebar({
             </div>
           ))
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             No transactions to display
           </div>
         )}

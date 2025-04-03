@@ -82,40 +82,40 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
   }, [transactions]);
 
   return (
-    <div className="border-t border-gray-200 p-4 bg-gray-50">
-      <h3 className="font-medium text-gray-700 mb-2">Financial Summary</h3>
+    <div className="border-t border-border p-4 bg-muted">
+      <h3 className="font-medium text-foreground mb-2">Financial Summary</h3>
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg p-3 shadow-sm">
-          <div className="text-sm text-gray-500">This Week</div>
-          <div className="font-mono font-medium text-red-500">-{financialData.thisWeekExpenses.toFixed(2)} PLN</div>
+        <div className="bg-card rounded-lg p-3 shadow-sm">
+          <div className="text-sm text-muted-foreground">This Week</div>
+          <div className="font-mono font-medium text-red-500 dark:text-red-400">-{financialData.thisWeekExpenses.toFixed(2)} PLN</div>
         </div>
-        <div className="bg-white rounded-lg p-3 shadow-sm">
-          <div className="text-sm text-gray-500">Next Week</div>
-          <div className="font-mono font-medium text-red-500">-{financialData.nextWeekExpenses.toFixed(2)} PLN</div>
+        <div className="bg-card rounded-lg p-3 shadow-sm">
+          <div className="text-sm text-muted-foreground">Next Week</div>
+          <div className="font-mono font-medium text-red-500 dark:text-red-400">-{financialData.nextWeekExpenses.toFixed(2)} PLN</div>
         </div>
-        <div className="bg-white rounded-lg p-3 shadow-sm">
-          <div className="text-sm text-gray-500">This Month</div>
-          <div className="font-mono font-medium text-red-500">-{financialData.thisMonthExpenses.toFixed(2)} PLN</div>
+        <div className="bg-card rounded-lg p-3 shadow-sm">
+          <div className="text-sm text-muted-foreground">This Month</div>
+          <div className="font-mono font-medium text-red-500 dark:text-red-400">-{financialData.thisMonthExpenses.toFixed(2)} PLN</div>
         </div>
-        <div className="bg-white rounded-lg p-3 shadow-sm">
-          <div className="text-sm text-gray-500">Income</div>
-          <div className="font-mono font-medium text-green-500">+{financialData.totalIncome.toFixed(2)} PLN</div>
+        <div className="bg-card rounded-lg p-3 shadow-sm">
+          <div className="text-sm text-muted-foreground">Income</div>
+          <div className="font-mono font-medium text-green-500 dark:text-green-400">+{financialData.totalIncome.toFixed(2)} PLN</div>
         </div>
       </div>
-      <div className="mt-3 bg-white rounded-lg p-3 shadow-sm">
+      <div className="mt-3 bg-card rounded-lg p-3 shadow-sm">
         <div className="flex justify-between">
-          <span className="text-sm text-gray-500">Balance</span>
-          <span className={`font-mono font-medium ${financialData.balance >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
+          <span className="text-sm text-muted-foreground">Balance</span>
+          <span className={`font-mono font-medium ${financialData.balance >= 0 ? 'text-primary dark:text-primary-foreground' : 'text-red-500 dark:text-red-400'}`}>
             {financialData.balance >= 0 ? '+' : '-'}{Math.abs(financialData.balance).toFixed(2)} PLN
           </span>
         </div>
-        <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+        <div className="mt-2 w-full bg-muted/50 rounded-full h-2.5">
           <div 
-            className="bg-blue-500 h-2.5 rounded-full" 
+            className="bg-primary h-2.5 rounded-full" 
             style={{ width: `${financialData.savingsPercentage}%` }}
           ></div>
         </div>
-        <div className="mt-1 flex justify-between text-xs text-gray-500">
+        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
           <span>Spent: {financialData.thisMonthExpenses.toFixed(2)} PLN</span>
           <span>Savings: {Math.max(0, financialData.balance).toFixed(2)} PLN</span>
         </div>
