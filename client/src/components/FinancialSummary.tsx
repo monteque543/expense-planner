@@ -87,26 +87,26 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-lg p-3 shadow-sm">
           <div className="text-sm text-gray-500">This Week</div>
-          <div className="font-mono font-medium text-red-500">-PLN {financialData.thisWeekExpenses.toFixed(2)}</div>
+          <div className="font-mono font-medium text-red-500">-{financialData.thisWeekExpenses.toFixed(2)} PLN</div>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm">
           <div className="text-sm text-gray-500">Next Week</div>
-          <div className="font-mono font-medium text-red-500">-PLN {financialData.nextWeekExpenses.toFixed(2)}</div>
+          <div className="font-mono font-medium text-red-500">-{financialData.nextWeekExpenses.toFixed(2)} PLN</div>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm">
           <div className="text-sm text-gray-500">This Month</div>
-          <div className="font-mono font-medium text-red-500">-PLN {financialData.thisMonthExpenses.toFixed(2)}</div>
+          <div className="font-mono font-medium text-red-500">-{financialData.thisMonthExpenses.toFixed(2)} PLN</div>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm">
           <div className="text-sm text-gray-500">Income</div>
-          <div className="font-mono font-medium text-green-500">+PLN {financialData.totalIncome.toFixed(2)}</div>
+          <div className="font-mono font-medium text-green-500">+{financialData.totalIncome.toFixed(2)} PLN</div>
         </div>
       </div>
       <div className="mt-3 bg-white rounded-lg p-3 shadow-sm">
         <div className="flex justify-between">
           <span className="text-sm text-gray-500">Balance</span>
           <span className={`font-mono font-medium ${financialData.balance >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
-            {financialData.balance >= 0 ? '+' : '-'}PLN {Math.abs(financialData.balance).toFixed(2)}
+            {financialData.balance >= 0 ? '+' : '-'}{Math.abs(financialData.balance).toFixed(2)} PLN
           </span>
         </div>
         <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
@@ -116,8 +116,8 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
           ></div>
         </div>
         <div className="mt-1 flex justify-between text-xs text-gray-500">
-          <span>Spent: PLN {financialData.thisMonthExpenses.toFixed(2)}</span>
-          <span>Savings: PLN {Math.max(0, financialData.balance).toFixed(2)}</span>
+          <span>Spent: {financialData.thisMonthExpenses.toFixed(2)} PLN</span>
+          <span>Savings: {Math.max(0, financialData.balance).toFixed(2)} PLN</span>
         </div>
       </div>
     </div>

@@ -40,7 +40,7 @@ export const insertCategorySchema = createInsertSchema(categories).pick({
 });
 
 // Person labels for transactions
-export const persons = ["Beni", "Fabi", "Michał"] as const;
+export const persons = ["Beni", "Fabi", "Michał", "Together"] as const;
 export type PersonLabel = typeof persons[number];
 
 // Recurring intervals

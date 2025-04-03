@@ -1,8 +1,16 @@
 import { useMemo } from 'react';
 import { format, parseISO, isToday, startOfWeek, endOfWeek, addWeeks, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
-import { Category, TransactionWithCategory } from '@shared/schema';
+import { Category, TransactionWithCategory, persons } from '@shared/schema';
 import FinancialSummary from './FinancialSummary';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Person color mapping
+const personColors: Record<string, string> = {
+  "Beni": "#3b82f6",  // Blue
+  "Fabi": "#ec4899",  // Pink
+  "Michał": "#10b981", // Green
+  "Together": "#8b5cf6" // Purple
+};
 
 interface ExpenseSidebarProps {
   transactions: TransactionWithCategory[];
@@ -139,8 +147,16 @@ export default function ExpenseSidebar({
                             <div className="text-sm text-gray-500 mt-0.5">{transaction.notes}</div>
                           )}
                         </div>
-                        <div className={`${transaction.isExpense ? 'text-red-500' : 'text-green-500'} font-medium font-mono`}>
-                          {transaction.isExpense ? '-' : '+'}${transaction.amount.toFixed(2)}
+                        <div className="flex flex-col items-end">
+                          <div className={`${transaction.isExpense ? 'text-red-500' : 'text-green-500'} font-medium font-mono`}>
+                            {transaction.isExpense ? '-' : '+'}{transaction.amount.toFixed(2)} PLN
+                          </div>
+                          {transaction.personLabel && (
+                            <div className="flex items-center mt-1">
+                              <div className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: personColors[transaction.personLabel as keyof typeof personColors] }}></div>
+                              <span className="text-xs text-gray-500">{transaction.personLabel}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

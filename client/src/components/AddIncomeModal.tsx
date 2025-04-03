@@ -31,6 +31,14 @@ const incomeFormSchema = z.object({
 
 type IncomeFormValues = z.infer<typeof incomeFormSchema>;
 
+// Person color mapping
+const personColors: Record<string, string> = {
+  "Beni": "#3b82f6",  // Blue
+  "Fabi": "#ec4899",  // Pink
+  "Michał": "#10b981", // Green
+  "Together": "#8b5cf6" // Purple
+};
+
 export default function AddIncomeModal({
   isOpen,
   onClose,
@@ -65,6 +73,18 @@ export default function AddIncomeModal({
     };
     
     onAddIncome(formattedData);
+    
+    // Reset the form after submission
+    form.reset({
+      title: "",
+      amount: undefined,
+      date: new Date().toISOString().split('T')[0],
+      notes: "",
+      personLabel: undefined,
+      isRecurring: false,
+      recurringInterval: undefined,
+      recurringEndDate: undefined,
+    });
   }
 
   return (
@@ -147,7 +167,10 @@ export default function AddIncomeModal({
                       <SelectContent>
                         {persons.map((person) => (
                           <SelectItem key={person} value={person}>
-                            {person}
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: personColors[person] }}></div>
+                              {person}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>

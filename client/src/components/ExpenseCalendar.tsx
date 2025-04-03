@@ -138,9 +138,9 @@ export default function ExpenseCalendar({
                     <div 
                       key={transIdx}
                       className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1`}
-                      title={`${transaction.title}: $${transaction.amount.toFixed(2)}`}
+                      title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN`}
                     >
-                      {transaction.title}: ${transaction.amount.toFixed(2)}
+                      {transaction.title}: {transaction.amount.toFixed(2)} PLN
                     </div>
                   ))}
                 </div>
