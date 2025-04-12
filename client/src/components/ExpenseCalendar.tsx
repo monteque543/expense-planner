@@ -72,6 +72,12 @@ export default function ExpenseCalendar({
     const recurringOnes = transactions.filter(t => t.isRecurring);
     console.log('Recurring transactions:', recurringOnes);
     
+    // Calculate view boundaries - for the current month
+    const viewStart = startOfMonth(currentDate);
+    const viewEnd = endOfMonth(currentDate);
+    console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    
+    // First, add the regular transactions
     transactions.forEach(transaction => {
       // Handle regular transactions
       const dateStr = typeof transaction.date === 'string' 
@@ -82,110 +88,143 @@ export default function ExpenseCalendar({
         grouped[dateStr] = [];
       }
       grouped[dateStr].push(transaction);
+    });
+    
+    // Then, separately process recurring transactions to show future occurrences
+    recurringOnes.forEach(transaction => {
+      const originalDate = typeof transaction.date === 'string' 
+        ? parseISO(transaction.date) 
+        : transaction.date;
       
-      // For recurring transactions, show future occurrences across all months including the current view
-      if (transaction.isRecurring) {
-        const originalDate = typeof transaction.date === 'string' 
-          ? parseISO(transaction.date) 
-          : transaction.date;
+      const interval = transaction.recurringInterval || 'monthly';
+      
+      console.log(`Processing recurring transaction: ${transaction.title}, interval: ${interval}, original date: ${format(originalDate, 'yyyy-MM-dd')}`);
+      
+      // Calculate the first occurrence starting point
+      let startingDate: Date;
+      
+      if (originalDate >= viewStart) {
+        // If the original date is in or after the current view, 
+        // we start from the original date for the first instance
+        startingDate = originalDate;
+      } else {
+        // The original date is before the current view - we need to find 
+        // the first occurrence that falls within or after the view
+        startingDate = originalDate;
         
-        const interval = transaction.recurringInterval || 'monthly';
-        let nextDate: Date;
+        // Create a counter to prevent infinite loops
+        let safety = 0;
+        const MAX_SAFETY = 100;
         
-        console.log(`Processing recurring transaction: ${transaction.title}, interval: ${interval}, original date: ${format(originalDate, 'yyyy-MM-dd')}`);
-        
-        // Calculate first occurrence based on interval
-        switch (interval) {
-          case 'daily':
-            nextDate = addDays(originalDate, 1);
-            break;
-          case 'weekly':
-            nextDate = addWeeks(originalDate, 1);
-            break;
-          case 'monthly':
-            nextDate = addMonths(originalDate, 1);
-            break;
-          case 'yearly':
-            nextDate = addYears(originalDate, 1);
-            break;
-          default:
-            nextDate = addMonths(originalDate, 1); // Default to monthly
-        }
-        
-        // Get the view boundaries - for the current month
-        const viewStart = startOfMonth(currentDate);
-        const viewEnd = endOfMonth(currentDate);
-        
-        console.log(`View period: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
-        console.log(`First occurrence: ${format(nextDate, 'yyyy-MM-dd')}`);
-        
-        // Calculate max future date (let's say 5 years from today)
-        const maxFutureDate = addYears(today, 5);
-        const recurringEndDate = transaction.recurringEndDate ? 
-          (typeof transaction.recurringEndDate === 'string' ? parseISO(transaction.recurringEndDate) : transaction.recurringEndDate) 
-          : maxFutureDate;
-        
-        // Create a counter to debug infinite loop
-        let counter = 0;
-        const MAX_ITERATIONS = 60; // Limit iterations to prevent infinite loops
-        
-        // Keep adding occurrences as long as they're in the future and don't exceed the end date
-        while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
-          counter++;
+        // Skip ahead until we find a date near or in our view range
+        while (startingDate < viewStart && safety < MAX_SAFETY) {
+          safety++;
           
-          console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${nextDate >= viewStart && nextDate <= viewEnd}`);
-          
-          // Only add instances that fall within the current calendar view
-          if (nextDate >= viewStart && nextDate <= viewEnd) {
-            const nextDateStr = format(nextDate, 'yyyy-MM-dd');
-            if (!grouped[nextDateStr]) {
-              grouped[nextDateStr] = [];
-            }
-            
-            // Create a copy of the transaction with the future date
-            const futureCopy = {
-              ...transaction,
-              displayDate: nextDate, // Store occurrence date
-              isRecurringInstance: true // Flag to indicate this is a recurring instance
-            };
-            
-            grouped[nextDateStr].push(futureCopy);
-            console.log(`Added future occurrence on ${nextDateStr}`);
-          }
-          
-          // Calculate the next occurrence
-          const prevDate = new Date(nextDate);
+          // Calculate next occurrence
           switch (interval) {
             case 'daily':
-              nextDate = addDays(nextDate, 1);
+              startingDate = addDays(startingDate, 1);
               break;
             case 'weekly':
-              nextDate = addWeeks(nextDate, 1);
+              startingDate = addWeeks(startingDate, 1);
               break;
             case 'monthly':
-              nextDate = addMonths(nextDate, 1);
+              startingDate = addMonths(startingDate, 1);
               break;
             case 'yearly':
-              nextDate = addYears(nextDate, 1);
+              startingDate = addYears(startingDate, 1);
               break;
             default:
-              nextDate = addMonths(nextDate, 1);
-          }
-          
-          // Check if date is advancing (prevent infinite loop)
-          if (nextDate.getTime() === prevDate.getTime()) {
-            console.error('Date not advancing, breaking loop');
-            break;
+              startingDate = addMonths(startingDate, 1);
           }
         }
         
-        if (counter >= MAX_ITERATIONS) {
-          console.warn(`Max iterations (${MAX_ITERATIONS}) reached for ${transaction.title}`);
+        if (safety >= MAX_SAFETY) {
+          console.warn(`Safety limit reached for ${transaction.title}, skipping.`);
+          return; // Skip this transaction
         }
+      }
+      
+      // Now calculate the recurring instances starting from our computed starting date
+      let nextDate = startingDate;
+      
+      // Calculate max future date (5 years from the selected date)
+      const maxFutureDate = addYears(currentDate, 5);
+      const recurringEndDate = transaction.recurringEndDate ? 
+        (typeof transaction.recurringEndDate === 'string' ? parseISO(transaction.recurringEndDate) : transaction.recurringEndDate) 
+        : maxFutureDate;
+      
+      // Create a counter to limit iterations
+      let counter = 0;
+      const MAX_ITERATIONS = 60;
+      
+      // Track the previous date to detect if we're not advancing
+      let prevDate = new Date(0); // Start with a date far in the past
+      
+      // Generate recurring instances within the current view
+      while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
+        counter++;
+        
+        const inView = nextDate >= viewStart && nextDate <= viewEnd;
+        console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${inView}`);
+        
+        // Only add instances that fall within the current calendar view
+        if (inView) {
+          const nextDateStr = format(nextDate, 'yyyy-MM-dd');
+          if (!grouped[nextDateStr]) {
+            grouped[nextDateStr] = [];
+          }
+          
+          // Create a copy of the transaction with the future date
+          const futureCopy = {
+            ...transaction,
+            displayDate: nextDate, // Store occurrence date
+            isRecurringInstance: true // Flag to indicate this is a recurring instance
+          };
+          
+          grouped[nextDateStr].push(futureCopy);
+          console.log(`Added future occurrence on ${nextDateStr}`);
+        }
+        
+        // Store current date for comparison
+        prevDate = new Date(nextDate);
+        
+        // Calculate the next occurrence
+        switch (interval) {
+          case 'daily':
+            nextDate = addDays(nextDate, 1);
+            break;
+          case 'weekly':
+            nextDate = addWeeks(nextDate, 1);
+            break;
+          case 'monthly':
+            nextDate = addMonths(nextDate, 1);
+            break;
+          case 'yearly':
+            nextDate = addYears(nextDate, 1);
+            break;
+          default:
+            nextDate = addMonths(nextDate, 1);
+        }
+        
+        // Check if date is advancing (prevent infinite loop)
+        if (nextDate.getTime() === prevDate.getTime()) {
+          console.error('Date not advancing, breaking loop');
+          break;
+        }
+        
+        // If we're past the view end, we can stop
+        if (nextDate > viewEnd && counter > 2) {
+          console.log('Reached past view end, stopping iteration');
+          break;
+        }
+      }
+      
+      if (counter >= MAX_ITERATIONS) {
+        console.warn(`Max iterations (${MAX_ITERATIONS}) reached for ${transaction.title}`);
       }
     });
     
-    console.log('Transactions by date:', grouped);
     return grouped;
   }, [transactions, currentDate]);
 
