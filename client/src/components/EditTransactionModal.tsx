@@ -140,7 +140,7 @@ export default function EditTransactionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             Edit {watchIsExpense ? "Expense" : "Income"}
@@ -383,19 +383,20 @@ export default function EditTransactionModal({
               </div>
             )}
             
-            <div className="pt-4 flex justify-end space-x-2">
+            <div className="sticky bottom-0 bg-background pt-4 pb-2 flex flex-col sm:flex-row sm:justify-end gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
                 disabled={isPending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={isPending}
-                className={`${watchIsExpense ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                className={`w-full sm:w-auto ${watchIsExpense ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
               >
                 {isPending ? 'Saving...' : 'Save Changes'}
               </Button>
