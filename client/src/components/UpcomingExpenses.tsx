@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react';
 import { TransactionWithCategory } from '@shared/schema';
-import { format, isAfter, isBefore, isToday, startOfDay, startOfMonth, endOfMonth, addDays } from 'date-fns';
+
+// Extended transaction type for handling recurring instances
+type ExtendedTransaction = TransactionWithCategory & {
+  isRecurringInstance?: boolean;
+  displayDate?: Date;
+};
+import { 
+  format, 
+  isAfter, 
+  isBefore, 
+  isToday, 
+  startOfDay, 
+  startOfMonth, 
+  endOfMonth, 
+  addDays,
+  addWeeks,
+  addMonths,
+  addYears
+} from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
@@ -9,28 +27,92 @@ interface UpcomingExpensesProps {
   transactions: TransactionWithCategory[];
   isLoading: boolean;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
+  currentDate?: Date;
 }
 
 export default function UpcomingExpenses({ 
   transactions, 
   isLoading,
-  onEditTransaction
+  onEditTransaction,
+  currentDate
 }: UpcomingExpensesProps) {
-  const [upcomingExpenses, setUpcomingExpenses] = useState<TransactionWithCategory[]>([]);
+  const [upcomingExpenses, setUpcomingExpenses] = useState<ExtendedTransaction[]>([]);
   const [totalUpcoming, setTotalUpcoming] = useState(0);
   
   useEffect(() => {
-    // Get today and the end of the current month
-    const today = startOfDay(new Date());
-    const currentMonthEnd = endOfMonth(today);
+    // Use currentDate if provided, otherwise use today's date
+    const referenceDate = currentDate || new Date();
     
-    // Filter for expenses that are upcoming (today or in the future)
-    const upcoming = transactions.filter(transaction => {
+    // Get the start and end of the selected month
+    const monthStart = startOfMonth(referenceDate);
+    const monthEnd = endOfMonth(referenceDate);
+    
+    // Today's date for highlighting today's expenses
+    const today = startOfDay(new Date());
+    
+    // Get month name for display
+    const monthName = format(referenceDate, 'MMMM yyyy');
+    
+    // Log the reference period
+    console.log(`Filtering upcoming expenses for: ${monthName} (${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')})`);
+    
+    // Process transactions for the selected month
+    // This includes both base transactions and recurring instances
+    const processedTransactions: ExtendedTransaction[] = [...transactions] as ExtendedTransaction[];
+    
+    // Generate recurring instances for recurring transactions
+    const recurringTransactions = transactions.filter(t => t.isRecurring) as ExtendedTransaction[];
+    
+    // Add recurring instances that fall in the selected month
+    recurringTransactions.forEach(transaction => {
+      const originalDate = new Date(transaction.date);
+      
+      // Don't process if the original is already in the selected month
+      if (originalDate >= monthStart && originalDate <= monthEnd) {
+        return;
+      }
+      
+      const interval = transaction.recurringInterval || 'monthly';
+      let nextDate = new Date(originalDate);
+      
+      // Find occurrences in the selected month
+      while (nextDate < monthEnd) {
+        // Apply the interval
+        switch (interval) {
+          case 'daily':
+            nextDate = addDays(nextDate, 1);
+            break;
+          case 'weekly':
+            nextDate = addWeeks(nextDate, 1);
+            break;
+          case 'monthly':
+            nextDate = addMonths(nextDate, 1);
+            break;
+          case 'yearly':
+            nextDate = addYears(nextDate, 1);
+            break;
+          default:
+            nextDate = addMonths(nextDate, 1);
+        }
+        
+        // If this occurrence falls in the selected month, add it
+        if (nextDate >= monthStart && nextDate <= monthEnd) {
+          processedTransactions.push({
+            ...transaction,
+            date: nextDate,
+            isRecurringInstance: true
+          });
+        }
+      }
+    });
+    
+    // Filter for expenses in the selected month
+    const upcoming = processedTransactions.filter(transaction => {
       const transactionDate = new Date(transaction.date);
       return (
         transaction.isExpense && 
-        (isToday(transactionDate) || isAfter(transactionDate, today)) &&
-        isBefore(transactionDate, currentMonthEnd)
+        transactionDate >= monthStart && 
+        transactionDate <= monthEnd
       );
     });
     
@@ -44,7 +126,7 @@ export default function UpcomingExpenses({
     // Calculate total amount
     const total = sortedUpcoming.reduce((sum, transaction) => sum + transaction.amount, 0);
     setTotalUpcoming(total);
-  }, [transactions]);
+  }, [transactions, currentDate]);
   
   if (isLoading) {
     return (
@@ -64,11 +146,14 @@ export default function UpcomingExpenses({
     );
   }
   
+  // Get the month name for display
+  const displayMonth = currentDate ? format(currentDate, 'MMMM yyyy') : format(new Date(), 'MMMM yyyy');
+      
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>Upcoming Expenses</CardTitle>
-        <CardDescription>Expenses to pay this month</CardDescription>
+        <CardDescription>Expenses to pay in {displayMonth}</CardDescription>
       </CardHeader>
       <CardContent>
         {upcomingExpenses.length > 0 ? (

@@ -326,6 +326,7 @@ export default function ExpensePlanner() {
             transactions={transactions}
             isLoading={isLoadingTransactions}
             onEditTransaction={handleEditTransaction}
+            currentDate={selectedDate}
           />
         </div>
       </div>
