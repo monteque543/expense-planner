@@ -27,6 +27,7 @@ export default function ExpensePlanner() {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithCategory | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activePersonFilter, setActivePersonFilter] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'month' | 'week' | 'year'>('month');
   const { toast } = useToast();
   
@@ -212,11 +213,20 @@ export default function ExpensePlanner() {
     );
   });
   
-  // Filter transactions based on active category
-  const filteredTransactions = activeFilter 
-    ? currentMonthTransactions.filter((t) => 
-        t.category?.name === activeFilter)
-    : currentMonthTransactions;
+  // Filter transactions based on active category and person
+  const filteredTransactions = currentMonthTransactions.filter((t) => {
+    // Apply category filter
+    if (activeFilter !== null && t.category?.name !== activeFilter) {
+      return false;
+    }
+    
+    // Apply person filter
+    if (activePersonFilter !== null && t.personLabel !== activePersonFilter) {
+      return false;
+    }
+    
+    return true;
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
@@ -348,6 +358,8 @@ export default function ExpensePlanner() {
           currentDate={selectedDate}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
+          activePersonFilter={activePersonFilter}
+          onPersonFilterChange={setActivePersonFilter}
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
           isLoading={isLoadingTransactions || isLoadingCategories}
