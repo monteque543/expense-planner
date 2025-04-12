@@ -51,6 +51,7 @@ export default function UpcomingExpenses({
     console.log(`Filtering upcoming expenses for: ${monthName} (${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')})`);
     
     // Filter for expenses in the current month based on the viewing month
+    // and only show expenses from today or in the future
     const expenses = transactions.filter(transaction => {
       // Only include expenses
       if (!transaction.isExpense) return false;
@@ -63,19 +64,29 @@ export default function UpcomingExpenses({
         transactionDate >= monthStart && 
         transactionDate <= monthEnd;
       
-      if (isInSelectedMonth) {
-        return true;
+      // For non-recurring expenses, only show if they're today or in the future
+      if (isInSelectedMonth && !transaction.isRecurring) {
+        // Only include expenses that are today or in the future
+        return transactionDate >= today;
       }
       
       // For recurring transactions, check if any occurrences fall in the selected month
+      // AND they are today or in the future
       if (transaction.isRecurring) {
         // Figure out if any recurring instances fall within the selected month
         const originalDate = new Date(transaction.date);
         const interval = transaction.recurringInterval || 'monthly';
         let nextDate = new Date(originalDate);
-        let hasInstanceInMonth = false;
+        let hasUpcomingInstanceInMonth = false;
         
-        // Check for a few cycles to see if it falls in our month
+        // If the original date is in the selected month and is today or in the future
+        if (originalDate >= monthStart && 
+            originalDate <= monthEnd && 
+            originalDate >= today) {
+          return true;
+        }
+        
+        // Check for a few cycles to see if it falls in our month and is upcoming
         for (let i = 0; i < 12; i++) {
           switch (interval) {
             case 'daily':
@@ -94,8 +105,11 @@ export default function UpcomingExpenses({
               nextDate = addMonths(nextDate, 1);
           }
           
-          if (nextDate >= monthStart && nextDate <= monthEnd) {
-            hasInstanceInMonth = true;
+          // If this occurrence is in the selected month and is today or in the future
+          if (nextDate >= monthStart && 
+              nextDate <= monthEnd && 
+              nextDate >= today) {
+            hasUpcomingInstanceInMonth = true;
             break;
           }
           
@@ -105,7 +119,7 @@ export default function UpcomingExpenses({
           }
         }
         
-        return hasInstanceInMonth;
+        return hasUpcomingInstanceInMonth;
       }
       
       return false;
@@ -168,6 +182,7 @@ export default function UpcomingExpenses({
               const today = startOfDay(new Date());
               
               // For recurring expenses, display the next instance in the current month
+              // that is today or in the future
               let dueDate: Date;
               if (expense.isRecurring) {
                 // Calculate the next instance for this month
@@ -177,13 +192,25 @@ export default function UpcomingExpenses({
                 const monthEnd = endOfMonth(referenceDate);
                 const interval = expense.recurringInterval || 'monthly';
                 
-                if (originalDate >= monthStart && originalDate <= monthEnd) {
-                  // The original date is in this month
+                // If the original date is in this month and is today or later
+                if (originalDate >= monthStart && 
+                    originalDate <= monthEnd && 
+                    originalDate >= today) {
                   dueDate = originalDate;
                 } else {
-                  // Find next occurrence in this month
+                  // Find next occurrence in this month that's today or later
                   let nextDate = new Date(originalDate);
-                  while (nextDate < monthStart || nextDate > monthEnd) {
+                  
+                  // Keep advancing until we find a date that's:
+                  // 1. In the selected month, AND
+                  // 2. Today or in the future
+                  let safetyCounter = 0;
+                  while ((nextDate < monthStart || 
+                          nextDate > monthEnd || 
+                          nextDate < today) && 
+                          safetyCounter < 50) {
+                    safetyCounter++;
+                    
                     switch (interval) {
                       case 'daily':
                         nextDate = addDays(nextDate, 1);
