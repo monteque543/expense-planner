@@ -9,7 +9,11 @@ import {
   format, 
   parseISO,
   isToday,
-  isBefore
+  isBefore,
+  addDays,
+  addWeeks,
+  addMonths,
+  addYears
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,11 +61,12 @@ export default function ExpenseCalendar({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentDate]);
 
-  // Group transactions by date
+  // Group transactions by date, including recurring transactions
   const transactionsByDate = useMemo(() => {
     const grouped: Record<string, TransactionWithCategory[]> = {};
     
     transactions.forEach(transaction => {
+      // Handle regular transactions
       const dateStr = typeof transaction.date === 'string' 
         ? format(parseISO(transaction.date), 'yyyy-MM-dd')
         : format(transaction.date, 'yyyy-MM-dd');
@@ -70,10 +75,78 @@ export default function ExpenseCalendar({
         grouped[dateStr] = [];
       }
       grouped[dateStr].push(transaction);
+      
+      // For recurring transactions, also show them in future dates if applicable
+      if (transaction.isRecurring) {
+        const originalDate = typeof transaction.date === 'string' 
+          ? parseISO(transaction.date) 
+          : transaction.date;
+        
+        const interval = transaction.recurringInterval || 'monthly';
+        let nextDate = new Date();
+        
+        // Calculate next occurrence based on interval
+        switch (interval) {
+          case 'daily':
+            nextDate = addDays(originalDate, 1);
+            break;
+          case 'weekly':
+            nextDate = addWeeks(originalDate, 1);
+            break;
+          case 'monthly':
+            nextDate = addMonths(originalDate, 1);
+            break;
+          case 'yearly':
+            nextDate = addYears(originalDate, 1);
+            break;
+          default:
+            nextDate = addMonths(originalDate, 1); // Default to monthly
+        }
+        
+        // Only add future occurrences that fall within the current view
+        const monthStart = startOfMonth(currentDate);
+        const monthEnd = endOfMonth(currentDate);
+        
+        // Keep adding occurrences as long as they fall within view
+        while (nextDate >= monthStart && nextDate <= monthEnd) {
+          const nextDateStr = format(nextDate, 'yyyy-MM-dd');
+          if (!grouped[nextDateStr]) {
+            grouped[nextDateStr] = [];
+          }
+          
+          // Create a copy of the transaction with the future date
+          // This is just for display and doesn't affect the actual data
+          const futureCopy = {
+            ...transaction,
+            displayDate: nextDate, // Store original date separately
+            isRecurringInstance: true // Flag to indicate this is a recurring instance
+          };
+          
+          grouped[nextDateStr].push(futureCopy);
+          
+          // Calculate the next occurrence
+          switch (interval) {
+            case 'daily':
+              nextDate = addDays(nextDate, 1);
+              break;
+            case 'weekly':
+              nextDate = addWeeks(nextDate, 1);
+              break;
+            case 'monthly':
+              nextDate = addMonths(nextDate, 1);
+              break;
+            case 'yearly':
+              nextDate = addYears(nextDate, 1);
+              break;
+            default:
+              nextDate = addMonths(nextDate, 1);
+          }
+        }
+      }
     });
     
     return grouped;
-  }, [transactions]);
+  }, [transactions, currentDate]);
 
   if (isLoading) {
     return (
