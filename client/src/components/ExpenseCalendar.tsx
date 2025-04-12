@@ -234,51 +234,63 @@ export default function ExpenseCalendar({
                 
                 {/* Transactions for this day */}
                 <div className="mt-1 overflow-y-auto max-h-[80px]">
-                  {dayTransactions.map((transaction, transIdx) => (
-                    <div 
-                      key={transIdx}
-                      className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center group cursor-pointer hover:opacity-90`}
-                      title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN`}
-                      onClick={() => onEditTransaction(transaction)}
-                    >
-                      <span className="truncate">{transaction.title}</span>
-                      <div className="flex items-center">
-                        <span className="whitespace-nowrap mr-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button 
-                              className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                              onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
-                            >
-                              <MoreHorizontal className="h-3 w-3" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditTransaction(transaction);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteTransaction(transaction.id);
-                              }}
-                              className="cursor-pointer text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                  {dayTransactions.map((transaction, transIdx) => {
+                    // Determine if this is a recurring transaction instance (future occurrence)
+                    const isRecurringInstance = 'isRecurringInstance' in transaction;
+                    
+                    return (
+                      <div 
+                        key={transIdx}
+                        className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
+                          text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center 
+                          group cursor-pointer hover:opacity-90 ${isRecurringInstance ? 'border-l-2 border-white' : ''}`}
+                        title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN${isRecurringInstance ? ' (Recurring)' : ''}`}
+                        onClick={() => onEditTransaction(transaction)}
+                      >
+                        <span className="truncate flex items-center">
+                          {(transaction.isRecurring || isRecurringInstance) && (
+                            <span className="mr-0.5">⟳</span>
+                          )}
+                          {transaction.title}
+                        </span>
+                        <div className="flex items-center">
+                          <span className="whitespace-nowrap mr-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button 
+                                className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+                                onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
+                              >
+                                <MoreHorizontal className="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[160px]">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditTransaction(transaction);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteTransaction(transaction.id);
+                                }}
+                                className="cursor-pointer text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
