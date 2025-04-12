@@ -60,15 +60,18 @@ export default function AddExpenseModal({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       title: "",
-      amount: undefined,
+      amount: 0, // Initialize with 0 instead of undefined
       date: new Date().toISOString().split('T')[0],
       notes: "",
       categoryId: undefined,
       personLabel: undefined,
       isRecurring: false,
-      recurringInterval: undefined,
+      recurringInterval: 'monthly', // Default to monthly
       recurringEndDate: undefined,
     },
+    // Keep values when form has errors
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   function onSubmit(data: ExpenseFormValues) {
@@ -91,7 +94,7 @@ export default function AddExpenseModal({
     // Reset the form after successful submission
     form.reset({
       title: "",
-      amount: undefined,
+      amount: 0,
       date: new Date().toISOString().split('T')[0],
       notes: "",
       categoryId: undefined,

@@ -51,6 +51,14 @@ const editTransactionSchema = z.object({
 
 type EditTransactionFormValues = z.infer<typeof editTransactionSchema>;
 
+// Person color mapping
+const personColors: Record<string, string> = {
+  "Beni": "#3b82f6",  // Blue
+  "Fabi": "#ec4899",  // Pink
+  "Michał": "#10b981", // Green
+  "Together": "#8b5cf6" // Purple
+};
+
 export default function EditTransactionModal({
   isOpen,
   onClose,
@@ -72,9 +80,12 @@ export default function EditTransactionModal({
       personLabel: undefined,
       isExpense: true,
       isRecurring: false,
-      recurringInterval: undefined,
+      recurringInterval: 'monthly', // Default to monthly
       recurringEndDate: undefined,
-    }
+    },
+    // Keep values when form has errors
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
   
   // Update form values when transaction changes
@@ -104,29 +115,17 @@ export default function EditTransactionModal({
   function onSubmit(data: EditTransactionFormValues) {
     if (!transaction) return;
     
-    // Ensure amount is a valid number
-    const amount = typeof data.amount === 'string' 
-      ? parseFloat(data.amount.replace(',', '.')) 
-      : data.amount;
-      
-    if (isNaN(amount)) {
-      form.setError('amount', { 
-        type: 'validate', 
-        message: 'Please enter a valid number (e.g., 38.26)' 
-      });
-      return;
-    }
+    // Number conversion is now handled by Zod transformation
     
     onUpdateTransaction(transaction.id, {
       ...data,
-      amount,
       // Convert string dates to Date objects
       date: new Date(data.date),
       notes: data.notes || null,
       categoryId: data.categoryId || null,
-      personLabel: data.personLabel || null,
+      personLabel: data.personLabel, // Required field in schema
       isRecurring: data.isRecurring || false,
-      recurringInterval: data.isRecurring ? data.recurringInterval || 'monthly' : null,
+      recurringInterval: data.isRecurring ? data.recurringInterval : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
     });
   }
@@ -245,7 +244,10 @@ export default function EditTransactionModal({
                     <SelectContent>
                       {persons.map((person) => (
                         <SelectItem key={person} value={person}>
-                          {person}
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: personColors[person] }}></div>
+                            {person}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
