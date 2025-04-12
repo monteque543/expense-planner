@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -13,7 +13,13 @@ import {
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 interface ExpenseCalendarProps {
   transactions: TransactionWithCategory[];
@@ -158,11 +164,42 @@ export default function ExpenseCalendar({
                   {dayTransactions.map((transaction, transIdx) => (
                     <div 
                       key={transIdx}
-                      className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center`}
+                      className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center group`}
                       title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN`}
                     >
                       <span className="truncate">{transaction.title}</span>
-                      <span className="whitespace-nowrap ml-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
+                      <div className="flex items-center">
+                        <span className="whitespace-nowrap mr-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-[160px]">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTransaction(transaction);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteTransaction(transaction.id);
+                              }}
+                              className="cursor-pointer text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   ))}
                 </div>

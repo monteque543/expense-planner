@@ -3,6 +3,13 @@ import { format, parseISO, isToday, startOfWeek, endOfWeek, addWeeks, startOfMon
 import { Category, TransactionWithCategory, persons } from '@shared/schema';
 import FinancialSummary from './FinancialSummary';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 // Person color mapping
 const personColors: Record<string, string> = {
@@ -18,6 +25,8 @@ interface ExpenseSidebarProps {
   currentMonthYear: string;
   activeFilter: string | null;
   onFilterChange: (filter: string | null) => void;
+  onEditTransaction: (transaction: TransactionWithCategory) => void;
+  onDeleteTransaction: (id: number) => void;
   isLoading: boolean;
 }
 
@@ -27,6 +36,8 @@ export default function ExpenseSidebar({
   currentMonthYear,
   activeFilter,
   onFilterChange,
+  onEditTransaction,
+  onDeleteTransaction,
   isLoading
 }: ExpenseSidebarProps) {
   // Group transactions by date for the sidebar list
@@ -126,7 +137,7 @@ export default function ExpenseSidebar({
                   const category = categories.find(c => c.id === transaction.categoryId);
                   
                   return (
-                    <div key={itemIdx} className="px-4 py-3 hover:bg-muted/40">
+                    <div key={itemIdx} className="px-4 py-3 hover:bg-muted/40 group">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
@@ -147,16 +158,41 @@ export default function ExpenseSidebar({
                             <div className="text-sm text-muted-foreground mt-0.5">{transaction.notes}</div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end">
-                          <div className={`${transaction.isExpense ? 'text-red-500' : 'text-green-500'} font-medium font-mono`}>
-                            {transaction.isExpense ? '-' : '+'}{transaction.amount.toFixed(2)} PLN
-                          </div>
-                          {transaction.personLabel && (
-                            <div className="flex items-center mt-1">
-                              <div className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: personColors[transaction.personLabel as keyof typeof personColors] }}></div>
-                              <span className="text-xs text-muted-foreground">{transaction.personLabel}</span>
+                        <div className="flex items-start gap-2">
+                          <div className="flex flex-col items-end">
+                            <div className={`${transaction.isExpense ? 'text-red-500' : 'text-green-500'} font-medium font-mono`}>
+                              {transaction.isExpense ? '-' : '+'}{transaction.amount.toFixed(2)} PLN
                             </div>
-                          )}
+                            {transaction.personLabel && (
+                              <div className="flex items-center mt-1">
+                                <div className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: personColors[transaction.personLabel as keyof typeof personColors] }}></div>
+                                <span className="text-xs text-muted-foreground">{transaction.personLabel}</span>
+                              </div>
+                            )}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1 rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[160px]">
+                              <DropdownMenuItem
+                                onClick={() => onEditTransaction(transaction)}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => onDeleteTransaction(transaction.id)}
+                                className="cursor-pointer text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
