@@ -203,11 +203,20 @@ export default function ExpensePlanner() {
     }
   };
 
+  // Filter transactions based on selected month for calendar view
+  const currentMonthTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    return (
+      transactionDate.getMonth() === selectedDate.getMonth() &&
+      transactionDate.getFullYear() === selectedDate.getFullYear()
+    );
+  });
+  
   // Filter transactions based on active category
   const filteredTransactions = activeFilter 
-    ? transactions.filter((t) => 
+    ? currentMonthTransactions.filter((t) => 
         t.category?.name === activeFilter)
-    : transactions;
+    : currentMonthTransactions;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
@@ -333,7 +342,7 @@ export default function ExpensePlanner() {
 
         {/* Sidebar View */}
         <ExpenseSidebar 
-          transactions={filteredTransactions}
+          transactions={currentMonthTransactions}
           categories={categories}
           currentMonthYear={currentMonthYear}
           activeFilter={activeFilter}
