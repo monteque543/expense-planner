@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { Category, Transaction, TransactionWithCategory, persons, recurringIntervals } from "@shared/schema";
 import { X } from "lucide-react";
 import { format } from "date-fns";
@@ -20,6 +21,7 @@ interface EditTransactionModalProps {
   transaction: TransactionWithCategory | null;
   categories: Category[];
   isPending: boolean;
+  titleSuggestions?: string[]; // Available title suggestions for autocomplete
 }
 
 const editTransactionSchema = z.object({

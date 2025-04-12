@@ -56,7 +56,8 @@ export default function AddExpenseModal({
   onClose,
   onAddExpense,
   categories,
-  isPending
+  isPending,
+  titleSuggestions = []
 }: AddExpenseModalProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -128,7 +129,17 @@ export default function AddExpenseModal({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Groceries, Rent, etc." {...field} />
+                    {titleSuggestions.length > 0 ? (
+                      <AutocompleteInput
+                        options={titleSuggestions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="e.g. Groceries, Rent, etc."
+                        emptyMessage="No matching titles found"
+                      />
+                    ) : (
+                      <Input placeholder="e.g. Groceries, Rent, etc." {...field} />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

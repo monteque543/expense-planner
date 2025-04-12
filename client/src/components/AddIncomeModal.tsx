@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { Transaction, persons, recurringIntervals } from "@shared/schema";
 import { X } from "lucide-react";
 
@@ -16,6 +17,7 @@ interface AddIncomeModalProps {
   onClose: () => void;
   onAddIncome: (data: Omit<Transaction, "id" | "isExpense">) => void;
   isPending: boolean;
+  titleSuggestions?: string[]; // Available title suggestions for autocomplete
 }
 
 const incomeFormSchema = z.object({
@@ -47,7 +49,8 @@ export default function AddIncomeModal({
   isOpen,
   onClose,
   onAddIncome,
-  isPending
+  isPending,
+  titleSuggestions = []
 }: AddIncomeModalProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeFormSchema),
@@ -113,7 +116,17 @@ export default function AddIncomeModal({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Salary, Freelance, etc." {...field} />
+                    {titleSuggestions.length > 0 ? (
+                      <AutocompleteInput
+                        options={titleSuggestions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="e.g. Salary, Freelance, etc."
+                        emptyMessage="No matching titles found"
+                      />
+                    ) : (
+                      <Input placeholder="e.g. Salary, Freelance, etc." {...field} />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
