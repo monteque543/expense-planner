@@ -245,8 +245,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteTransaction(id: number): Promise<boolean> {
-    const result = await db.delete(transactions).where(eq(transactions.id, id));
-    return result.rowCount > 0;
+    // For PostgreSQL, we need to use returning to check if a row was deleted
+    const deleted = await db.delete(transactions)
+      .where(eq(transactions.id, id))
+      .returning({ id: transactions.id });
+    
+    return deleted.length > 0;
   }
   
   // Category operations
@@ -274,8 +278,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteCategory(id: number): Promise<boolean> {
-    const result = await db.delete(categories).where(eq(categories.id, id));
-    return result.rowCount > 0;
+    // For PostgreSQL, we need to use returning to check if a row was deleted
+    const deleted = await db.delete(categories)
+      .where(eq(categories.id, id))
+      .returning({ id: categories.id });
+    
+    return deleted.length > 0;
   }
 }
 

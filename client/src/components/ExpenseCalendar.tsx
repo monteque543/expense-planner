@@ -164,15 +164,19 @@ export default function ExpenseCalendar({
                   {dayTransactions.map((transaction, transIdx) => (
                     <div 
                       key={transIdx}
-                      className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center group`}
+                      className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center group cursor-pointer hover:opacity-90`}
                       title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN`}
+                      onClick={() => onEditTransaction(transaction)}
                     >
                       <span className="truncate">{transaction.title}</span>
                       <div className="flex items-center">
                         <span className="whitespace-nowrap mr-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
+                            <button 
+                              className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+                              onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
+                            >
                               <MoreHorizontal className="h-3 w-3" />
                             </button>
                           </DropdownMenuTrigger>

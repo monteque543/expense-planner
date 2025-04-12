@@ -137,7 +137,11 @@ export default function ExpenseSidebar({
                   const category = categories.find(c => c.id === transaction.categoryId);
                   
                   return (
-                    <div key={itemIdx} className="px-4 py-3 hover:bg-muted/40 group">
+                    <div 
+                      key={itemIdx} 
+                      className="px-4 py-3 hover:bg-muted/40 group cursor-pointer"
+                      onClick={() => onEditTransaction(transaction)}
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
@@ -172,20 +176,29 @@ export default function ExpenseSidebar({
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-1 rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                              <button 
+                                className="p-1 rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()} // Prevent parent click
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[160px]">
                               <DropdownMenuItem
-                                onClick={() => onEditTransaction(transaction)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditTransaction(transaction);
+                                }}
                                 className="cursor-pointer"
                               >
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Edit</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => onDeleteTransaction(transaction.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteTransaction(transaction.id);
+                                }}
                                 className="cursor-pointer text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
