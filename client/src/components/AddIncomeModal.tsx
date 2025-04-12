@@ -89,7 +89,7 @@ export default function AddIncomeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             <span>Add New Income</span>
@@ -262,11 +262,20 @@ export default function AddIncomeModal({
               </div>
             )}
             
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="sticky bottom-0 bg-background pt-4 pb-2 flex flex-col sm:flex-row sm:justify-end gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-green-500 hover:bg-green-600" disabled={isPending}>
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white" 
+                disabled={isPending}
+              >
                 {isPending ? "Adding..." : "Add Income"}
               </Button>
             </div>
