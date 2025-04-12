@@ -37,6 +37,8 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
     let nextWeekExpenses = 0;
     let thisMonthExpenses = 0;
     let thisYearExpenses = 0;
+    let thisWeekIncome = 0;
+    let nextWeekIncome = 0;
     let totalIncome = 0;
     
     transactions.forEach(transaction => {
@@ -60,7 +62,15 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
           thisYearExpenses += transaction.amount;
         }
       } else {
-        // Calculate income
+        // Calculate income for different time periods
+        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+          thisWeekIncome += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+          nextWeekIncome += transaction.amount;
+        }
+        
         if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
           totalIncome += transaction.amount;
         }
@@ -71,11 +81,19 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
     const balance = totalIncome - thisMonthExpenses;
     const savingsPercentage = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
     
+    // Calculate weekly and next week balances
+    const thisWeekBalance = thisWeekIncome - thisWeekExpenses;
+    const nextWeekBalance = nextWeekIncome - nextWeekExpenses;
+    
     return {
       thisWeekExpenses,
       nextWeekExpenses,
       thisMonthExpenses,
       totalIncome,
+      thisWeekIncome,
+      nextWeekIncome,
+      thisWeekBalance,
+      nextWeekBalance,
       balance,
       savingsPercentage: Math.max(0, Math.min(100, savingsPercentage)), // Ensure between 0 and 100
     };
@@ -87,11 +105,15 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card rounded-lg p-3 shadow-sm">
           <div className="text-sm text-muted-foreground">This Week</div>
-          <div className="font-mono font-medium text-red-500 dark:text-red-400">-{financialData.thisWeekExpenses.toFixed(2)} PLN</div>
+          <div className={`font-mono font-medium ${financialData.thisWeekBalance >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+            {financialData.thisWeekBalance >= 0 ? '+' : '-'}{Math.abs(financialData.thisWeekBalance).toFixed(2)} PLN
+          </div>
         </div>
         <div className="bg-card rounded-lg p-3 shadow-sm">
           <div className="text-sm text-muted-foreground">Next Week</div>
-          <div className="font-mono font-medium text-red-500 dark:text-red-400">-{financialData.nextWeekExpenses.toFixed(2)} PLN</div>
+          <div className={`font-mono font-medium ${financialData.nextWeekBalance >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+            {financialData.nextWeekBalance >= 0 ? '+' : '-'}{Math.abs(financialData.nextWeekBalance).toFixed(2)} PLN
+          </div>
         </div>
         <div className="bg-card rounded-lg p-3 shadow-sm">
           <div className="text-sm text-muted-foreground">This Month</div>

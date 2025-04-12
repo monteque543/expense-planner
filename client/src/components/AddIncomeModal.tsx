@@ -23,7 +23,7 @@ const incomeFormSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
-  categoryId: z.number().default(1), // Add a default category for income
+  categoryId: z.number().default(13), // Use the Income category by default
   personLabel: z.enum(persons, {
     required_error: "Person is required",
     invalid_type_error: "Person must be selected"
@@ -56,7 +56,7 @@ export default function AddIncomeModal({
       amount: undefined,
       date: new Date().toISOString().split('T')[0],
       notes: "",
-      categoryId: 1, // Default category for income
+      categoryId: 13, // Default category for income
       personLabel: undefined,
       isRecurring: false,
       recurringInterval: undefined,
@@ -84,7 +84,7 @@ export default function AddIncomeModal({
       amount: undefined,
       date: new Date().toISOString().split('T')[0],
       notes: "",
-      categoryId: 1, // Keep the default category for income
+      categoryId: 13, // Use the Income category
       personLabel: undefined,
       isRecurring: false,
       recurringInterval: undefined,
