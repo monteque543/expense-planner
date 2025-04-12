@@ -181,4 +181,134 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  
+  // Transaction operations
+  async getTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions);
+  }
+  
+  async getRecurringTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.isRecurring, true));
+  }
+  
+  async getTransactionById(id: number): Promise<Transaction | undefined> {
+    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
+    return transaction;
+  }
+  
+  async getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(
+      between(transactions.date, startDate, endDate)
+    );
+  }
+  
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const [transaction] = await db.insert(transactions).values({
+      title: insertTransaction.title,
+      amount: insertTransaction.amount,
+      date: insertTransaction.date,
+      notes: insertTransaction.notes || null,
+      isExpense: insertTransaction.isExpense,
+      categoryId: insertTransaction.categoryId || null,
+      personLabel: insertTransaction.personLabel || null,
+      isRecurring: insertTransaction.isRecurring || false,
+      recurringInterval: insertTransaction.recurringInterval || null,
+      recurringEndDate: insertTransaction.recurringEndDate || null
+    }).returning();
+    
+    return transaction;
+  }
+  
+  async updateTransaction(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
+    const [updatedTransaction] = await db.update(transactions)
+      .set(transaction)
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    return updatedTransaction;
+  }
+  
+  async deleteTransaction(id: number): Promise<boolean> {
+    const result = await db.delete(transactions).where(eq(transactions.id, id));
+    return result.rowCount > 0;
+  }
+  
+  // Category operations
+  async getCategories(): Promise<Category[]> {
+    return await db.select().from(categories);
+  }
+  
+  async getCategoryById(id: number): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category;
+  }
+  
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db.insert(categories).values(insertCategory).returning();
+    return category;
+  }
+  
+  async updateCategory(id: number, category: Partial<Category>): Promise<Category | undefined> {
+    const [updatedCategory] = await db.update(categories)
+      .set(category)
+      .where(eq(categories.id, id))
+      .returning();
+    
+    return updatedCategory;
+  }
+  
+  async deleteCategory(id: number): Promise<boolean> {
+    const result = await db.delete(categories).where(eq(categories.id, id));
+    return result.rowCount > 0;
+  }
+}
+
+// Initialize the database with default categories if needed
+async function initializeDatabase() {
+  // Check if we have any categories
+  const existingCategories = await db.select().from(categories);
+  
+  if (existingCategories.length === 0) {
+    // Add default categories
+    const defaultCategories: InsertCategory[] = [
+      { name: "Bills", color: "#3b82f6", isExpense: true },
+      { name: "Food", color: "#10b981", isExpense: true },
+      { name: "Transportation", color: "#8b5cf6", isExpense: true },
+      { name: "Entertainment", color: "#f59e0b", isExpense: true },
+      { name: "Shopping", color: "#ec4899", isExpense: true },
+      { name: "Health", color: "#ef4444", isExpense: true },
+      { name: "Travel", color: "#6366f1", isExpense: true },
+      { name: "Beauty", color: "#d946ef", isExpense: true },
+      { name: "IDOinDenmark", color: "#0ea5e9", isExpense: true },
+      { name: "Courses", color: "#f97316", isExpense: true },
+      { name: "Subscription", color: "#14b8a6", isExpense: true },
+      { name: "Other", color: "#64748b", isExpense: true }
+    ];
+    
+    for (const category of defaultCategories) {
+      await db.insert(categories).values(category);
+    }
+  }
+}
+
+// Initialize database with default data
+initializeDatabase().catch(console.error);
+
+// Export the storage instance
+export const storage = new DatabaseStorage();
