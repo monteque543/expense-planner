@@ -1,11 +1,5 @@
 import { useEffect, useState } from 'react';
 import { TransactionWithCategory } from '@shared/schema';
-
-// Extended transaction type for handling recurring instances
-type ExtendedTransaction = TransactionWithCategory & {
-  isRecurringInstance?: boolean;
-  displayDate?: Date;
-};
 import { 
   format, 
   isAfter, 
@@ -36,7 +30,7 @@ export default function UpcomingExpenses({
   onEditTransaction,
   currentDate
 }: UpcomingExpensesProps) {
-  const [upcomingExpenses, setUpcomingExpenses] = useState<ExtendedTransaction[]>([]);
+  const [upcomingExpenses, setUpcomingExpenses] = useState<TransactionWithCategory[]>([]);
   const [totalUpcoming, setTotalUpcoming] = useState(0);
   
   useEffect(() => {
@@ -56,75 +50,86 @@ export default function UpcomingExpenses({
     // Log the reference period
     console.log(`Filtering upcoming expenses for: ${monthName} (${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')})`);
     
-    // Process transactions for the selected month
-    // This includes both base transactions and recurring instances
-    const processedTransactions: ExtendedTransaction[] = [...transactions] as ExtendedTransaction[];
-    
-    // Generate recurring instances for recurring transactions
-    const recurringTransactions = transactions.filter(t => t.isRecurring) as ExtendedTransaction[];
-    
-    // Add recurring instances that fall in the selected month
-    recurringTransactions.forEach(transaction => {
-      const originalDate = new Date(transaction.date);
+    // Filter for expenses in the current month based on the viewing month
+    const expenses = transactions.filter(transaction => {
+      // Only include expenses
+      if (!transaction.isExpense) return false;
       
-      // Don't process if the original is already in the selected month
-      if (originalDate >= monthStart && originalDate <= monthEnd) {
-        return;
+      const transactionDate = new Date(transaction.date);
+      
+      // Filter by month - include both transactions that fall in the month and 
+      // transactions that recur into this month
+      const isInSelectedMonth = 
+        transactionDate >= monthStart && 
+        transactionDate <= monthEnd;
+      
+      if (isInSelectedMonth) {
+        return true;
       }
       
-      const interval = transaction.recurringInterval || 'monthly';
-      let nextDate = new Date(originalDate);
-      
-      // Find occurrences in the selected month
-      while (nextDate < monthEnd) {
-        // Apply the interval
-        switch (interval) {
-          case 'daily':
-            nextDate = addDays(nextDate, 1);
+      // For recurring transactions, check if any occurrences fall in the selected month
+      if (transaction.isRecurring) {
+        // Figure out if any recurring instances fall within the selected month
+        const originalDate = new Date(transaction.date);
+        const interval = transaction.recurringInterval || 'monthly';
+        let nextDate = new Date(originalDate);
+        let hasInstanceInMonth = false;
+        
+        // Check for a few cycles to see if it falls in our month
+        for (let i = 0; i < 12; i++) {
+          switch (interval) {
+            case 'daily':
+              nextDate = addDays(nextDate, 1);
+              break;
+            case 'weekly':
+              nextDate = addWeeks(nextDate, 1);
+              break;
+            case 'monthly':
+              nextDate = addMonths(nextDate, 1);
+              break;
+            case 'yearly':
+              nextDate = addYears(nextDate, 1);
+              break;
+            default:
+              nextDate = addMonths(nextDate, 1);
+          }
+          
+          if (nextDate >= monthStart && nextDate <= monthEnd) {
+            hasInstanceInMonth = true;
             break;
-          case 'weekly':
-            nextDate = addWeeks(nextDate, 1);
+          }
+          
+          // If we've gone beyond the end of the month, stop checking
+          if (nextDate > monthEnd) {
             break;
-          case 'monthly':
-            nextDate = addMonths(nextDate, 1);
-            break;
-          case 'yearly':
-            nextDate = addYears(nextDate, 1);
-            break;
-          default:
-            nextDate = addMonths(nextDate, 1);
+          }
         }
         
-        // If this occurrence falls in the selected month, add it
-        if (nextDate >= monthStart && nextDate <= monthEnd) {
-          processedTransactions.push({
-            ...transaction,
-            date: nextDate,
-            isRecurringInstance: true
-          });
-        }
+        return hasInstanceInMonth;
       }
-    });
-    
-    // Filter for expenses in the selected month
-    const upcoming = processedTransactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return (
-        transaction.isExpense && 
-        transactionDate >= monthStart && 
-        transactionDate <= monthEnd
-      );
+      
+      return false;
     });
     
     // Sort by date (soonest first)
-    const sortedUpcoming = [...upcoming].sort((a, b) => {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    const sortedExpenses = [...expenses].sort((a, b) => {
+      // For regular transactions, compare their dates
+      if (!a.isRecurring && !b.isRecurring) {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+      
+      // If one is recurring and the other isn't, show recurring ones first
+      if (a.isRecurring && !b.isRecurring) return -1;
+      if (!a.isRecurring && b.isRecurring) return 1;
+      
+      // If both are recurring, compare their titles
+      return a.title.localeCompare(b.title);
     });
     
-    setUpcomingExpenses(sortedUpcoming);
+    setUpcomingExpenses(sortedExpenses);
     
     // Calculate total amount
-    const total = sortedUpcoming.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const total = sortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     setTotalUpcoming(total);
   }, [transactions, currentDate]);
   
@@ -161,9 +166,50 @@ export default function UpcomingExpenses({
             {upcomingExpenses.map((expense, index) => {
               // Calculate days until due
               const today = startOfDay(new Date());
-              const dueDate = new Date(expense.date);
-              const isToday = dueDate.toDateString() === today.toDateString();
-              const isDueSoon = !isToday && isBefore(dueDate, addDays(today, 3));
+              
+              // For recurring expenses, display the next instance in the current month
+              let dueDate: Date;
+              if (expense.isRecurring) {
+                // Calculate the next instance for this month
+                const originalDate = new Date(expense.date);
+                const referenceDate = currentDate || new Date();
+                const monthStart = startOfMonth(referenceDate);
+                const monthEnd = endOfMonth(referenceDate);
+                const interval = expense.recurringInterval || 'monthly';
+                
+                if (originalDate >= monthStart && originalDate <= monthEnd) {
+                  // The original date is in this month
+                  dueDate = originalDate;
+                } else {
+                  // Find next occurrence in this month
+                  let nextDate = new Date(originalDate);
+                  while (nextDate < monthStart || nextDate > monthEnd) {
+                    switch (interval) {
+                      case 'daily':
+                        nextDate = addDays(nextDate, 1);
+                        break;
+                      case 'weekly':
+                        nextDate = addWeeks(nextDate, 1);
+                        break;
+                      case 'monthly':
+                        nextDate = addMonths(nextDate, 1);
+                        break;
+                      case 'yearly':
+                        nextDate = addYears(nextDate, 1);
+                        break;
+                      default:
+                        nextDate = addMonths(nextDate, 1);
+                    }
+                  }
+                  dueDate = nextDate;
+                }
+              } else {
+                // Regular non-recurring expense
+                dueDate = new Date(expense.date);
+              }
+              
+              const isExactlyToday = dueDate.toDateString() === today.toDateString();
+              const isDueSoon = !isExactlyToday && isBefore(dueDate, addDays(today, 3));
               
               return (
                 <div 
@@ -172,7 +218,7 @@ export default function UpcomingExpenses({
                   onClick={() => onEditTransaction(expense)}
                 >
                   <div className="flex items-center gap-3">
-                    {isToday ? (
+                    {isExactlyToday ? (
                       <AlertCircle className="text-orange-500 h-5 w-5" />
                     ) : isDueSoon ? (
                       <AlertCircle className="text-yellow-500 h-5 w-5" />
@@ -180,9 +226,12 @@ export default function UpcomingExpenses({
                       <CheckCircle2 className="text-muted-foreground h-5 w-5" />
                     )}
                     <div>
-                      <div className="font-medium leading-none">{expense.title}</div>
+                      <div className="font-medium leading-none">
+                        {expense.title}
+                        {expense.isRecurring && <span className="ml-1">⟳</span>}
+                      </div>
                       <div className="text-sm text-muted-foreground">
-                        {format(new Date(expense.date), 'MMM d, yyyy')}
+                        {format(dueDate, 'MMM d, yyyy')}
                       </div>
                     </div>
                   </div>
