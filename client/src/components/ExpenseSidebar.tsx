@@ -28,6 +28,7 @@ interface ExpenseSidebarProps {
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   onDeleteTransaction: (id: number) => void;
   isLoading: boolean;
+  currentDate?: Date;
 }
 
 export default function ExpenseSidebar({
@@ -38,7 +39,8 @@ export default function ExpenseSidebar({
   onFilterChange,
   onEditTransaction,
   onDeleteTransaction,
-  isLoading
+  isLoading,
+  currentDate
 }: ExpenseSidebarProps) {
   // Group transactions by date for the sidebar list
   const groupedTransactions = useMemo(() => {
@@ -222,7 +224,7 @@ export default function ExpenseSidebar({
       </div>
       
       {/* Financial Summary */}
-      <FinancialSummary transactions={transactions} />
+      <FinancialSummary transactions={transactions} currentDate={currentDate} />
     </div>
   );
 }

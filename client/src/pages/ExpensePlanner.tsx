@@ -345,6 +345,7 @@ export default function ExpensePlanner() {
           transactions={currentMonthTransactions}
           categories={categories}
           currentMonthYear={currentMonthYear}
+          currentDate={selectedDate}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           onEditTransaction={handleEditTransaction}

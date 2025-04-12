@@ -13,11 +13,12 @@ import { TransactionWithCategory } from '@shared/schema';
 
 interface FinancialSummaryProps {
   transactions: TransactionWithCategory[];
+  currentDate?: Date;
 }
 
-export default function FinancialSummary({ transactions }: FinancialSummaryProps) {
+export default function FinancialSummary({ transactions, currentDate }: FinancialSummaryProps) {
   const financialData = useMemo(() => {
-    const now = new Date();
+    const now = currentDate || new Date();
     
     // Define time periods
     const thisWeekStart = startOfWeek(now);
@@ -97,11 +98,14 @@ export default function FinancialSummary({ transactions }: FinancialSummaryProps
       balance,
       savingsPercentage: Math.max(0, Math.min(100, savingsPercentage)), // Ensure between 0 and 100
     };
-  }, [transactions]);
+  }, [transactions, currentDate]);
 
   return (
     <div className="border-t border-border p-4 bg-muted">
       <h3 className="font-medium text-foreground mb-2">Financial Summary</h3>
+      <div className="text-xs text-muted-foreground mb-2">
+        Financial summary for {currentDate ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate) : 'Current Month'}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card rounded-lg p-3 shadow-sm">
           <div className="text-sm text-muted-foreground">This Week</div>
