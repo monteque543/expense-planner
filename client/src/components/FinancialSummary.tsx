@@ -7,7 +7,10 @@ import {
   endOfMonth, 
   startOfYear, 
   endOfYear,
-  isWithinInterval
+  isWithinInterval,
+  addDays,
+  addMonths,
+  addYears
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
 
@@ -42,41 +45,107 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     let nextWeekIncome = 0;
     let totalIncome = 0;
     
-    transactions.forEach(transaction => {
-      const transactionDate = new Date(transaction.date);
+    // Process regular and recurring transactions
+    const processTransactions = (transactionList: TransactionWithCategory[]) => {
+      transactionList.forEach(transaction => {
+        const transactionDate = new Date(transaction.date);
+        
+        // Calculate expenses for different time periods
+        if (transaction.isExpense) {
+          if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+            thisWeekExpenses += transaction.amount;
+          }
+          
+          if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+            nextWeekExpenses += transaction.amount;
+          }
+          
+          if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
+            thisMonthExpenses += transaction.amount;
+          }
+          
+          if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
+            thisYearExpenses += transaction.amount;
+          }
+        } else {
+          // Calculate income for different time periods
+          if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+            thisWeekIncome += transaction.amount;
+          }
+          
+          if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+            nextWeekIncome += transaction.amount;
+          }
+          
+          if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
+            totalIncome += transaction.amount;
+          }
+        }
+      });
+    };
+    
+    // First, process all regular transactions
+    processTransactions(transactions);
+    
+    // Then, generate recurring instances for the relevant time periods
+    const recurringTransactions = transactions.filter(t => t.isRecurring);
+    const calculatedRecurringInstances: TransactionWithCategory[] = [];
+    
+    recurringTransactions.forEach(transaction => {
+      const originalDate = new Date(transaction.date);
+      const interval = transaction.recurringInterval || 'monthly';
+      let nextDate: Date;
       
-      // Calculate expenses for different time periods
-      if (transaction.isExpense) {
-        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
-          thisWeekExpenses += transaction.amount;
+      // Calculate first occurrence after original date
+      switch (interval) {
+        case 'daily':
+          nextDate = addDays(originalDate, 1);
+          break;
+        case 'weekly':
+          nextDate = addWeeks(originalDate, 1);
+          break;
+        case 'monthly':
+          nextDate = addMonths(originalDate, 1);
+          break;
+        case 'yearly':
+          nextDate = addYears(originalDate, 1);
+          break;
+        default:
+          nextDate = addMonths(originalDate, 1);
+      }
+      
+      // Keep adding occurrences until we pass the end of the relevant period (this year)
+      while (nextDate <= thisYearEnd) {
+        // Only include occurrences that fall within our relevant time periods and after the original date
+        if (nextDate > originalDate) {
+          calculatedRecurringInstances.push({
+            ...transaction,
+            date: nextDate
+          });
         }
         
-        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
-          nextWeekExpenses += transaction.amount;
-        }
-        
-        if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
-          thisMonthExpenses += transaction.amount;
-        }
-        
-        if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
-          thisYearExpenses += transaction.amount;
-        }
-      } else {
-        // Calculate income for different time periods
-        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
-          thisWeekIncome += transaction.amount;
-        }
-        
-        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
-          nextWeekIncome += transaction.amount;
-        }
-        
-        if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
-          totalIncome += transaction.amount;
+        // Calculate next occurrence
+        switch (interval) {
+          case 'daily':
+            nextDate = addDays(nextDate, 1);
+            break;
+          case 'weekly':
+            nextDate = addWeeks(nextDate, 1);
+            break;
+          case 'monthly':
+            nextDate = addMonths(nextDate, 1);
+            break;
+          case 'yearly':
+            nextDate = addYears(nextDate, 1);
+            break;
+          default:
+            nextDate = addMonths(nextDate, 1);
         }
       }
     });
+    
+    // Process the recurring instances
+    processTransactions(calculatedRecurringInstances);
     
     // Calculate balance and savings
     const balance = totalIncome - thisMonthExpenses;

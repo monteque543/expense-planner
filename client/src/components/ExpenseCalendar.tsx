@@ -64,6 +64,7 @@ export default function ExpenseCalendar({
   // Group transactions by date, including recurring transactions
   const transactionsByDate = useMemo(() => {
     const grouped: Record<string, TransactionWithCategory[]> = {};
+    const today = new Date();
     
     transactions.forEach(transaction => {
       // Handle regular transactions
@@ -76,16 +77,16 @@ export default function ExpenseCalendar({
       }
       grouped[dateStr].push(transaction);
       
-      // For recurring transactions, also show them in future dates if applicable
+      // For recurring transactions, show future occurrences across all months including the current view
       if (transaction.isRecurring) {
         const originalDate = typeof transaction.date === 'string' 
           ? parseISO(transaction.date) 
           : transaction.date;
         
         const interval = transaction.recurringInterval || 'monthly';
-        let nextDate = new Date();
+        let nextDate: Date;
         
-        // Calculate next occurrence based on interval
+        // Calculate first occurrence based on interval
         switch (interval) {
           case 'daily':
             nextDate = addDays(originalDate, 1);
@@ -103,26 +104,34 @@ export default function ExpenseCalendar({
             nextDate = addMonths(originalDate, 1); // Default to monthly
         }
         
-        // Only add future occurrences that fall within the current view
-        const monthStart = startOfMonth(currentDate);
-        const monthEnd = endOfMonth(currentDate);
+        // Get the view boundaries - for the current month
+        const viewStart = startOfMonth(currentDate);
+        const viewEnd = endOfMonth(currentDate);
         
-        // Keep adding occurrences as long as they fall within view
-        while (nextDate >= monthStart && nextDate <= monthEnd) {
-          const nextDateStr = format(nextDate, 'yyyy-MM-dd');
-          if (!grouped[nextDateStr]) {
-            grouped[nextDateStr] = [];
+        // Calculate max future date (let's say 5 years from today)
+        const maxFutureDate = addYears(today, 5);
+        const recurringEndDate = transaction.recurringEndDate ? 
+          (typeof transaction.recurringEndDate === 'string' ? parseISO(transaction.recurringEndDate) : transaction.recurringEndDate) 
+          : maxFutureDate;
+        
+        // Keep adding occurrences as long as they're in the future and don't exceed the end date
+        while (nextDate <= recurringEndDate) {
+          // Only add instances that fall within the current calendar view
+          if (nextDate >= viewStart && nextDate <= viewEnd) {
+            const nextDateStr = format(nextDate, 'yyyy-MM-dd');
+            if (!grouped[nextDateStr]) {
+              grouped[nextDateStr] = [];
+            }
+            
+            // Create a copy of the transaction with the future date
+            const futureCopy = {
+              ...transaction,
+              displayDate: nextDate, // Store occurrence date
+              isRecurringInstance: true // Flag to indicate this is a recurring instance
+            };
+            
+            grouped[nextDateStr].push(futureCopy);
           }
-          
-          // Create a copy of the transaction with the future date
-          // This is just for display and doesn't affect the actual data
-          const futureCopy = {
-            ...transaction,
-            displayDate: nextDate, // Store original date separately
-            isRecurringInstance: true // Flag to indicate this is a recurring instance
-          };
-          
-          grouped[nextDateStr].push(futureCopy);
           
           // Calculate the next occurrence
           switch (interval) {
