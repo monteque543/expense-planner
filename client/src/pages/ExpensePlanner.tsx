@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
 import ExpenseSidebar from "@/components/ExpenseSidebar";
+import SubscriptionSummary from "@/components/SubscriptionSummary";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
@@ -212,7 +213,9 @@ export default function ExpensePlanner() {
       {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-foreground">Expense Planner</h1>
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold text-foreground">Expense Planner</h1>
+          </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             
@@ -293,6 +296,14 @@ export default function ExpensePlanner() {
           </div>
         </div>
       </header>
+      
+      {/* Subscription Summary */}
+      <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <SubscriptionSummary 
+          transactions={transactions}
+          isLoading={isLoadingTransactions || isLoadingCategories}
+        />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
