@@ -58,6 +58,7 @@ export class MemStorage implements IStorage {
       { name: "Beauty", color: "#d946ef", isExpense: true },
       { name: "IDOinDenmark", color: "#0ea5e9", isExpense: true },
       { name: "Courses", color: "#f97316", isExpense: true },
+      { name: "Subscription", color: "#14b8a6", isExpense: true },
       { name: "Other", color: "#64748b", isExpense: true }
     ];
     
