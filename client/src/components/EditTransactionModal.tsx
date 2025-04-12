@@ -24,7 +24,15 @@ interface EditTransactionModalProps {
 
 const editTransactionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.union([z.number(), z.string()]).transform(val => {
+    // Handle both number and string inputs
+    if (typeof val === 'string') {
+      const normalizedStr = val.replace(',', '.');
+      const num = parseFloat(normalizedStr);
+      return isNaN(num) ? 0 : num;
+    }
+    return val;
+  }).refine(val => val > 0, "Amount must be positive"),
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
   categoryId: z.coerce.number({
@@ -37,7 +45,7 @@ const editTransactionSchema = z.object({
   }),
   isExpense: z.boolean(),
   isRecurring: z.boolean().optional().default(false),
-  recurringInterval: z.enum(recurringIntervals).optional(),
+  recurringInterval: z.enum(recurringIntervals).optional().default('monthly'),
   recurringEndDate: z.string().optional(),
 });
 
@@ -96,10 +104,29 @@ export default function EditTransactionModal({
   function onSubmit(data: EditTransactionFormValues) {
     if (!transaction) return;
     
+    // Ensure amount is a valid number
+    const amount = typeof data.amount === 'string' 
+      ? parseFloat(data.amount.replace(',', '.')) 
+      : data.amount;
+      
+    if (isNaN(amount)) {
+      form.setError('amount', { 
+        type: 'validate', 
+        message: 'Please enter a valid number (e.g., 38.26)' 
+      });
+      return;
+    }
+    
     onUpdateTransaction(transaction.id, {
       ...data,
+      amount,
       // Convert string dates to Date objects
       date: new Date(data.date),
+      notes: data.notes || null,
+      categoryId: data.categoryId || null,
+      personLabel: data.personLabel || null,
+      isRecurring: data.isRecurring || false,
+      recurringInterval: data.isRecurring ? data.recurringInterval || 'monthly' : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
     });
   }

@@ -21,13 +21,21 @@ interface AddExpenseModalProps {
 
 const expenseFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.union([z.number(), z.string()]).transform(val => {
+    // Handle both number and string inputs
+    if (typeof val === 'string') {
+      const normalizedStr = val.replace(',', '.');
+      const num = parseFloat(normalizedStr);
+      return isNaN(num) ? 0 : num;
+    }
+    return val;
+  }).refine(val => val > 0, "Amount must be positive"),
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
   categoryId: z.coerce.number().optional(),
-  personLabel: z.enum(persons).optional(),
+  personLabel: z.enum(persons),
   isRecurring: z.boolean().optional().default(false),
-  recurringInterval: z.enum(recurringIntervals).optional(),
+  recurringInterval: z.enum(recurringIntervals).optional().default('monthly'),
   recurringEndDate: z.string().optional(),
 });
 
@@ -64,21 +72,23 @@ export default function AddExpenseModal({
   });
 
   function onSubmit(data: ExpenseFormValues) {
+    // Number conversion is now handled by Zod transformation
+    
     // Convert string dates to Date objects
     const formattedData = {
       ...data,
       date: new Date(data.date),
       notes: data.notes || null,
       categoryId: data.categoryId || null,
-      personLabel: data.personLabel || null,
+      personLabel: data.personLabel,  // Now required in schema
       isRecurring: data.isRecurring || false,
-      recurringInterval: data.isRecurring ? data.recurringInterval || null : null,
+      recurringInterval: data.isRecurring ? data.recurringInterval : null,
       recurringEndDate: data.isRecurring && data.recurringEndDate ? new Date(data.recurringEndDate) : null,
     };
     
     onAddExpense(formattedData);
     
-    // Reset the form after submission
+    // Reset the form after successful submission
     form.reset({
       title: "",
       amount: undefined,
@@ -87,7 +97,7 @@ export default function AddExpenseModal({
       categoryId: undefined,
       personLabel: undefined,
       isRecurring: false,
-      recurringInterval: undefined,
+      recurringInterval: 'monthly', // Default to monthly
       recurringEndDate: undefined,
     });
   }
