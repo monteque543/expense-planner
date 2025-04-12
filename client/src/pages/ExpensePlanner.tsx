@@ -4,6 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
 import ExpenseSidebar from "@/components/ExpenseSidebar";
 import SubscriptionSummary from "@/components/SubscriptionSummary";
+import UpcomingExpenses from "@/components/UpcomingExpenses";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
@@ -297,12 +298,22 @@ export default function ExpensePlanner() {
         </div>
       </header>
       
-      {/* Subscription Summary */}
+      {/* Summary Cards */}
       <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <SubscriptionSummary 
-          transactions={transactions}
-          isLoading={isLoadingTransactions || isLoadingCategories}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Subscription Summary */}
+          <SubscriptionSummary 
+            transactions={transactions}
+            isLoading={isLoadingTransactions || isLoadingCategories}
+          />
+          
+          {/* Upcoming Expenses */}
+          <UpcomingExpenses
+            transactions={transactions}
+            isLoading={isLoadingTransactions}
+            onEditTransaction={handleEditTransaction}
+          />
+        </div>
       </div>
 
       {/* Main Content */}
