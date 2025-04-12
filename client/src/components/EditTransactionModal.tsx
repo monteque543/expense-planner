@@ -67,7 +67,8 @@ export default function EditTransactionModal({
   onUpdateTransaction,
   transaction,
   categories,
-  isPending
+  isPending,
+  titleSuggestions = []
 }: EditTransactionModalProps) {
   
   // Create form with default values
@@ -167,7 +168,17 @@ export default function EditTransactionModal({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter title" {...field} />
+                    {titleSuggestions.length > 0 ? (
+                      <AutocompleteInput
+                        options={titleSuggestions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Enter title"
+                        emptyMessage="No matching titles found"
+                      />
+                    ) : (
+                      <Input placeholder="Enter title" {...field} />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

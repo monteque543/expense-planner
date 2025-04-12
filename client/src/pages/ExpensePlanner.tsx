@@ -375,6 +375,7 @@ export default function ExpensePlanner() {
         onAddExpense={(data) => addTransaction.mutate({ ...data, isExpense: true })}
         categories={categories.filter((c: Category) => c.isExpense)}
         isPending={addTransaction.isPending}
+        titleSuggestions={uniqueTitles}
       />
 
       <AddIncomeModal
@@ -382,6 +383,7 @@ export default function ExpensePlanner() {
         onClose={() => setShowIncomeModal(false)}
         onAddIncome={(data) => addTransaction.mutate({ ...data, isExpense: false })}
         isPending={addTransaction.isPending}
+        titleSuggestions={uniqueTitles}
       />
       
       <EditTransactionModal
@@ -394,6 +396,7 @@ export default function ExpensePlanner() {
         transaction={selectedTransaction}
         categories={categories}
         isPending={updateTransaction.isPending}
+        titleSuggestions={uniqueTitles}
       />
     </div>
   );
