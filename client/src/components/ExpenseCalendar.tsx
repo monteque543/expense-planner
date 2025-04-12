@@ -92,8 +92,8 @@ export default function ExpenseCalendar({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4 md:p-6">
-      <div className="bg-card rounded-lg shadow overflow-hidden">
+    <div className="flex-1 overflow-auto p-2 md:p-6 min-h-[500px]">
+      <div className="bg-card rounded-lg shadow overflow-auto">
         {/* Calendar Header */}
         <div className="bg-muted px-4 py-3 border-b border-border flex justify-between items-center">
           <div className="flex items-center space-x-2">

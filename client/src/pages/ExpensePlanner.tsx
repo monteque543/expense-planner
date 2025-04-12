@@ -210,7 +210,7 @@ export default function ExpensePlanner() {
     : transactions;
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
       {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -317,7 +317,7 @@ export default function ExpensePlanner() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <main className="flex-1 overflow-auto flex flex-col md:flex-row">
         {/* Calendar View */}
         <ExpenseCalendar 
           transactions={filteredTransactions}
