@@ -1,6 +1,11 @@
-import { users, type User, type InsertUser } from "@shared/schema";
-import { transactions, type Transaction, type InsertTransaction } from "@shared/schema";
-import { categories, type Category, type InsertCategory } from "@shared/schema";
+import {
+  users, type User, type InsertUser,
+  transactions, type Transaction, type InsertTransaction,
+  categories, type Category, type InsertCategory,
+  transactionsRelations, categoriesRelations
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, between, and, isNotNull } from "drizzle-orm";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
