@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
@@ -19,6 +19,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { Keyboard } from "lucide-react";
+import { getUniqueTitles } from "@/utils/titleUtils";
 
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -207,6 +208,11 @@ export default function ExpensePlanner() {
   // For calendar view, use all transactions so recurring instances in other months are visible
   // The calendar component will determine which ones to show based on the view dates
   const currentMonthTransactions = transactions;
+  
+  // Extract unique transaction titles for autocomplete
+  const uniqueTitles = useMemo(() => {
+    return getUniqueTitles(transactions);
+  }, [transactions]);
   
   // Filter transactions based on active category and person
   const filteredTransactions = currentMonthTransactions.filter((t) => {
