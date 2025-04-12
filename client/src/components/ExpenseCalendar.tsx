@@ -63,8 +63,14 @@ export default function ExpenseCalendar({
 
   // Group transactions by date, including recurring transactions
   const transactionsByDate = useMemo(() => {
+    console.log('Current date in calendar:', currentDate);
+    
     const grouped: Record<string, TransactionWithCategory[]> = {};
     const today = new Date();
+    
+    // Log recurring transactions
+    const recurringOnes = transactions.filter(t => t.isRecurring);
+    console.log('Recurring transactions:', recurringOnes);
     
     transactions.forEach(transaction => {
       // Handle regular transactions
@@ -85,6 +91,8 @@ export default function ExpenseCalendar({
         
         const interval = transaction.recurringInterval || 'monthly';
         let nextDate: Date;
+        
+        console.log(`Processing recurring transaction: ${transaction.title}, interval: ${interval}, original date: ${format(originalDate, 'yyyy-MM-dd')}`);
         
         // Calculate first occurrence based on interval
         switch (interval) {
@@ -108,14 +116,25 @@ export default function ExpenseCalendar({
         const viewStart = startOfMonth(currentDate);
         const viewEnd = endOfMonth(currentDate);
         
+        console.log(`View period: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+        console.log(`First occurrence: ${format(nextDate, 'yyyy-MM-dd')}`);
+        
         // Calculate max future date (let's say 5 years from today)
         const maxFutureDate = addYears(today, 5);
         const recurringEndDate = transaction.recurringEndDate ? 
           (typeof transaction.recurringEndDate === 'string' ? parseISO(transaction.recurringEndDate) : transaction.recurringEndDate) 
           : maxFutureDate;
         
+        // Create a counter to debug infinite loop
+        let counter = 0;
+        const MAX_ITERATIONS = 60; // Limit iterations to prevent infinite loops
+        
         // Keep adding occurrences as long as they're in the future and don't exceed the end date
-        while (nextDate <= recurringEndDate) {
+        while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
+          counter++;
+          
+          console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${nextDate >= viewStart && nextDate <= viewEnd}`);
+          
           // Only add instances that fall within the current calendar view
           if (nextDate >= viewStart && nextDate <= viewEnd) {
             const nextDateStr = format(nextDate, 'yyyy-MM-dd');
@@ -131,9 +150,11 @@ export default function ExpenseCalendar({
             };
             
             grouped[nextDateStr].push(futureCopy);
+            console.log(`Added future occurrence on ${nextDateStr}`);
           }
           
           // Calculate the next occurrence
+          const prevDate = new Date(nextDate);
           switch (interval) {
             case 'daily':
               nextDate = addDays(nextDate, 1);
@@ -150,10 +171,21 @@ export default function ExpenseCalendar({
             default:
               nextDate = addMonths(nextDate, 1);
           }
+          
+          // Check if date is advancing (prevent infinite loop)
+          if (nextDate.getTime() === prevDate.getTime()) {
+            console.error('Date not advancing, breaking loop');
+            break;
+          }
+        }
+        
+        if (counter >= MAX_ITERATIONS) {
+          console.warn(`Max iterations (${MAX_ITERATIONS}) reached for ${transaction.title}`);
         }
       }
     });
     
+    console.log('Transactions by date:', grouped);
     return grouped;
   }, [transactions, currentDate]);
 

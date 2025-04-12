@@ -204,14 +204,9 @@ export default function ExpensePlanner() {
     }
   };
 
-  // Filter transactions based on selected month for calendar view
-  const currentMonthTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return (
-      transactionDate.getMonth() === selectedDate.getMonth() &&
-      transactionDate.getFullYear() === selectedDate.getFullYear()
-    );
-  });
+  // For calendar view, use all transactions so recurring instances in other months are visible
+  // The calendar component will determine which ones to show based on the view dates
+  const currentMonthTransactions = transactions;
   
   // Filter transactions based on active category and person
   const filteredTransactions = currentMonthTransactions.filter((t) => {
