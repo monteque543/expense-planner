@@ -77,8 +77,8 @@ export default function ExpenseCalendar({
     const viewEnd = endOfMonth(currentDate);
     console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
     
-    // First, add the regular transactions
-    transactions.forEach(transaction => {
+    // First, add the non-recurring transactions
+    transactions.filter(t => !t.isRecurring).forEach(transaction => {
       // Handle regular transactions
       const dateStr = typeof transaction.date === 'string' 
         ? format(parseISO(transaction.date), 'yyyy-MM-dd')
