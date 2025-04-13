@@ -115,17 +115,24 @@ export default function ExpenseCalendar({
   activeView
 }: ExpenseCalendarProps) {
   const calendarDays = useMemo(() => {
-    // Get the start and end dates for the month
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(monthStart);
-    
-    // Get the start and end of the first week of the month
-    const calendarStart = startOfWeek(monthStart);
-    const calendarEnd = endOfWeek(monthEnd);
-    
-    // Get all days between calendarStart and calendarEnd
-    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  }, [currentDate]);
+    if (activeView === 'week') {
+      // For week view, only show the current week
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      return eachDayOfInterval({ start: weekStart, end: weekEnd });
+    } else {
+      // For month or year view, show the entire month
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(monthStart);
+      
+      // Get the start and end of the first week of the month
+      const calendarStart = startOfWeek(monthStart);
+      const calendarEnd = endOfWeek(monthEnd);
+      
+      // Get all days between calendarStart and calendarEnd
+      return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    }
+  }, [currentDate, activeView]);
 
   // Group transactions by date, including recurring transactions
   const transactionsByDate = useMemo(() => {
@@ -138,10 +145,24 @@ export default function ExpenseCalendar({
     const recurringOnes = transactions.filter(t => t.isRecurring);
     console.log('Recurring transactions:', recurringOnes);
     
-    // Calculate view boundaries - for the current month
-    const viewStart = startOfMonth(currentDate);
-    const viewEnd = endOfMonth(currentDate);
-    console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    // Calculate view boundaries based on active view
+    let viewStart: Date;
+    let viewEnd: Date;
+    
+    if (activeView === 'week') {
+      viewStart = startOfWeek(currentDate);
+      viewEnd = endOfWeek(currentDate);
+      console.log(`View period for week: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    } else if (activeView === 'year') {
+      viewStart = startOfYear(currentDate);
+      viewEnd = endOfYear(currentDate);
+      console.log(`View period for year: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    } else {
+      // Default to month view
+      viewStart = startOfMonth(currentDate);
+      viewEnd = endOfMonth(currentDate);
+      console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    }
     
     // First, add the non-recurring transactions
     transactions.filter(t => !t.isRecurring).forEach(transaction => {
@@ -292,7 +313,7 @@ export default function ExpenseCalendar({
     });
     
     return grouped;
-  }, [transactions, currentDate]);
+  }, [transactions, currentDate, activeView]);
 
   if (isLoading) {
     return (
