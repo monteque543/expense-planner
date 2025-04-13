@@ -10,6 +10,9 @@ import {
   parseISO,
   isToday,
   isBefore,
+  isWithinInterval,
+  startOfYear,
+  endOfYear,
   addDays,
   addWeeks,
   addMonths,
@@ -25,6 +28,67 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 
+// Helper function to get date range based on active view
+function getDateRangeForView(date: Date, view: 'week' | 'month' | 'year'): { start: Date, end: Date } {
+  switch (view) {
+    case 'week':
+      return {
+        start: startOfWeek(date),
+        end: endOfWeek(date)
+      };
+    case 'year':
+      return {
+        start: startOfYear(date),
+        end: endOfYear(date)
+      };
+    case 'month':
+    default:
+      return {
+        start: startOfMonth(date),
+        end: endOfMonth(date)
+      };
+  }
+}
+
+// Calculate total income for the given view period
+function calculateTotalIncome(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
+  const { start, end } = getDateRangeForView(date, view);
+  
+  return transactions
+    .filter(t => !t.isExpense) // Get only income transactions
+    .filter(t => {
+      const transactionDate = typeof t.date === 'string' ? new Date(t.date) : new Date(t.date);
+      return isWithinInterval(transactionDate, { start, end });
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+// Calculate total expenses for the given view period
+function calculateTotalExpenses(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
+  const { start, end } = getDateRangeForView(date, view);
+  
+  return transactions
+    .filter(t => t.isExpense) // Get only expense transactions
+    .filter(t => {
+      const transactionDate = typeof t.date === 'string' ? new Date(t.date) : new Date(t.date);
+      return isWithinInterval(transactionDate, { start, end });
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+// Calculate balance (income - expenses)
+function calculateBalance(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
+  const income = calculateTotalIncome(transactions, date, view);
+  const expenses = calculateTotalExpenses(transactions, date, view);
+  return income - expenses;
+}
+
+// Get CSS class for balance value
+function getBalanceClass(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): string {
+  const balance = calculateBalance(transactions, date, view);
+  return balance >= 0 ? 'text-green-500' : 'text-red-500';
+}
+
 interface ExpenseCalendarProps {
   transactions: TransactionWithCategory[];
   currentDate: Date;
@@ -35,6 +99,7 @@ interface ExpenseCalendarProps {
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   onDeleteTransaction: (id: number) => void;
   isLoading: boolean;
+  activeView: 'week' | 'month' | 'year';
 }
 
 export default function ExpenseCalendar({
@@ -46,7 +111,8 @@ export default function ExpenseCalendar({
   onSelectToday,
   onEditTransaction,
   onDeleteTransaction,
-  isLoading
+  isLoading,
+  activeView
 }: ExpenseCalendarProps) {
   const calendarDays = useMemo(() => {
     // Get the start and end dates for the month
@@ -268,12 +334,53 @@ export default function ExpenseCalendar({
               </svg>
             </button>
           </div>
-          <button 
-            onClick={onSelectToday}
-            className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
-          >
-            Today
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={onSelectToday}
+              className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
+            >
+              Today
+            </button>
+          </div>
+        </div>
+        
+        {/* Financial Summary Section */}
+        <div className="bg-muted/30 px-4 py-3 border-b border-border">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-semibold">
+              {activeView === 'week' ? 'Weekly' : activeView === 'month' ? 'Monthly' : 'Yearly'} Summary
+            </h3>
+            <div className="text-xs text-muted-foreground">
+              {activeView === 'week' ? 'Current Week' : activeView === 'month' ? 'Current Month' : 'Current Year'}
+            </div>
+          </div>
+          
+          {/* Financial Statistics */}
+          <div className="grid grid-cols-3 gap-4 mt-2">
+            {/* Income */}
+            <div className="bg-card p-2 rounded-md border border-border">
+              <div className="text-xs text-muted-foreground mb-1">Income</div>
+              <div className="text-green-500 font-semibold">
+                {calculateTotalIncome(transactions, currentDate, activeView).toFixed(2)} PLN
+              </div>
+            </div>
+            
+            {/* Expenses */}
+            <div className="bg-card p-2 rounded-md border border-border">
+              <div className="text-xs text-muted-foreground mb-1">Expenses</div>
+              <div className="text-red-500 font-semibold">
+                {calculateTotalExpenses(transactions, currentDate, activeView).toFixed(2)} PLN
+              </div>
+            </div>
+            
+            {/* Balance */}
+            <div className="bg-card p-2 rounded-md border border-border">
+              <div className="text-xs text-muted-foreground mb-1">Balance</div>
+              <div className={`font-semibold ${getBalanceClass(transactions, currentDate, activeView)}`}>
+                {calculateBalance(transactions, currentDate, activeView).toFixed(2)} PLN
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Calendar Grid */}

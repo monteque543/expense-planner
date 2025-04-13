@@ -350,6 +350,7 @@ export default function ExpensePlanner() {
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
           isLoading={isLoadingTransactions}
+          activeView={activeView}
         />
 
         {/* Sidebar View */}
