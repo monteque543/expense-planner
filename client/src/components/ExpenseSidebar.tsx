@@ -196,6 +196,7 @@ export default function ExpenseSidebar({
               }}
               onClick={() => onFilterChange(category.name)}
             >
+              {category.emoji && <span className="mr-1">{category.emoji}</span>}
               {category.name}
               {categoryCounts[category.name] && (
                 <span className="ml-1 bg-background/50 rounded-full px-1.5 py-0.5 text-[10px] font-normal">
@@ -264,6 +265,7 @@ export default function ExpenseSidebar({
                                 className="ml-2 px-2 py-0.5 text-xs rounded-full"
                                 style={{ backgroundColor: `${category.color}30`, color: category.color }}
                               >
+                                {category.emoji && <span className="mr-1">{category.emoji}</span>}
                                 {category.name}
                               </span>
                             )}
