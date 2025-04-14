@@ -9,6 +9,8 @@ import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
 import ThemeToggle from "@/components/ThemeToggle";
+import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
+import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
 import type { Category, Transaction, TransactionWithCategory } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -318,14 +320,32 @@ export default function ExpensePlanner() {
         </div>
       </header>
       
+      {/* Monthly Savings (Always Visible) */}
+      <div className="bg-background pt-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <MonthlySavingsSummary 
+          transactions={transactions}
+          currentDate={selectedDate}
+          isLoading={isLoadingTransactions}
+        />
+      </div>
+
       {/* Summary Cards */}
       <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Subscription Summary */}
-          <SubscriptionSummary 
-            transactions={transactions}
-            isLoading={isLoadingTransactions || isLoadingCategories}
-          />
+          {/* Top Row */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Subscription Summary */}
+            <SubscriptionSummary 
+              transactions={transactions}
+              isLoading={isLoadingTransactions || isLoadingCategories}
+            />
+            
+            {/* Recurring Expenses Summary */}
+            <RecurringExpensesSummary 
+              transactions={transactions}
+              isLoading={isLoadingTransactions || isLoadingCategories}
+            />
+          </div>
           
           {/* Upcoming Expenses */}
           <UpcomingExpenses

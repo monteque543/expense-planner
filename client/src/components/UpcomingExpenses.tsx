@@ -32,6 +32,8 @@ export default function UpcomingExpenses({
 }: UpcomingExpensesProps) {
   const [upcomingExpenses, setUpcomingExpenses] = useState<TransactionWithCategory[]>([]);
   const [totalUpcoming, setTotalUpcoming] = useState(0);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [remainingBudget, setRemainingBudget] = useState(0);
   
   useEffect(() => {
     // Use currentDate if provided, otherwise use today's date
@@ -145,6 +147,77 @@ export default function UpcomingExpenses({
     // Calculate total amount
     const total = sortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     setTotalUpcoming(total);
+    
+    // Calculate monthly income (both regular and recurring)
+    let income = 0;
+    
+    // Add regular income from the current month
+    transactions.forEach(transaction => {
+      if (!transaction.isExpense) {
+        const txDate = new Date(transaction.date);
+        const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
+        
+        if (isInCurrentMonth) {
+          income += transaction.amount;
+        }
+      }
+    });
+    
+    // Add recurring income for this month
+    const processedIncomeIds = new Set();
+    transactions.forEach(transaction => {
+      // Skip if not recurring or already processed or is an expense
+      if (!transaction.isRecurring || processedIncomeIds.has(transaction.id) || transaction.isExpense) {
+        return;
+      }
+      
+      processedIncomeIds.add(transaction.id);
+      
+      const originalDate = new Date(transaction.date);
+      const interval = transaction.recurringInterval || 'monthly';
+      
+      // Skip if the original date itself is in this month
+      if (originalDate >= monthStart && originalDate <= monthEnd) {
+        // Already counted above, so skip
+        return;
+      }
+      
+      // Calculate the next occurrence based on interval
+      let nextDate = new Date(originalDate);
+      
+      // Find the first occurrence in the current month
+      while (nextDate < monthStart) {
+        switch (interval) {
+          case 'daily': nextDate = addDays(nextDate, 1); break;
+          case 'weekly': nextDate = addWeeks(nextDate, 1); break;
+          case 'monthly': nextDate = addMonths(nextDate, 1); break;
+          case 'yearly': nextDate = addYears(nextDate, 1); break;
+          default: nextDate = addMonths(nextDate, 1);
+        }
+      }
+      
+      // If it falls in this month, add it
+      if (nextDate <= monthEnd) {
+        income += transaction.amount;
+      }
+    });
+    
+    setMonthlyIncome(income);
+    
+    // Calculate already spent expenses (past expenses in this month)
+    const spentExpenses = transactions.filter(transaction => {
+      if (!transaction.isExpense) return false;
+      
+      const txDate = new Date(transaction.date);
+      const isInPast = isBefore(txDate, today) && !isToday(txDate);
+      const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
+      
+      return isInCurrentMonth && isInPast;
+    }).reduce((sum, tx) => sum + tx.amount, 0);
+    
+    // Calculate remaining budget
+    const remaining = income - spentExpenses - total;
+    setRemainingBudget(remaining);
   }, [transactions, currentDate]);
   
   if (isLoading) {
@@ -268,9 +341,21 @@ export default function UpcomingExpenses({
                 </div>
               );
             })}
-            <div className="mt-4 pt-3 border-t border-border flex justify-between">
-              <span className="font-semibold">Total upcoming</span>
-              <span className="font-bold text-red-500">{totalUpcoming.toFixed(2)} PLN</span>
+            <div className="mt-4 pt-3 border-t border-border space-y-2">
+              <div className="flex justify-between">
+                <span className="font-semibold">Monthly income</span>
+                <span className="font-bold text-green-500">{monthlyIncome.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Total upcoming</span>
+                <span className="font-bold text-red-500">{totalUpcoming.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Remaining budget</span>
+                <span className={`font-bold ${remainingBudget >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {remainingBudget.toFixed(2)} PLN
+                </span>
+              </div>
             </div>
           </div>
         ) : (
