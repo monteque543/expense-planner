@@ -5,6 +5,7 @@ import { z } from "zod";
 import { 
   insertCategorySchema, 
   insertTransactionSchema, 
+  insertSavingsSchema,
   persons, 
   recurringIntervals 
 } from "@shared/schema";
@@ -286,6 +287,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting category:", error);
       res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Savings endpoints
+  router.get("/savings", async (_req: Request, res: Response) => {
+    try {
+      const savings = await storage.getSavings();
+      res.json(savings);
+    } catch (error) {
+      console.error("Error getting savings:", error);
+      res.status(500).json({ message: "Failed to get savings" });
+    }
+  });
+  
+  router.post("/savings", async (req: Request, res: Response) => {
+    try {
+      // Convert string date to Date object if needed
+      if (req.body.date && typeof req.body.date === 'string') {
+        req.body.date = new Date(req.body.date);
+      }
+
+      const savingsData = insertSavingsSchema.parse(req.body);
+      const newSavings = await storage.createSavings(savingsData);
+      res.status(201).json(newSavings);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error("Error creating savings entry:", error);
+      res.status(500).json({ message: "Failed to create savings entry" });
+    }
+  });
+  
+  router.delete("/savings/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid savings ID" });
+      }
+      
+      const success = await storage.deleteSavings(id);
+      if (!success) {
+        return res.status(404).json({ message: "Savings entry not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting savings entry:", error);
+      res.status(500).json({ message: "Failed to delete savings entry" });
     }
   });
 
