@@ -207,7 +207,10 @@ export default function AddExpenseModal({
                       <SelectContent>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
+                            <div className="flex items-center">
+                              {category.emoji && <span className="mr-2">{category.emoji}</span>}
+                              {category.name}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -145,16 +145,8 @@ export default function EditTransactionModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
+          <DialogTitle>
             Edit {watchIsExpense ? "Expense" : "Income"}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onClose}
-              className="h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
         
@@ -227,6 +219,7 @@ export default function EditTransactionModal({
                             className="w-3 h-3 rounded-full" 
                             style={{ backgroundColor: category.color }} 
                           />
+                          {category.emoji && <span className="mr-1">{category.emoji}</span>}
                           {category.name}
                         </SelectItem>
                       ))}
