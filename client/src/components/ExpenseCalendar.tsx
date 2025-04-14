@@ -165,6 +165,8 @@ export default function ExpenseCalendar({
     }
     
     // First, add the non-recurring transactions that fall within the current view period
+    console.log(`Filtering non-recurring transactions from ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
+    
     transactions.filter(t => !t.isRecurring).forEach(transaction => {
       // Parse the transaction date
       const transactionDate = typeof transaction.date === 'string' 
@@ -172,13 +174,19 @@ export default function ExpenseCalendar({
         : transaction.date;
       
       // Only include transactions that fall within the current view period
-      if (transactionDate >= viewStart && transactionDate <= viewEnd) {
+      const isInViewPeriod = transactionDate >= viewStart && transactionDate <= viewEnd;
+      
+      if (isInViewPeriod) {
         const dateStr = format(transactionDate, 'yyyy-MM-dd');
+        console.log(`Adding non-recurring transaction "${transaction.title}" (${dateStr}) to view`);
         
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         grouped[dateStr].push(transaction);
+      } else {
+        // For debugging purposes
+        console.log(`Skipping non-recurring transaction "${transaction.title}" (${format(transactionDate, 'yyyy-MM-dd')}) - outside view period`);
       }
     });
     
@@ -455,19 +463,22 @@ export default function ExpenseCalendar({
                       <div 
                         key={transIdx}
                         className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
-                          text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex justify-between items-center 
+                          text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex flex-col 
                           group cursor-pointer hover:opacity-90 ${isRecurringInstance ? 'border-l-2 border-white' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN${isRecurringInstance ? ' (Recurring)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                       >
-                        <span className="truncate flex items-center">
+                        {/* First row: Title with recurring indicator */}
+                        <div className="flex items-center w-full break-words">
                           {(transaction.isRecurring || isRecurringInstance) && (
-                            <span className="mr-0.5">⟳</span>
+                            <span className="mr-0.5 flex-shrink-0">⟳</span>
                           )}
-                          {transaction.title}
-                        </span>
-                        <div className="flex items-center">
-                          <span className="whitespace-nowrap mr-1 font-medium">{transaction.amount.toFixed(2)} PLN</span>
+                          <span className="break-words">{transaction.title}</span>
+                        </div>
+                        
+                        {/* Second row: Amount and actions */}
+                        <div className="flex justify-between items-center w-full mt-0.5">
+                          <span className="font-medium">{transaction.amount.toFixed(2)} PLN</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button 
