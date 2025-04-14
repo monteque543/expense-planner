@@ -14,6 +14,7 @@ import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
 import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
 import SavingsSummary from "@/components/SavingsSummary";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
+import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -428,6 +429,15 @@ export default function ExpensePlanner() {
               onEditTransaction={handleEditTransaction}
               currentDate={selectedDate}
             />
+            
+            {/* Budget Coaching Companion */}
+            <div className="mt-4">
+              <BudgetCoachingCompanion
+                transactions={transactions}
+                isLoading={isLoadingTransactions}
+                currentDate={selectedDate}
+              />
+            </div>
           </div>
         </div>
       </div>
