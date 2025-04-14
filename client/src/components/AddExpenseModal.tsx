@@ -19,6 +19,7 @@ interface AddExpenseModalProps {
   categories: Category[];
   isPending: boolean;
   titleSuggestions?: string[]; // Available title suggestions for autocomplete
+  defaultDate?: Date; // Default date to pre-fill in the form when opened from calendar
 }
 
 const expenseFormSchema = z.object({
@@ -57,14 +58,17 @@ export default function AddExpenseModal({
   onAddExpense,
   categories,
   isPending,
-  titleSuggestions = []
+  titleSuggestions = [],
+  defaultDate
 }: AddExpenseModalProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       title: "",
       amount: 0, // Initialize with 0 instead of undefined
-      date: new Date().toISOString().split('T')[0],
+      date: defaultDate 
+        ? defaultDate.toISOString().split('T')[0] 
+        : new Date().toISOString().split('T')[0],
       notes: "",
       categoryId: undefined,
       personLabel: undefined,

@@ -112,6 +112,7 @@ export default function ExpenseCalendar({
   onSelectToday,
   onEditTransaction,
   onDeleteTransaction,
+  onDayClick,
   isLoading,
   activeView
 }: ExpenseCalendarProps) {
@@ -440,7 +441,8 @@ export default function ExpenseCalendar({
             return (
               <div 
                 key={idx} 
-                className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''}`}
+                className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'cursor-pointer hover:bg-muted/40' : ''}`}
+                onClick={() => isCurrentMonth && onDayClick && onDayClick(day)}
               >
                 {/* Day number with highlighting for today */}
                 <div className={`flex justify-between items-center ${!isCurrentMonth ? 'text-muted-foreground' : isTodayDate ? 'font-medium text-red-700 dark:text-red-400' : 'font-medium'} text-sm`}>

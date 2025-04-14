@@ -15,7 +15,7 @@ import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
 import SavingsSummary from "@/components/SavingsSummary";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Tooltip, 
@@ -444,6 +444,11 @@ export default function ExpensePlanner() {
           onSelectToday={handleToday}
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
+          onDayClick={(date) => {
+            // When a day is clicked, open the expense form with the selected date
+            setSelectedDate(date);
+            setShowExpenseModal(true);
+          }}
           isLoading={isLoadingTransactions}
           activeView={activeView}
         />
