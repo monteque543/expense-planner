@@ -137,7 +137,8 @@ export class MemStorage implements IStorage {
       personLabel: insertTransaction.personLabel || null,
       isRecurring: insertTransaction.isRecurring || false,
       recurringInterval: insertTransaction.recurringInterval || null,
-      recurringEndDate: insertTransaction.recurringEndDate || null
+      recurringEndDate: insertTransaction.recurringEndDate || null,
+      isPaid: insertTransaction.isPaid || false
     };
     this.transactions.set(id, transaction);
     return transaction;
@@ -270,7 +271,8 @@ export class DatabaseStorage implements IStorage {
       personLabel: insertTransaction.personLabel || null,
       isRecurring: insertTransaction.isRecurring || false,
       recurringInterval: insertTransaction.recurringInterval || null,
-      recurringEndDate: insertTransaction.recurringEndDate || null
+      recurringEndDate: insertTransaction.recurringEndDate || null,
+      isPaid: insertTransaction.isPaid || false
     }).returning();
     
     return transaction;
