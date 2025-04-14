@@ -162,6 +162,7 @@ export class MemStorage implements IStorage {
       name: insertCategory.name,
       color: insertCategory.color,
       isExpense: insertCategory.isExpense !== undefined ? insertCategory.isExpense : true,
+      emoji: insertCategory.emoji || null,
     };
     this.categories.set(id, category);
     return category;

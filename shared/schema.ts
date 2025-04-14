@@ -32,12 +32,14 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   color: text("color").notNull(),
   isExpense: boolean("is_expense").notNull().default(true),
+  emoji: text("emoji"),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
   color: true,
   isExpense: true,
+  emoji: true,
 });
 
 // Person labels for transactions
