@@ -162,20 +162,36 @@ export default function UpcomingExpenses({
     // Calculate monthly income (both regular and recurring)
     let income = 0;
     
+    console.log(`--- INCOME CALCULATION ---`);
+    
     // Add regular income from the current month
+    const regularIncomeTransactions = [];
     transactions.forEach(transaction => {
       if (!transaction.isExpense) {
         const txDate = new Date(transaction.date);
         const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
         
+        console.log(`Income check: ${transaction.title} (${format(txDate, 'yyyy-MM-dd')}) - ${transaction.amount} PLN, isInMonth: ${isInCurrentMonth}, isRecurring: ${transaction.isRecurring}`);
+        
         if (isInCurrentMonth) {
           income += transaction.amount;
+          regularIncomeTransactions.push({
+            title: transaction.title,
+            date: format(txDate, 'yyyy-MM-dd'),
+            amount: transaction.amount,
+            isRecurring: transaction.isRecurring
+          });
         }
       }
     });
     
+    console.log(`Regular income transactions:`, regularIncomeTransactions);
+    console.log(`Regular income total: ${regularIncomeTransactions.reduce((sum, tx) => sum + tx.amount, 0)} PLN`);
+    
     // Add recurring income for this month
     const processedIncomeIds = new Set();
+    const recurringIncomeTransactions = [];
+    
     transactions.forEach(transaction => {
       // Skip if not recurring or already processed or is an expense
       if (!transaction.isRecurring || processedIncomeIds.has(transaction.id) || transaction.isExpense) {
@@ -187,8 +203,11 @@ export default function UpcomingExpenses({
       const originalDate = new Date(transaction.date);
       const interval = transaction.recurringInterval || 'monthly';
       
+      console.log(`Recurring income check: ${transaction.title} (${format(originalDate, 'yyyy-MM-dd')}) - ${transaction.amount} PLN, interval: ${interval}`);
+      
       // Skip if the original date itself is in this month
       if (originalDate >= monthStart && originalDate <= monthEnd) {
+        console.log(`  - Original date in current month, already counted above`);
         // Already counted above, so skip
         return;
       }
@@ -209,14 +228,29 @@ export default function UpcomingExpenses({
       
       // If it falls in this month, add it
       if (nextDate <= monthEnd) {
+        console.log(`  - Next occurrence on ${format(nextDate, 'yyyy-MM-dd')} falls in current month`);
         income += transaction.amount;
+        recurringIncomeTransactions.push({
+          title: transaction.title,
+          originalDate: format(originalDate, 'yyyy-MM-dd'),
+          nextDate: format(nextDate, 'yyyy-MM-dd'),
+          amount: transaction.amount,
+          interval
+        });
+      } else {
+        console.log(`  - Next occurrence on ${format(nextDate, 'yyyy-MM-dd')} outside current month`);
       }
     });
+    
+    console.log(`Recurring income transactions:`, recurringIncomeTransactions);
+    console.log(`Recurring income total: ${recurringIncomeTransactions.reduce((sum, tx) => sum + tx.amount, 0)} PLN`);
+    console.log(`TOTAL INCOME: ${income} PLN`);
+    console.log(`--------------------`);
     
     setMonthlyIncome(income);
     
     // Calculate already spent expenses (past expenses in this month or paid expenses)
-    const spentExpenses = transactions.filter(transaction => {
+    const spentTransactions = transactions.filter(transaction => {
       if (!transaction.isExpense) return false;
       
       const txDate = new Date(transaction.date);
@@ -226,12 +260,27 @@ export default function UpcomingExpenses({
       // 1. It's in the past (but not today) and in this month, OR
       // 2. It's marked as paid and in this month
       const isInPast = isBefore(txDate, today) && !isToday(txDate);
+      const shouldCount = isInCurrentMonth && (isInPast || transaction.isPaid);
       
-      return isInCurrentMonth && (isInPast || transaction.isPaid);
-    }).reduce((sum, tx) => sum + tx.amount, 0);
+      // Add detailed logging for all expenses
+      console.log(`Expense: ${transaction.title} (${format(txDate, 'yyyy-MM-dd')}) - ${transaction.amount} PLN, isPaid: ${transaction.isPaid}, isInPast: ${isInPast}, isInMonth: ${isInCurrentMonth}, shouldCount: ${shouldCount}`);
+      
+      return shouldCount;
+    });
+    
+    // Log all spent transactions
+    console.log('Already spent transactions:', spentTransactions.map(tx => ({ 
+      title: tx.title, 
+      date: format(new Date(tx.date), 'yyyy-MM-dd'),
+      amount: tx.amount,
+      isPaid: tx.isPaid
+    })));
+    
+    const spentExpenses = spentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
     
     // Calculate remaining budget
     const remaining = income - spentExpenses - total;
+    console.log(`Budget calculation: Income: ${income} PLN - Spent: ${spentExpenses} PLN - Upcoming: ${total} PLN = Remaining: ${remaining} PLN`);
     setRemainingBudget(remaining);
   }, [transactions, currentDate]);
   
