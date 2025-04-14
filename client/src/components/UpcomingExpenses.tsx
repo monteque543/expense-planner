@@ -35,6 +35,8 @@ export default function UpcomingExpenses({
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(0);
   const [spentExpensesAmount, setSpentExpensesAmount] = useState(0);
+  const [todayExpensesAmount, setTodayExpensesAmount] = useState(0);
+  const [allMonthlyExpensesAmount, setAllMonthlyExpensesAmount] = useState(0);
   
   useEffect(() => {
     // Use currentDate if provided, otherwise use today's date
@@ -296,7 +298,7 @@ export default function UpcomingExpenses({
     
     const spentExpenses = spentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
     
-    // Get all monthly expenses (past + upcoming)
+    // Get all monthly expenses (past + today + upcoming)
     const allMonthlyExpenses = transactions.filter(transaction => {
       if (!transaction.isExpense) return false;
       
@@ -305,26 +307,38 @@ export default function UpcomingExpenses({
       return isInCurrentMonth;
     }).reduce((sum, tx) => sum + tx.amount, 0);
     
-    // Calculate what's already been spent or is past due
+    // Calculate what's already been spent (past expenses)
     const spentExpensesTotal = spentExpenses;
     
+    // Calculate today's expenses separately
+    const todayExpenses = transactions.filter(transaction => {
+      if (!transaction.isExpense) return false;
+      
+      const txDate = new Date(transaction.date);
+      return isToday(txDate);
+    }).reduce((sum, tx) => sum + tx.amount, 0);
+    
     // Calculate the current available budget (income - already spent expenses)
-    const currentAvailableBudget = income - spentExpensesTotal;
+    const currentAvailableBudget = income - spentExpensesTotal - todayExpenses;
     
     // Now subtract upcoming expenses to get what will remain after paying them
     const afterPayingUpcoming = currentAvailableBudget - total;
     
-    console.log(`NEW Budget calculation for Upcoming Expenses component:`);
+    console.log(`IMPROVED Budget calculation for Upcoming Expenses component:`);
     console.log(`- Monthly Income: ${income.toFixed(2)} PLN`);
+    console.log(`- All monthly expenses: ${allMonthlyExpenses.toFixed(2)} PLN`);
     console.log(`- Already spent expenses: ${spentExpensesTotal.toFixed(2)} PLN`);
-    console.log(`- Current available budget: ${currentAvailableBudget.toFixed(2)} PLN`);
+    console.log(`- Today's expenses: ${todayExpenses.toFixed(2)} PLN`);
     console.log(`- Upcoming expenses: ${total.toFixed(2)} PLN`);
+    console.log(`- Current available budget: ${currentAvailableBudget.toFixed(2)} PLN`);
     console.log(`- What will remain after paying upcoming: ${afterPayingUpcoming.toFixed(2)} PLN`);
     
     // Save all the values we need for display
     setSpentExpensesAmount(spentExpensesTotal);
     setTotalUpcoming(total);
     setMonthlyIncome(income);
+    setTodayExpensesAmount(todayExpenses);
+    setAllMonthlyExpensesAmount(allMonthlyExpenses);
     
     // For the Upcoming Expenses component, we want to show what will remain AFTER paying upcoming expenses
     setRemainingBudget(afterPayingUpcoming);
@@ -463,12 +477,16 @@ export default function UpcomingExpenses({
                 <span className="font-bold text-green-500">{monthlyIncome.toFixed(2)} PLN</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold">Total expenses</span>
-                <span className="font-bold text-red-500">{(spentExpensesAmount + totalUpcoming).toFixed(2)} PLN</span>
+                <span className="font-semibold">Total monthly expenses</span>
+                <span className="font-bold text-red-500">{allMonthlyExpensesAmount.toFixed(2)} PLN</span>
               </div>
               <div className="flex justify-between pl-4 text-sm text-muted-foreground">
                 <span>Already spent</span>
                 <span>{spentExpensesAmount.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between pl-4 text-sm text-muted-foreground">
+                <span>Today's expenses</span>
+                <span>{todayExpensesAmount.toFixed(2)} PLN</span>
               </div>
               <div className="flex justify-between pl-4 text-sm text-muted-foreground">
                 <span>Upcoming expenses</span>
@@ -481,7 +499,7 @@ export default function UpcomingExpenses({
                 </span>
               </div>
               <div className="flex justify-between text-xs pl-4 text-muted-foreground italic">
-                <span>Calculation: {monthlyIncome.toFixed(2)} - {spentExpensesAmount.toFixed(2)} - {totalUpcoming.toFixed(2)}</span>
+                <span>Calculation: {monthlyIncome.toFixed(2)} - {spentExpensesAmount.toFixed(2)} - {todayExpensesAmount.toFixed(2)} - {totalUpcoming.toFixed(2)}</span>
               </div>
             </div>
           </div>
