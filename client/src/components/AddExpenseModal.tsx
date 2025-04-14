@@ -82,12 +82,19 @@ export default function AddExpenseModal({
     reValidateMode: "onSubmit",
   });
   
-  // Update the date field when defaultDate changes
+  // Update the date field when defaultDate changes or modal opens
   useEffect(() => {
     if (defaultDate && isOpen) {
-      const formattedDate = defaultDate.toISOString().split('T')[0];
-      console.log('Setting date to:', formattedDate);
-      form.setValue('date', formattedDate);
+      // Clone the date to ensure we're working with a fresh copy
+      const clonedDate = new Date(defaultDate.getTime());
+      const formattedDate = clonedDate.toISOString().split('T')[0];
+      console.log('Setting date in form to:', formattedDate, 'from', defaultDate.toISOString());
+      
+      // Force a reset of the form with the new date
+      form.reset({
+        ...form.getValues(),
+        date: formattedDate
+      });
     }
   }, [defaultDate, isOpen, form]);
 

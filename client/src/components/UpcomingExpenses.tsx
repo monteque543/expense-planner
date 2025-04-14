@@ -206,15 +206,19 @@ export default function UpcomingExpenses({
     
     setMonthlyIncome(income);
     
-    // Calculate already spent expenses (past expenses in this month)
+    // Calculate already spent expenses (past expenses in this month or paid expenses)
     const spentExpenses = transactions.filter(transaction => {
       if (!transaction.isExpense) return false;
       
       const txDate = new Date(transaction.date);
-      const isInPast = isBefore(txDate, today) && !isToday(txDate);
       const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
       
-      return isInCurrentMonth && isInPast;
+      // Count as spent if either:
+      // 1. It's in the past (but not today) and in this month, OR
+      // 2. It's marked as paid and in this month
+      const isInPast = isBefore(txDate, today) && !isToday(txDate);
+      
+      return isInCurrentMonth && (isInPast || transaction.isPaid);
     }).reduce((sum, tx) => sum + tx.amount, 0);
     
     // Calculate remaining budget
