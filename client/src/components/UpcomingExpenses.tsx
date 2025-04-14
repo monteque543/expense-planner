@@ -34,6 +34,7 @@ export default function UpcomingExpenses({
   const [totalUpcoming, setTotalUpcoming] = useState(0);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(0);
+  const [spentExpensesAmount, setSpentExpensesAmount] = useState(0);
   
   useEffect(() => {
     // Use currentDate if provided, otherwise use today's date
@@ -320,6 +321,11 @@ export default function UpcomingExpenses({
     console.log(`- Upcoming expenses: ${total.toFixed(2)} PLN`);
     console.log(`- What will remain after paying upcoming: ${afterPayingUpcoming.toFixed(2)} PLN`);
     
+    // Save all the values we need for display
+    setSpentExpensesAmount(spentExpensesTotal);
+    setTotalUpcoming(total);
+    setMonthlyIncome(income);
+    
     // For the Upcoming Expenses component, we want to show what will remain AFTER paying upcoming expenses
     setRemainingBudget(afterPayingUpcoming);
   }, [transactions, currentDate]);
@@ -457,14 +463,25 @@ export default function UpcomingExpenses({
                 <span className="font-bold text-green-500">{monthlyIncome.toFixed(2)} PLN</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold">Total upcoming</span>
-                <span className="font-bold text-red-500">{totalUpcoming.toFixed(2)} PLN</span>
+                <span className="font-semibold">Total expenses</span>
+                <span className="font-bold text-red-500">{(spentExpensesAmount + totalUpcoming).toFixed(2)} PLN</span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">After payment</span>
+              <div className="flex justify-between pl-4 text-sm text-muted-foreground">
+                <span>Already spent</span>
+                <span>{spentExpensesAmount.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between pl-4 text-sm text-muted-foreground">
+                <span>Upcoming expenses</span>
+                <span>{totalUpcoming.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between mt-2">
+                <span className="font-semibold">Remaining budget</span>
                 <span className={`font-bold ${remainingBudget >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {remainingBudget.toFixed(2)} PLN
                 </span>
+              </div>
+              <div className="flex justify-between text-xs pl-4 text-muted-foreground italic">
+                <span>Calculation: {monthlyIncome.toFixed(2)} - {spentExpensesAmount.toFixed(2)} - {totalUpcoming.toFixed(2)}</span>
               </div>
             </div>
           </div>
