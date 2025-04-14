@@ -304,27 +304,24 @@ export default function UpcomingExpenses({
       return isInCurrentMonth;
     }).reduce((sum, tx) => sum + tx.amount, 0);
     
-    // The tricky part is that allMonthlyExpenses already includes both spent and upcoming expenses.
-    // We need to be careful not to double-count the upcoming expenses.
+    // Calculate what's already been spent or is past due
+    const spentExpensesTotal = spentExpenses;
     
-    // First calculate the remaining budget that matches other components (income minus all expenses)
-    const generalRemainingBudget = income - allMonthlyExpenses;
+    // Calculate the current available budget (income - already spent expenses)
+    const currentAvailableBudget = income - spentExpensesTotal;
     
-    // For display in the Upcoming Expenses component, the "After Paying" remaining budget
-    // is already correctly calculated as generalRemainingBudget, since allMonthlyExpenses 
-    // already includes both past and upcoming expenses.
+    // Now subtract upcoming expenses to get what will remain after paying them
+    const afterPayingUpcoming = currentAvailableBudget - total;
     
-    console.log(`Final Budget calculation for Upcoming Expenses:`);
+    console.log(`NEW Budget calculation for Upcoming Expenses component:`);
     console.log(`- Monthly Income: ${income.toFixed(2)} PLN`);
-    console.log(`- All Monthly Expenses: ${allMonthlyExpenses.toFixed(2)} PLN`);
-    console.log(`- Of which, Spent/Past Expenses: ${spentExpenses.toFixed(2)} PLN`);
-    console.log(`- Of which, Upcoming Expenses: ${total.toFixed(2)} PLN`);
-    console.log(`- Remaining budget (for other components): ${generalRemainingBudget.toFixed(2)} PLN`);
-    console.log(`- Remaining after paying upcoming expenses SHOULD BE: ${generalRemainingBudget.toFixed(2)} PLN`);
+    console.log(`- Already spent expenses: ${spentExpensesTotal.toFixed(2)} PLN`);
+    console.log(`- Current available budget: ${currentAvailableBudget.toFixed(2)} PLN`);
+    console.log(`- Upcoming expenses: ${total.toFixed(2)} PLN`);
+    console.log(`- What will remain after paying upcoming: ${afterPayingUpcoming.toFixed(2)} PLN`);
     
-    // For the Upcoming Expenses component, we show the general remaining budget
-    // (which already accounts for upcoming expenses in allMonthlyExpenses)
-    setRemainingBudget(generalRemainingBudget);
+    // For the Upcoming Expenses component, we want to show what will remain AFTER paying upcoming expenses
+    setRemainingBudget(afterPayingUpcoming);
   }, [transactions, currentDate]);
   
   if (isLoading) {
@@ -464,7 +461,7 @@ export default function UpcomingExpenses({
                 <span className="font-bold text-red-500">{totalUpcoming.toFixed(2)} PLN</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold">Current budget</span>
+                <span className="font-semibold">After payment</span>
                 <span className={`font-bold ${remainingBudget >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {remainingBudget.toFixed(2)} PLN
                 </span>
