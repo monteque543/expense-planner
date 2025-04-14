@@ -1,8 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { format, parseISO } from "date-fns";
-import { TransactionWithCategory } from "@shared/schema";
+import { useState, useEffect } from 'react';
+import { TransactionWithCategory } from '@shared/schema';
+import { format } from 'date-fns';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { RepeatIcon } from 'lucide-react';
 
 interface RecurringExpensesSummaryProps {
   transactions: TransactionWithCategory[];
@@ -10,26 +11,33 @@ interface RecurringExpensesSummaryProps {
 }
 
 export default function RecurringExpensesSummary({ transactions, isLoading }: RecurringExpensesSummaryProps) {
-  // Filter for recurring expenses that are not subscriptions
-  const recurringExpenses = transactions.filter(t => 
-    t.isRecurring && 
-    t.isExpense && 
-    t.category?.name !== "Subscription"
-  );
+  const [recurringExpenses, setRecurringExpenses] = useState<TransactionWithCategory[]>([]);
+  const [totalRecurring, setTotalRecurring] = useState(0);
   
-  // Sort by date (most recent first)
-  recurringExpenses.sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
-    return dateA.getTime() - dateB.getTime();
-  });
-
+  useEffect(() => {
+    // Filter for recurring expenses that are not subscriptions
+    const filteredRecurring = transactions.filter(transaction => 
+      transaction.isRecurring && 
+      transaction.isExpense && 
+      transaction.category?.name !== 'Subscription' // Exclude subscription category
+    );
+    
+    // Sort by amount (highest first)
+    const sortedRecurring = [...filteredRecurring].sort((a, b) => b.amount - a.amount);
+    
+    setRecurringExpenses(sortedRecurring);
+    
+    // Calculate total recurring expenses
+    const total = sortedRecurring.reduce((sum, expense) => sum + expense.amount, 0);
+    setTotalRecurring(total);
+  }, [transactions]);
+  
   if (isLoading) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Recurring Expenses</CardTitle>
-          <CardDescription>Regular payments that aren't subscriptions</CardDescription>
+          <Skeleton className="h-6 w-40 mb-1" />
+          <Skeleton className="h-4 w-60" />
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -41,55 +49,49 @@ export default function RecurringExpensesSummary({ transactions, isLoading }: Re
       </Card>
     );
   }
-
+  
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Recurring Expenses</CardTitle>
-        <CardDescription>Regular payments that aren't subscriptions</CardDescription>
+        <CardTitle className="flex items-center">
+          <RepeatIcon className="mr-2 h-5 w-5 text-purple-500" />
+          Recurring Expenses
+        </CardTitle>
+        <CardDescription>Regular expenses excluding subscriptions</CardDescription>
       </CardHeader>
       <CardContent>
         {recurringExpenses.length > 0 ? (
-          <div className="space-y-2">
-            {recurringExpenses.map((expense) => {
-              const date = typeof expense.date === 'string' 
-                ? parseISO(expense.date) 
-                : expense.date;
-              
-              return (
-                <div key={expense.id} className="flex justify-between items-center border-b pb-2">
-                  <div className="flex flex-col">
-                    <div className="font-medium flex items-center">
-                      {expense.category?.emoji && (
-                        <span className="mr-2">{expense.category.emoji}</span>
-                      )}
+          <div className="space-y-3">
+            {recurringExpenses.map((expense, index) => (
+              <div 
+                key={expense.id} 
+                className="flex justify-between items-center p-2 rounded hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900">
+                    <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">⟳</span>
+                  </div>
+                  <div>
+                    <div className="font-medium leading-none">
                       {expense.title}
                     </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span>
-                        {expense.recurringInterval ? `${expense.recurringInterval.charAt(0).toUpperCase()}${expense.recurringInterval.slice(1)}` : 'Monthly'}
-                      </span>
-                      <Badge 
-                        variant="outline" 
-                        style={{ 
-                          backgroundColor: expense.category?.color || '#6B7280',
-                          color: 'white'
-                        }}
-                      >
-                        {expense.personLabel}
-                      </Badge>
+                    <div className="text-sm text-muted-foreground flex items-center">
+                      {expense.recurringInterval} • {expense.personLabel}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-red-500">-{expense.amount.toFixed(2)} PLN</div>
-                    <div className="text-xs text-muted-foreground">Next: {format(date, 'MMM d')}</div>
-                  </div>
                 </div>
-              );
-            })}
+                <div className="font-semibold">
+                  {expense.amount.toFixed(2)} PLN
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 pt-3 border-t border-border flex justify-between">
+              <span className="font-semibold">Total recurring</span>
+              <span className="font-bold text-purple-500">{totalRecurring.toFixed(2)} PLN</span>
+            </div>
           </div>
         ) : (
-          <div className="text-center text-muted-foreground py-6">
+          <div className="text-center py-6 text-muted-foreground">
             No recurring expenses found
           </div>
         )}
