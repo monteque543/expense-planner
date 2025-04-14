@@ -112,12 +112,7 @@ export default function AddExpenseModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
-            <span>Add New Expense</span>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Add New Expense</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
