@@ -63,6 +63,7 @@ export const transactions = pgTable("transactions", {
   isRecurring: boolean("is_recurring").default(false),
   recurringInterval: text("recurring_interval"), // 'daily', 'weekly', 'monthly', 'yearly'
   recurringEndDate: timestamp("recurring_end_date"),
+  isPaid: boolean("is_paid").default(false),
 });
 
 // Override the auto-generated schema with our custom validations
@@ -82,6 +83,7 @@ export const insertTransactionSchema = z.object({
   isRecurring: z.boolean().nullable().optional(),
   recurringInterval: z.enum(recurringIntervals).nullable().optional(),
   recurringEndDate: dateTransformer.nullable().optional(),
+  isPaid: z.boolean().default(false).optional(),
 });
 
 // Types
