@@ -445,15 +445,22 @@ export default function ExpensePlanner() {
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
           onDayClick={(date) => {
-            // When a day is clicked, open the expense form with the selected date
-            // Create a fresh copy of the date to prevent any reference issues
-            const clickedDate = new Date(date.getTime());
-            console.log('Day clicked:', clickedDate.toISOString());
-            setShowExpenseModal(true);
-            // Use setTimeout to ensure state updates properly before the modal opens
+            // Create a new date object at noon to ensure timezone consistency
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const day = date.getDate();
+            const clickedDate = new Date(year, month, day, 12, 0, 0);
+            
+            console.log('Day clicked:', 
+                        `${year}-${month+1}-${day}`, 
+                        'ISO:', clickedDate.toISOString());
+            
+            // First update the date, then show the modal
+            setSelectedDate(clickedDate);
+            // Use setTimeout to ensure state is updated before showing the modal
             setTimeout(() => {
-              setSelectedDate(clickedDate);
-            }, 0);
+              setShowExpenseModal(true);
+            }, 50);
           }}
           isLoading={isLoadingTransactions}
           activeView={activeView}

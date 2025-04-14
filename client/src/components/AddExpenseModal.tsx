@@ -85,10 +85,24 @@ export default function AddExpenseModal({
   // Update the date field when defaultDate changes or modal opens
   useEffect(() => {
     if (defaultDate && isOpen) {
-      // Clone the date to ensure we're working with a fresh copy
-      const clonedDate = new Date(defaultDate.getTime());
-      const formattedDate = clonedDate.toISOString().split('T')[0];
-      console.log('Setting date in form to:', formattedDate, 'from', defaultDate.toISOString());
+      // Force the date to be at noon to avoid timezone issues
+      const clonedDate = new Date(
+        defaultDate.getFullYear(),
+        defaultDate.getMonth(),
+        defaultDate.getDate(),
+        12, 0, 0
+      );
+      
+      // Format the date directly to YYYY-MM-DD to avoid timezone issues
+      const day = String(clonedDate.getDate()).padStart(2, '0');
+      const month = String(clonedDate.getMonth() + 1).padStart(2, '0');
+      const year = clonedDate.getFullYear();
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      console.log('Setting date in form to:', formattedDate, 'from', 
+                  defaultDate.getFullYear() + '-' + 
+                  (defaultDate.getMonth() + 1) + '-' + 
+                  defaultDate.getDate());
       
       // Force a reset of the form with the new date
       form.reset({

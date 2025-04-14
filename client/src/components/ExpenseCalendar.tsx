@@ -444,8 +444,9 @@ export default function ExpenseCalendar({
                 className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'cursor-pointer hover:bg-muted/40' : ''}`}
                 onClick={() => {
                   if (isCurrentMonth && onDayClick) {
-                    // Create a new date object to ensure we're passing a fresh instance
-                    const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                    // Create a new date object with time set to noon to avoid timezone issues
+                    // This ensures the date stays the same regardless of timezone conversions
+                    const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
                     console.log('Calendar day clicked:', format(clickedDate, 'yyyy-MM-dd'));
                     onDayClick(clickedDate);
                   }
