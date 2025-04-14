@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { PersonLabel, persons, insertSavingsSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { formatDate } from "@/utils/dateUtils";
 
 import {
@@ -34,7 +33,7 @@ interface AddSavingsModalProps {
   onAddSavings: (data: {
     amount: number;
     date: Date;
-    notes?: string | null;
+    notes: string | null;
     personLabel: PersonLabel;
   }) => void;
   isPending: boolean;
@@ -65,7 +64,7 @@ export default function AddSavingsModal({
   onAddSavings,
   isPending,
 }: AddSavingsModalProps) {
-  // Current date for default value
+  // Get current date for the default value - only calculated once when component mounts
   const today = new Date();
   const formattedDate = formatDate(today, "yyyy-MM-dd");
 
@@ -85,12 +84,12 @@ export default function AddSavingsModal({
     if (!isOpen) {
       form.reset({
         amount: "",
-        date: today,
+        date: new Date(),
         notes: "",
         personLabel: "Together" as PersonLabel,
       });
     }
-  }, [isOpen, form, today]);
+  }, [isOpen]); // Don't include form in dependencies
 
   // Handle form submission
   function onSubmit(data: SavingsFormValues) {
@@ -100,7 +99,7 @@ export default function AddSavingsModal({
     onAddSavings({
       amount,
       date: data.date,
-      notes: data.notes,
+      notes: data.notes || null, // Convert empty string to null
       personLabel: data.personLabel,
     });
   }

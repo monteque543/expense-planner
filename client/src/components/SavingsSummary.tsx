@@ -36,10 +36,10 @@ export default function SavingsSummary({
   isPending,
   currentDate = new Date() 
 }: SavingsSummaryProps) {
-  // Calculate total actual savings (manual contributions)
+  // Calculate total actual savings (manual contributions) - show all savings regardless of date
   const totalActualSavings = savings.reduce((total, saving) => total + saving.amount, 0);
   
-  // Calculate the budget left (income - expenses)
+  // Calculate the budget left for the currently viewed month (income - expenses)
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
   
@@ -58,6 +58,9 @@ export default function SavingsSummary({
     .reduce((total, t) => total + t.amount, 0);
   
   const budgetLeft = income - expenses;
+  
+  // Get the current month name for display
+  const currentMonthName = format(currentDate, 'MMMM yyyy');
   
   // Format numbers for display
   const formatCurrency = (amount: number) => {
@@ -106,7 +109,7 @@ export default function SavingsSummary({
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Budget Left</p>
+            <p className="text-sm font-medium text-muted-foreground">Budget Left ({currentMonthName})</p>
             <p className={`text-2xl font-bold ${budgetLeft >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatCurrency(budgetLeft)}
             </p>

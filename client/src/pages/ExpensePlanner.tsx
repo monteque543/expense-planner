@@ -486,7 +486,14 @@ export default function ExpensePlanner() {
       <AddSavingsModal
         isOpen={showSavingsModal}
         onClose={() => setShowSavingsModal(false)}
-        onAddSavings={(data) => addSavings.mutate(data)}
+        onAddSavings={(data) => {
+          // Ensure notes is never undefined
+          const sanitizedData = {
+            ...data,
+            notes: data.notes || null
+          };
+          addSavings.mutate(sanitizedData);
+        }}
         isPending={addSavings.isPending}
       />
     </div>
