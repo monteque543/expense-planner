@@ -177,8 +177,9 @@ export default function UpcomingExpenses({
       if (!transaction.isExpense) {
         const txDate = new Date(transaction.date);
         const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
+        const isRecurringValue = Boolean(transaction.isRecurring);
         
-        console.log(`Income check: ${transaction.title} (${format(txDate, 'yyyy-MM-dd')}) - ${transaction.amount} PLN, isInMonth: ${isInCurrentMonth}, isRecurring: ${transaction.isRecurring}`);
+        console.log(`Income check: ${transaction.title} (${format(txDate, 'yyyy-MM-dd')}) - ${transaction.amount} PLN, isInMonth: ${isInCurrentMonth}, isRecurring: ${isRecurringValue}`);
         
         if (isInCurrentMonth) {
           income += transaction.amount;
@@ -186,7 +187,7 @@ export default function UpcomingExpenses({
             title: transaction.title,
             date: format(txDate, 'yyyy-MM-dd'),
             amount: transaction.amount,
-            isRecurring: transaction.isRecurring
+            isRecurring: isRecurringValue
           });
         }
       }
@@ -294,9 +295,21 @@ export default function UpcomingExpenses({
     
     const spentExpenses = spentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
     
-    // Calculate remaining budget
-    const remaining = income - spentExpenses - total;
-    console.log(`Budget calculation: Income: ${income} PLN - Spent: ${spentExpenses} PLN - Upcoming: ${total} PLN = Remaining: ${remaining} PLN`);
+    // Get all monthly expenses (past + upcoming)
+    const allMonthlyExpenses = transactions.filter(transaction => {
+      if (!transaction.isExpense) return false;
+      
+      const txDate = new Date(transaction.date);
+      const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
+      return isInCurrentMonth;
+    }).reduce((sum, tx) => sum + tx.amount, 0);
+    
+    // Calculate remaining budget using the same approach as FinancialSummary
+    const remaining = income - allMonthlyExpenses;
+    
+    console.log(`Updated budget calculation: Income: ${income} PLN - All Monthly Expenses: ${allMonthlyExpenses} PLN = Remaining: ${remaining} PLN`);
+    console.log(`(Previous calculation: Income: ${income} PLN - Spent: ${spentExpenses} PLN - Upcoming: ${total} PLN = ${income - spentExpenses - total} PLN)`);
+    
     setRemainingBudget(remaining);
   }, [transactions, currentDate]);
   
