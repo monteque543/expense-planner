@@ -51,12 +51,15 @@ export default function ExpensePlanner() {
       
       switch (e.key.toUpperCase()) {
         case 'E': // Add Expense
+          e.preventDefault(); // Prevent the 'e' from being added to input fields
           setShowExpenseModal(true);
           break;
         case 'I': // Add Income
+          e.preventDefault(); // Prevent the 'i' from being added to input fields
           setShowIncomeModal(true);
           break;
         case 'T': // Today view
+          e.preventDefault(); // Prevent the 't' from being added to input fields
           handleToday();
           break;
         case 'W': // Week view
@@ -92,10 +95,7 @@ export default function ExpensePlanner() {
       return apiRequest('POST', '/api/transactions', transactionData);
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Transaction added successfully",
-      });
+      // Removed success toast as requested by user
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       setShowExpenseModal(false);
       setShowIncomeModal(false);

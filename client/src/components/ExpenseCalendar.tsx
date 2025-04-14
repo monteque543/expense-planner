@@ -164,17 +164,22 @@ export default function ExpenseCalendar({
       console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
     }
     
-    // First, add the non-recurring transactions
+    // First, add the non-recurring transactions that fall within the current view period
     transactions.filter(t => !t.isRecurring).forEach(transaction => {
-      // Handle regular transactions
-      const dateStr = typeof transaction.date === 'string' 
-        ? format(parseISO(transaction.date), 'yyyy-MM-dd')
-        : format(transaction.date, 'yyyy-MM-dd');
+      // Parse the transaction date
+      const transactionDate = typeof transaction.date === 'string' 
+        ? parseISO(transaction.date)
+        : transaction.date;
       
-      if (!grouped[dateStr]) {
-        grouped[dateStr] = [];
+      // Only include transactions that fall within the current view period
+      if (transactionDate >= viewStart && transactionDate <= viewEnd) {
+        const dateStr = format(transactionDate, 'yyyy-MM-dd');
+        
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = [];
+        }
+        grouped[dateStr].push(transaction);
       }
-      grouped[dateStr].push(transaction);
     });
     
     // Then, separately process recurring transactions to show future occurrences
