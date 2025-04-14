@@ -86,6 +86,7 @@ export default function EditTransactionModal({
       isRecurring: false,
       recurringInterval: 'monthly', // Default to monthly
       recurringEndDate: undefined,
+      isPaid: false, // Default to unpaid
     },
     // Keep values when form has errors
     mode: "onSubmit",
@@ -112,6 +113,7 @@ export default function EditTransactionModal({
         recurringEndDate: transaction.recurringEndDate 
           ? format(new Date(transaction.recurringEndDate), "yyyy-MM-dd") 
           : undefined,
+        isPaid: transaction.isPaid || false, // Include the isPaid field
       });
     }
   }, [transaction, form]);
@@ -131,6 +133,7 @@ export default function EditTransactionModal({
       isRecurring: data.isRecurring || false,
       recurringInterval: data.isRecurring ? data.recurringInterval : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+      isPaid: data.isPaid || false, // Include the isPaid field
     });
   }
 
@@ -315,6 +318,28 @@ export default function EditTransactionModal({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Paid status switch */}
+            <FormField
+              control={form.control}
+              name="isPaid"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Paid Status</FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      Mark this transaction as paid
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

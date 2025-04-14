@@ -466,15 +466,24 @@ export default function ExpenseCalendar({
                         key={transIdx}
                         className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
                           text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex flex-col 
-                          group cursor-pointer hover:opacity-90 ${isRecurringInstance ? 'border-l-2 border-white' : ''}`}
+                          group cursor-pointer hover:opacity-90 
+                          ${isRecurringInstance ? 'border-l-2 border-white' : ''}
+                          ${transaction.isPaid ? 'opacity-75' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN${isRecurringInstance ? ' (Recurring)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                       >
-                        {/* First row: Title with recurring indicator */}
+                        {/* First row: Title with recurring indicator and paid status */}
                         <div className="flex items-center w-full break-words">
+                          {/* Recurring indicator */}
                           {(transaction.isRecurring || isRecurringInstance) && (
                             <span className="mr-0.5 flex-shrink-0">⟳</span>
                           )}
+                          
+                          {/* Paid status indicator */}
+                          {transaction.isPaid && (
+                            <span className="mr-0.5 flex-shrink-0" title="Paid">✓</span>
+                          )}
+                          
                           <span className="break-words">{transaction.title}</span>
                         </div>
                         
