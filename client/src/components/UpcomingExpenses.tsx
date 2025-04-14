@@ -66,10 +66,11 @@ export default function UpcomingExpenses({
         transactionDate >= monthStart && 
         transactionDate <= monthEnd;
       
-      // For non-recurring expenses, only show if they're today or in the future AND not paid
+      // For non-recurring expenses, only show if they're in the future (not today) AND not paid
       if (isInSelectedMonth && !transaction.isRecurring) {
-        // Only include expenses that are today or in the future AND not paid
-        return transactionDate >= today && !transaction.isPaid;
+        // Only include expenses that are in the future (after today) AND not paid
+        // This excludes today's expenses which should be considered "current" not "upcoming"
+        return isAfter(transactionDate, today) && !transaction.isPaid;
       }
       
       // For recurring transactions, check if any occurrences fall in the selected month
@@ -81,10 +82,10 @@ export default function UpcomingExpenses({
         let nextDate = new Date(originalDate);
         let hasUpcomingInstanceInMonth = false;
         
-        // If the original date is in the selected month and is today or in the future AND not paid
+        // If the original date is in the selected month and is in the future (not today) AND not paid
         if (originalDate >= monthStart && 
             originalDate <= monthEnd && 
-            originalDate >= today &&
+            isAfter(originalDate, today) &&
             !transaction.isPaid) {
           return true;
         }
@@ -108,10 +109,10 @@ export default function UpcomingExpenses({
               nextDate = addMonths(nextDate, 1);
           }
           
-          // If this occurrence is in the selected month and is today or in the future AND not paid
+          // If this occurrence is in the selected month and is in the future (after today) AND not paid
           if (nextDate >= monthStart && 
               nextDate <= monthEnd && 
-              nextDate >= today &&
+              isAfter(nextDate, today) &&
               !transaction.isPaid) {
             hasUpcomingInstanceInMonth = true;
             break;
@@ -271,22 +272,22 @@ export default function UpcomingExpenses({
                 const monthEnd = endOfMonth(referenceDate);
                 const interval = expense.recurringInterval || 'monthly';
                 
-                // If the original date is in this month and is today or later
+                // If the original date is in this month and is in the future (after today)
                 if (originalDate >= monthStart && 
                     originalDate <= monthEnd && 
-                    originalDate >= today) {
+                    isAfter(originalDate, today)) {
                   dueDate = originalDate;
                 } else {
-                  // Find next occurrence in this month that's today or later
+                  // Find next occurrence in this month that's in the future (after today)
                   let nextDate = new Date(originalDate);
                   
                   // Keep advancing until we find a date that's:
                   // 1. In the selected month, AND
-                  // 2. Today or in the future
+                  // 2. In the future (after today)
                   let safetyCounter = 0;
                   while ((nextDate < monthStart || 
                           nextDate > monthEnd || 
-                          nextDate < today) && 
+                          !isAfter(nextDate, today)) && 
                           safetyCounter < 50) {
                     safetyCounter++;
                     
