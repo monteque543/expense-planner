@@ -106,6 +106,30 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
+// Savings table to track manual savings contributions
+export const savings = pgTable("savings", {
+  id: serial("id").primaryKey(),
+  amount: doublePrecision("amount").notNull(),
+  date: timestamp("date").notNull(),
+  notes: text("notes"),
+  personLabel: text("person_label"),
+});
+
+// Schema for savings
+export const insertSavingsSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be positive"),
+  date: dateTransformer,
+  notes: z.string().nullable().optional(),
+  personLabel: z.enum(persons, {
+    required_error: "Person is required",
+    invalid_type_error: "Person must be selected"
+  }),
+});
+
+// Savings types
+export type InsertSavings = z.infer<typeof insertSavingsSchema>;
+export type Savings = typeof savings.$inferSelect;
+
 // Extended types for the app
 export type TransactionWithCategory = Transaction & {
   category?: Category;

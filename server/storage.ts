@@ -2,6 +2,7 @@ import {
   users, type User, type InsertUser,
   transactions, type Transaction, type InsertTransaction,
   categories, type Category, type InsertCategory,
+  savings, type Savings, type InsertSavings,
   transactionsRelations, categoriesRelations
 } from "@shared/schema";
 import { db } from "./db";
@@ -29,23 +30,33 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: number, category: Partial<Category>): Promise<Category | undefined>;
   deleteCategory(id: number): Promise<boolean>;
+  
+  // Savings operations
+  getSavings(): Promise<Savings[]>;
+  getSavingsByDateRange(startDate: Date, endDate: Date): Promise<Savings[]>;
+  createSavings(savings: InsertSavings): Promise<Savings>;
+  deleteSavings(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private transactions: Map<number, Transaction>;
   private categories: Map<number, Category>;
+  private savings: Map<number, Savings>;
   private userId: number;
   private transactionId: number;
   private categoryId: number;
+  private savingsId: number;
 
   constructor() {
     this.users = new Map();
     this.transactions = new Map();
     this.categories = new Map();
+    this.savings = new Map();
     this.userId = 1;
     this.transactionId = 1;
     this.categoryId = 1;
+    this.savingsId = 1;
     
     // Initialize with some default categories
     this.initializeCategories();
@@ -180,6 +191,35 @@ export class MemStorage implements IStorage {
   async deleteCategory(id: number): Promise<boolean> {
     return this.categories.delete(id);
   }
+  
+  // Savings operations
+  async getSavings(): Promise<Savings[]> {
+    return Array.from(this.savings.values());
+  }
+  
+  async getSavingsByDateRange(startDate: Date, endDate: Date): Promise<Savings[]> {
+    return Array.from(this.savings.values()).filter(savingsEntry => {
+      const savingsDate = new Date(savingsEntry.date);
+      return savingsDate >= startDate && savingsDate <= endDate;
+    });
+  }
+  
+  async createSavings(insertSavings: InsertSavings): Promise<Savings> {
+    const id = this.savingsId++;
+    const savingsEntry: Savings = {
+      id,
+      amount: insertSavings.amount,
+      date: insertSavings.date,
+      notes: insertSavings.notes || null,
+      personLabel: insertSavings.personLabel,
+    };
+    this.savings.set(id, savingsEntry);
+    return savingsEntry;
+  }
+  
+  async deleteSavings(id: number): Promise<boolean> {
+    return this.savings.delete(id);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -283,6 +323,36 @@ export class DatabaseStorage implements IStorage {
     const deleted = await db.delete(categories)
       .where(eq(categories.id, id))
       .returning({ id: categories.id });
+    
+    return deleted.length > 0;
+  }
+  
+  // Savings operations
+  async getSavings(): Promise<Savings[]> {
+    return await db.select().from(savings);
+  }
+  
+  async getSavingsByDateRange(startDate: Date, endDate: Date): Promise<Savings[]> {
+    return await db.select().from(savings).where(
+      between(savings.date, startDate, endDate)
+    );
+  }
+  
+  async createSavings(insertSavings: InsertSavings): Promise<Savings> {
+    const [savingsEntry] = await db.insert(savings).values({
+      amount: insertSavings.amount,
+      date: insertSavings.date,
+      notes: insertSavings.notes || null,
+      personLabel: insertSavings.personLabel,
+    }).returning();
+    
+    return savingsEntry;
+  }
+  
+  async deleteSavings(id: number): Promise<boolean> {
+    const deleted = await db.delete(savings)
+      .where(eq(savings.id, id))
+      .returning({ id: savings.id });
     
     return deleted.length > 0;
   }
