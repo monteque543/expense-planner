@@ -7,11 +7,14 @@ import SubscriptionSummary from "@/components/SubscriptionSummary";
 import UpcomingExpenses from "@/components/UpcomingExpenses";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
+import AddSavingsModal from "@/components/AddSavingsModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
 import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
-import type { Category, Transaction, TransactionWithCategory } from "@shared/schema";
+import SavingsSummary from "@/components/SavingsSummary";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
+import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -26,6 +29,7 @@ import { getUniqueTitles } from "@/utils/titleUtils";
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithCategory | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -45,6 +49,7 @@ export default function ExpensePlanner() {
       if (
         showExpenseModal || 
         showIncomeModal || 
+        showSavingsModal ||
         activeElement?.tagName === 'INPUT' || 
         activeElement?.tagName === 'TEXTAREA'
       ) {
@@ -59,6 +64,10 @@ export default function ExpensePlanner() {
         case 'I': // Add Income
           e.preventDefault(); // Prevent the 'i' from being added to input fields
           setShowIncomeModal(true);
+          break;
+        case 'S': // Add Savings
+          e.preventDefault(); // Prevent the 's' from being added to input fields
+          setShowSavingsModal(true);
           break;
         case 'T': // Today view
           e.preventDefault(); // Prevent the 't' from being added to input fields
@@ -78,7 +87,7 @@ export default function ExpensePlanner() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showExpenseModal, showIncomeModal]);
+  }, [showExpenseModal, showIncomeModal, showSavingsModal]);
 
   // Fetch transactions
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionWithCategory[]>({
