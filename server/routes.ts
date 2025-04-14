@@ -19,18 +19,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const recurringTransactions = await storage.getRecurringTransactions();
       
-      // For each transaction, attach its category if it has one
-      const transactionsWithCategories = await Promise.all(
-        recurringTransactions.map(async (transaction) => {
-          if (transaction.categoryId) {
-            const category = await storage.getCategoryById(transaction.categoryId);
-            if (category) {
-              return { ...transaction, category };
-            }
+      // Get all categories in a single query
+      const allCategories = await storage.getCategories();
+      const categoriesMap = new Map(allCategories.map(cat => [cat.id, cat]));
+      
+      // Join transactions with categories efficiently
+      const transactionsWithCategories = recurringTransactions.map(transaction => {
+        if (transaction.categoryId) {
+          const category = categoriesMap.get(transaction.categoryId);
+          if (category) {
+            return { ...transaction, category };
           }
-          return transaction;
-        })
-      );
+        }
+        return transaction;
+      });
       
       res.json(transactionsWithCategories);
     } catch (error) {
