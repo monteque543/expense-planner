@@ -43,17 +43,21 @@ export default function UpcomingExpenses({
     const monthStart = startOfMonth(referenceDate);
     const monthEnd = endOfMonth(referenceDate);
     
-    // Today's date for highlighting today's expenses
+    // Today's date for filtering out today's expenses
     const today = startOfDay(new Date());
+    
+    // Create tomorrow's date (to filter to only show expenses from tomorrow onwards)
+    const tomorrow = addDays(today, 1);
     
     // Get month name for display
     const monthName = format(referenceDate, 'MMMM yyyy');
     
     // Log the reference period
     console.log(`Filtering upcoming expenses for: ${monthName} (${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')})`);
+    console.log(`Today's date: ${format(today, 'yyyy-MM-dd')}, Tomorrow's date: ${format(tomorrow, 'yyyy-MM-dd')}`);
     
     // Filter for expenses in the current month based on the viewing month
-    // and only show expenses from today or in the future
+    // and only show expenses starting from tomorrow (explicitly excluding today)
     const expenses = transactions.filter(transaction => {
       // Only include expenses
       if (!transaction.isExpense) return false;
@@ -66,11 +70,13 @@ export default function UpcomingExpenses({
         transactionDate >= monthStart && 
         transactionDate <= monthEnd;
       
-      // For non-recurring expenses, only show if they're in the future (not today) AND not paid
+      // For non-recurring expenses, only show if they're tomorrow or later (not today) AND not paid
       if (isInSelectedMonth && !transaction.isRecurring) {
-        // Only include expenses that are in the future (after today) AND not paid
-        // This excludes today's expenses which should be considered "current" not "upcoming"
-        return isAfter(transactionDate, today) && !transaction.isPaid;
+        // Only include expenses that are tomorrow or later AND not paid
+        // This explicitly excludes today's expenses which should be considered "current" not "upcoming"
+        const isTommorrowOrLater = transactionDate >= tomorrow;
+        console.log(`Transaction "${transaction.title}" on ${format(transactionDate, 'yyyy-MM-dd')} is ${isTommorrowOrLater ? 'tomorrow or later' : 'today or earlier'}`);
+        return isTommorrowOrLater && !transaction.isPaid;
       }
       
       // For recurring transactions, check if any occurrences fall in the selected month
@@ -82,11 +88,12 @@ export default function UpcomingExpenses({
         let nextDate = new Date(originalDate);
         let hasUpcomingInstanceInMonth = false;
         
-        // If the original date is in the selected month and is in the future (not today) AND not paid
+        // If the original date is in the selected month and is tomorrow or later AND not paid
         if (originalDate >= monthStart && 
             originalDate <= monthEnd && 
-            isAfter(originalDate, today) &&
+            originalDate >= tomorrow &&
             !transaction.isPaid) {
+          console.log(`Recurring transaction "${transaction.title}" original date ${format(originalDate, 'yyyy-MM-dd')} is in the future (after tomorrow)`);
           return true;
         }
         
@@ -109,11 +116,12 @@ export default function UpcomingExpenses({
               nextDate = addMonths(nextDate, 1);
           }
           
-          // If this occurrence is in the selected month and is in the future (after today) AND not paid
+          // If this occurrence is in the selected month and is tomorrow or later AND not paid
           if (nextDate >= monthStart && 
               nextDate <= monthEnd && 
-              isAfter(nextDate, today) &&
+              nextDate >= tomorrow &&
               !transaction.isPaid) {
+            console.log(`Recurring transaction "${transaction.title}" next occurrence on ${format(nextDate, 'yyyy-MM-dd')} is tomorrow or later`);
             hasUpcomingInstanceInMonth = true;
             break;
           }
@@ -272,22 +280,25 @@ export default function UpcomingExpenses({
                 const monthEnd = endOfMonth(referenceDate);
                 const interval = expense.recurringInterval || 'monthly';
                 
-                // If the original date is in this month and is in the future (after today)
+                // Create tomorrow's date for filtering
+                const tomorrow = addDays(today, 1);
+                
+                // If the original date is in this month and is tomorrow or later
                 if (originalDate >= monthStart && 
                     originalDate <= monthEnd && 
-                    isAfter(originalDate, today)) {
+                    originalDate >= tomorrow) {
                   dueDate = originalDate;
                 } else {
-                  // Find next occurrence in this month that's in the future (after today)
+                  // Find next occurrence in this month that's tomorrow or later
                   let nextDate = new Date(originalDate);
                   
                   // Keep advancing until we find a date that's:
                   // 1. In the selected month, AND
-                  // 2. In the future (after today)
+                  // 2. Tomorrow or later (not today)
                   let safetyCounter = 0;
                   while ((nextDate < monthStart || 
                           nextDate > monthEnd || 
-                          !isAfter(nextDate, today)) && 
+                          nextDate < tomorrow) && 
                           safetyCounter < 50) {
                     safetyCounter++;
                     
