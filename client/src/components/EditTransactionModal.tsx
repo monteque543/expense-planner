@@ -49,6 +49,7 @@ const editTransactionSchema = z.object({
   isRecurring: z.boolean().optional().default(false),
   recurringInterval: z.enum(recurringIntervals).optional().default('monthly'),
   recurringEndDate: z.string().optional(),
+  isPaid: z.boolean().optional().default(false),
 });
 
 type EditTransactionFormValues = z.infer<typeof editTransactionSchema>;

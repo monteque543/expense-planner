@@ -77,6 +77,7 @@ export default function AddIncomeModal({
       isRecurring: data.isRecurring || false,
       recurringInterval: data.isRecurring ? data.recurringInterval || null : null,
       recurringEndDate: data.isRecurring && data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+      isPaid: false, // Default to unpaid for new income
     };
     
     onAddIncome(formattedData);

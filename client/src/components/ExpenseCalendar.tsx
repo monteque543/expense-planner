@@ -427,8 +427,10 @@ export default function ExpenseCalendar({
           {/* Calendar Days */}
           {calendarDays.map((day, idx) => {
             const dayStr = format(day, 'yyyy-MM-dd');
-            const dayTransactions = transactionsByDate[dayStr] || [];
+            // Only show transactions for days that are in the current month view
             const isCurrentMonth = isSameMonth(day, currentDate);
+            // Filter transactions - only show for current month days
+            const dayTransactions = isCurrentMonth ? (transactionsByDate[dayStr] || []) : [];
             const isTodayDate = isToday(day);
             const isPastDay = isBefore(day, new Date());
             const dayHasTransactions = dayTransactions.length > 0;
