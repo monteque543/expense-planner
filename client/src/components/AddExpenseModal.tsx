@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,15 @@ export default function AddExpenseModal({
     mode: "onSubmit",
     reValidateMode: "onSubmit",
   });
+  
+  // Update the date field when defaultDate changes
+  useEffect(() => {
+    if (defaultDate && isOpen) {
+      const formattedDate = defaultDate.toISOString().split('T')[0];
+      console.log('Setting date to:', formattedDate);
+      form.setValue('date', formattedDate);
+    }
+  }, [defaultDate, isOpen, form]);
 
   function onSubmit(data: ExpenseFormValues) {
     // Number conversion is now handled by Zod transformation

@@ -108,10 +108,11 @@ export default function UpcomingExpenses({
               nextDate = addMonths(nextDate, 1);
           }
           
-          // If this occurrence is in the selected month and is today or in the future
+          // If this occurrence is in the selected month and is today or in the future AND not paid
           if (nextDate >= monthStart && 
               nextDate <= monthEnd && 
-              nextDate >= today) {
+              nextDate >= today &&
+              !transaction.isPaid) {
             hasUpcomingInstanceInMonth = true;
             break;
           }
