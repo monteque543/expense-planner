@@ -13,6 +13,7 @@ interface RecurringExpensesSummaryProps {
 export default function RecurringExpensesSummary({ transactions, isLoading }: RecurringExpensesSummaryProps) {
   const [recurringExpenses, setRecurringExpenses] = useState<TransactionWithCategory[]>([]);
   const [totalRecurring, setTotalRecurring] = useState(0);
+  const [totalMonthlyCommitments, setTotalMonthlyCommitments] = useState(0);
   
   useEffect(() => {
     // Filter for recurring expenses that are not subscriptions
@@ -22,14 +23,28 @@ export default function RecurringExpensesSummary({ transactions, isLoading }: Re
       transaction.category?.name !== 'Subscription' // Exclude subscription category
     );
     
-    // Sort by amount (highest first)
+    // Filter for subscription expenses
+    const subscriptionExpenses = transactions.filter(transaction => 
+      transaction.isRecurring && 
+      transaction.isExpense && 
+      transaction.category?.name === 'Subscription'
+    );
+    
+    // Sort recurring expenses by amount (highest first)
     const sortedRecurring = [...filteredRecurring].sort((a, b) => b.amount - a.amount);
     
     setRecurringExpenses(sortedRecurring);
     
-    // Calculate total recurring expenses
-    const total = sortedRecurring.reduce((sum, expense) => sum + expense.amount, 0);
-    setTotalRecurring(total);
+    // Calculate total recurring expenses (non-subscription)
+    const totalRecurringAmount = sortedRecurring.reduce((sum, expense) => sum + expense.amount, 0);
+    setTotalRecurring(totalRecurringAmount);
+    
+    // Calculate total subscription expenses
+    const totalSubscriptionAmount = subscriptionExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Calculate total monthly commitments (subscriptions + recurring expenses)
+    const totalCommitments = totalRecurringAmount + totalSubscriptionAmount;
+    setTotalMonthlyCommitments(totalCommitments);
   }, [transactions]);
   
   if (isLoading) {
@@ -85,14 +100,30 @@ export default function RecurringExpensesSummary({ transactions, isLoading }: Re
                 </div>
               </div>
             ))}
-            <div className="mt-4 pt-3 border-t border-border flex justify-between">
-              <span className="font-semibold">Total recurring</span>
-              <span className="font-bold text-purple-500">{totalRecurring.toFixed(2)} PLN</span>
+            <div className="mt-4 pt-3 border-t border-border space-y-2">
+              <div className="flex justify-between">
+                <span className="font-semibold">Total recurring</span>
+                <span className="font-bold text-purple-500">{totalRecurring.toFixed(2)} PLN</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Total monthly commitments</span>
+                <span className="font-bold text-red-500">{totalMonthlyCommitments.toFixed(2)} PLN</span>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            No recurring expenses found
+          <div>
+            <div className="text-center py-4 text-muted-foreground">
+              No recurring expenses found
+            </div>
+            {totalMonthlyCommitments > 0 && (
+              <div className="mt-4 pt-3 border-t border-border space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold">Total monthly commitments</span>
+                  <span className="font-bold text-red-500">{totalMonthlyCommitments.toFixed(2)} PLN</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
