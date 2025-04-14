@@ -326,9 +326,12 @@ export default function UpcomingExpenses({
                       <CheckCircle2 className="text-muted-foreground h-5 w-5" />
                     )}
                     <div>
-                      <div className="font-medium leading-none">
-                        {expense.title}
+                      <div className="font-medium leading-none flex items-center">
+                        <span className={expense.isPaid ? 'opacity-75' : ''}>
+                          {expense.title}
+                        </span>
                         {expense.isRecurring && <span className="ml-1">⟳</span>}
+                        {expense.isPaid && <span className="ml-1 text-green-500" title="Paid">✓</span>}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {format(dueDate, 'MMM d, yyyy')}

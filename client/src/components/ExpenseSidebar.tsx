@@ -3,7 +3,7 @@ import { format, parseISO, isToday, startOfWeek, endOfWeek, addWeeks, startOfMon
 import { Category, TransactionWithCategory, persons } from '@shared/schema';
 import FinancialSummary from './FinancialSummary';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Check, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -259,7 +259,17 @@ export default function ExpenseSidebar({
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
-                            <span className="font-medium text-foreground">{transaction.title}</span>
+                            <div className="flex items-center">
+                              {/* Paid status badge */}
+                              {transaction.isPaid && (
+                                <span className="mr-1 text-green-500" title="Paid">
+                                  <Check className="h-4 w-4" />
+                                </span>
+                              )}
+                              <span className={`font-medium text-foreground ${transaction.isPaid ? 'opacity-75' : ''}`}>
+                                {transaction.title}
+                              </span>
+                            </div>
                             {category && (
                               <span 
                                 className="ml-2 px-2 py-0.5 text-xs rounded-full"
