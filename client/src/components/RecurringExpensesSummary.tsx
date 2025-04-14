@@ -66,67 +66,70 @@ export default function RecurringExpensesSummary({ transactions, isLoading }: Re
   }
   
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center">
-          <RepeatIcon className="mr-2 h-5 w-5 text-purple-500" />
-          Recurring Expenses
-        </CardTitle>
-        <CardDescription>Regular expenses excluding subscriptions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {recurringExpenses.length > 0 ? (
-          <div className="space-y-3">
-            {recurringExpenses.map((expense, index) => (
-              <div 
-                key={expense.id} 
-                className="flex justify-between items-center p-2 rounded hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900">
-                    <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">⟳</span>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center">
+            <RepeatIcon className="mr-2 h-5 w-5 text-purple-500" />
+            Recurring Expenses
+          </CardTitle>
+          <CardDescription>Regular expenses excluding subscriptions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recurringExpenses.length > 0 ? (
+            <div className="space-y-3">
+              {recurringExpenses.map((expense, index) => (
+                <div 
+                  key={expense.id} 
+                  className="flex justify-between items-center p-2 rounded hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900">
+                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">⟳</span>
+                    </div>
+                    <div>
+                      <div className="font-medium leading-none">
+                        {expense.title}
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        {expense.recurringInterval} • {expense.personLabel}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium leading-none">
-                      {expense.title}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center">
-                      {expense.recurringInterval} • {expense.personLabel}
-                    </div>
+                  <div className="font-semibold">
+                    {expense.amount.toFixed(2)} PLN
                   </div>
                 </div>
-                <div className="font-semibold">
-                  {expense.amount.toFixed(2)} PLN
+              ))}
+              <div className="mt-4 pt-3 border-t border-border">
+                <div className="flex justify-between">
+                  <span className="font-semibold">Total recurring</span>
+                  <span className="font-bold text-purple-500">{totalRecurring.toFixed(2)} PLN</span>
                 </div>
-              </div>
-            ))}
-            <div className="mt-4 pt-3 border-t border-border space-y-2">
-              <div className="flex justify-between">
-                <span className="font-semibold">Total recurring</span>
-                <span className="font-bold text-purple-500">{totalRecurring.toFixed(2)} PLN</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Total monthly commitments</span>
-                <span className="font-bold text-red-500">{totalMonthlyCommitments.toFixed(2)} PLN</span>
               </div>
             </div>
-          </div>
-        ) : (
-          <div>
+          ) : (
             <div className="text-center py-4 text-muted-foreground">
               No recurring expenses found
             </div>
-            {totalMonthlyCommitments > 0 && (
-              <div className="mt-4 pt-3 border-t border-border space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-semibold">Total monthly commitments</span>
-                  <span className="font-bold text-red-500">{totalMonthlyCommitments.toFixed(2)} PLN</span>
-                </div>
-              </div>
-            )}
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Total Monthly Commitments as a separate section */}
+      <Card className="bg-card border border-border">
+        <CardContent className="pt-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold text-base">Total Monthly Commitments</h3>
+              <p className="text-sm text-muted-foreground">Subscriptions + recurring expenses</p>
+            </div>
+            <div className="text-xl font-bold text-red-500">
+              {totalMonthlyCommitments.toFixed(2)} PLN
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
