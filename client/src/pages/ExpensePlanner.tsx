@@ -262,9 +262,21 @@ export default function ExpensePlanner() {
     }
   };
 
-  // For calendar view, use all transactions so recurring instances in other months are visible
-  // The calendar component will determine which ones to show based on the view dates
-  const currentMonthTransactions = transactions;
+  // Filter transactions to only show ones from the current month in the sidebar
+  const currentMonthTransactions = useMemo(() => {
+    // Get the start and end of the current month
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(selectedDate);
+
+    // Only include transactions that occur within the current month
+    return transactions.filter(transaction => {
+      const transactionDate = typeof transaction.date === 'string' 
+        ? parseISO(transaction.date) 
+        : transaction.date;
+        
+      return transactionDate >= monthStart && transactionDate <= monthEnd;
+    });
+  }, [transactions, selectedDate]);
   
   // Extract unique transaction titles for autocomplete
   const uniqueTitles = useMemo(() => {

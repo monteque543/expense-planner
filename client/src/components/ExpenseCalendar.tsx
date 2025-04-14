@@ -98,6 +98,7 @@ interface ExpenseCalendarProps {
   onSelectToday: () => void;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   onDeleteTransaction: (id: number) => void;
+  onDayClick?: (date: Date) => void;
   isLoading: boolean;
   activeView: 'week' | 'month' | 'year';
 }
