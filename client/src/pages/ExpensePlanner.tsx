@@ -99,6 +99,12 @@ export default function ExpensePlanner() {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
+  
+  // Fetch savings
+  const { data: savings = [], isLoading: isLoadingSavings } = useQuery<Savings[]>({
+    queryKey: ['/api/savings'],
+    staleTime: 0, // Always refetch to ensure fresh data
+  });
 
   // Add transaction mutation
   const addTransaction = useMutation({
@@ -159,6 +165,46 @@ export default function ExpensePlanner() {
       toast({
         title: "Error",
         description: `Failed to delete transaction: ${error}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Add savings mutation
+  const addSavings = useMutation({
+    mutationFn: (savingsData: Omit<Savings, "id">) => {
+      return apiRequest('POST', '/api/savings', savingsData);
+    },
+    onSuccess: () => {
+      // No success toast as per user preference
+      queryClient.invalidateQueries({ queryKey: ['/api/savings'] });
+      setShowSavingsModal(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to add savings: ${error}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete savings mutation
+  const deleteSavings = useMutation({
+    mutationFn: (id: number) => {
+      return apiRequest('DELETE', `/api/savings/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Savings entry deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/savings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete savings: ${error}`,
         variant: "destructive",
       });
     }
@@ -306,25 +352,20 @@ export default function ExpensePlanner() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="p-2 text-muted-foreground hover:text-foreground transition">
-                    <Keyboard className="h-5 w-5" />
+                  <button 
+                    onClick={() => setShowSavingsModal(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition font-medium text-sm"
+                  >
+                    Add Savings
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="w-60">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Keyboard Shortcuts</h4>
-                    <div className="grid grid-cols-2 gap-1 text-sm">
-                      <span>E</span><span>Add Expense</span>
-                      <span>I</span><span>Add Income</span>
-                      <span>T</span><span>Today</span>
-                      <span>W</span><span>Week View</span>
-                      <span>M</span><span>Month View</span>
-                      <span>Y</span><span>Year View</span>
-                    </div>
-                  </div>
+                <TooltipContent>
+                  <p>Press 'S' to quickly add savings</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            
+            <KeyboardShortcuts />
           </div>
         </div>
       </header>
@@ -341,7 +382,7 @@ export default function ExpensePlanner() {
       {/* Summary Cards */}
       <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Top Row */}
+          {/* Left Column */}
           <div className="grid grid-cols-1 gap-4">
             {/* Subscription Summary */}
             <SubscriptionSummary 
@@ -354,15 +395,28 @@ export default function ExpensePlanner() {
               transactions={transactions}
               isLoading={isLoadingTransactions || isLoadingCategories}
             />
+            
+            {/* Savings Summary */}
+            <SavingsSummary
+              savings={savings}
+              transactions={transactions}
+              isLoading={isLoadingSavings || isLoadingTransactions}
+              onDeleteSavings={(id) => deleteSavings.mutate(id)}
+              isPending={deleteSavings.isPending}
+              currentDate={selectedDate}
+            />
           </div>
           
-          {/* Upcoming Expenses */}
-          <UpcomingExpenses
-            transactions={transactions}
-            isLoading={isLoadingTransactions}
-            onEditTransaction={handleEditTransaction}
-            currentDate={selectedDate}
-          />
+          {/* Right Column */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Upcoming Expenses */}
+            <UpcomingExpenses
+              transactions={transactions}
+              isLoading={isLoadingTransactions}
+              onEditTransaction={handleEditTransaction}
+              currentDate={selectedDate}
+            />
+          </div>
         </div>
       </div>
 
@@ -427,6 +481,13 @@ export default function ExpensePlanner() {
         categories={categories}
         isPending={updateTransaction.isPending}
         titleSuggestions={uniqueTitles}
+      />
+      
+      <AddSavingsModal
+        isOpen={showSavingsModal}
+        onClose={() => setShowSavingsModal(false)}
+        onAddSavings={(data) => addSavings.mutate(data)}
+        isPending={addSavings.isPending}
       />
     </div>
   );
