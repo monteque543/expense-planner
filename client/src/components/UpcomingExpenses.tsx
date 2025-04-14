@@ -66,10 +66,10 @@ export default function UpcomingExpenses({
         transactionDate >= monthStart && 
         transactionDate <= monthEnd;
       
-      // For non-recurring expenses, only show if they're today or in the future
+      // For non-recurring expenses, only show if they're today or in the future AND not paid
       if (isInSelectedMonth && !transaction.isRecurring) {
-        // Only include expenses that are today or in the future
-        return transactionDate >= today;
+        // Only include expenses that are today or in the future AND not paid
+        return transactionDate >= today && !transaction.isPaid;
       }
       
       // For recurring transactions, check if any occurrences fall in the selected month
@@ -81,10 +81,11 @@ export default function UpcomingExpenses({
         let nextDate = new Date(originalDate);
         let hasUpcomingInstanceInMonth = false;
         
-        // If the original date is in the selected month and is today or in the future
+        // If the original date is in the selected month and is today or in the future AND not paid
         if (originalDate >= monthStart && 
             originalDate <= monthEnd && 
-            originalDate >= today) {
+            originalDate >= today &&
+            !transaction.isPaid) {
           return true;
         }
         
