@@ -477,6 +477,7 @@ export default function ExpensePlanner() {
         categories={categories.filter((c: Category) => c.isExpense)}
         isPending={addTransaction.isPending}
         titleSuggestions={uniqueTitles}
+        defaultDate={selectedDate}
       />
 
       <AddIncomeModal
