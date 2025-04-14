@@ -165,7 +165,14 @@ export default function UpcomingExpenses({
     console.log(`--- INCOME CALCULATION ---`);
     
     // Add regular income from the current month
-    const regularIncomeTransactions = [];
+    interface IncomeTransaction {
+      title: string;
+      date: string;
+      amount: number;
+      isRecurring: boolean;
+    }
+    
+    const regularIncomeTransactions: IncomeTransaction[] = [];
     transactions.forEach(transaction => {
       if (!transaction.isExpense) {
         const txDate = new Date(transaction.date);
@@ -190,7 +197,16 @@ export default function UpcomingExpenses({
     
     // Add recurring income for this month
     const processedIncomeIds = new Set();
-    const recurringIncomeTransactions = [];
+    
+    interface RecurringIncomeTransaction {
+      title: string;
+      originalDate: string;
+      nextDate: string;
+      amount: number;
+      interval: string;
+    }
+    
+    const recurringIncomeTransactions: RecurringIncomeTransaction[] = [];
     
     transactions.forEach(transaction => {
       // Skip if not recurring or already processed or is an expense

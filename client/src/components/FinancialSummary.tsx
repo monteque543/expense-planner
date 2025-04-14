@@ -149,6 +149,7 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     
     // Calculate balance and savings
     const balance = totalIncome - thisMonthExpenses;
+    console.log(`FinancialSummary calculation: Income: ${totalIncome} PLN - Monthly Expenses: ${thisMonthExpenses} PLN = Balance: ${balance} PLN`);
     const savingsPercentage = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
     
     // Calculate weekly and next week balances
