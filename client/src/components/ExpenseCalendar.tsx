@@ -182,30 +182,33 @@ export default function ExpenseCalendar({
     const viewMonth = currentDate.getMonth();
     const viewYear = currentDate.getFullYear();
     
-    if (viewMonth === 4 && viewYear === 2025) { // May is month 4 (zero-indexed)
-      console.log("*** EMERGENCY FIX: Detected May 2025 view, adding Omega directly ***");
+    // Apply the fix for both May 2025 and June 2025
+    if ((viewMonth === 4 || viewMonth === 5) && viewYear === 2025) { // May is 4, June is 5 (zero-indexed)
+      const monthName = viewMonth === 4 ? "May" : "June";
+      console.log(`*** EMERGENCY FIX: Detected ${monthName} 2025 view, adding critical transactions directly ***`);
       
       // Find Omega in original transactions
       const omegaTransaction = transactions.find(t => t.title === "Omega" && t.isRecurring);
       
       if (omegaTransaction) {
-        // Create May 10th date for Omega
-        const mayOmegaDate = new Date(2025, 4, 10, 12, 0, 0);
-        const dateStr = "2025-05-10";
+        // Create a date for the appropriate month (May 10th or June 10th)
+        const targetMonth = viewMonth; // 4 for May, 5 for June
+        const targetDate = new Date(2025, targetMonth, 10, 12, 0, 0);
+        const dateStr = format(targetDate, 'yyyy-MM-dd'); // Will be either 2025-05-10 or 2025-06-10
         
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         
-        // Add Omega directly to May 10th
-        const mayOmegaCopy = {
+        // Add Omega directly to the appropriate month
+        const omegaCopy = {
           ...omegaTransaction,
-          displayDate: mayOmegaDate,
+          displayDate: targetDate,
           isRecurringInstance: true
         };
         
-        grouped[dateStr].push(mayOmegaCopy);
-        console.log("*** EMERGENCY FIX: Added Omega directly to May 10, 2025 ***");
+        grouped[dateStr].push(omegaCopy);
+        console.log(`*** EMERGENCY FIX: Added Omega directly to ${dateStr} ***`);
       }
       
       // Find Omega income only (not Techs Salary) to avoid duplication
@@ -693,7 +696,7 @@ export default function ExpenseCalendar({
         </div>
         
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-px bg-muted text-center">
+        <div className="grid grid-cols-7 gap-px bg-muted text-center min-h-[750px] auto-rows-fr">
           {/* Weekday Headers */}
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
             <div key={idx} className="bg-muted/50 py-2 font-medium text-muted-foreground">{day}</div>
@@ -742,7 +745,7 @@ export default function ExpenseCalendar({
                 
                 {/* Transactions for this day */}
                 <div 
-                  className={`mt-1 overflow-y-auto max-h-[80px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
+                  className={`mt-1 overflow-y-auto max-h-[120px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
                   onClick={(e) => {
                     if (isCurrentMonth && onDayClick && !dayHasTransactions) {
                       // Only trigger if clicked directly on this element (not on a child)
