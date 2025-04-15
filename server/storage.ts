@@ -7,6 +7,9 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, between, and, isNotNull } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
@@ -36,6 +39,9 @@ export interface IStorage {
   getSavingsByDateRange(startDate: Date, endDate: Date): Promise<Savings[]>;
   createSavings(savings: InsertSavings): Promise<Savings>;
   deleteSavings(id: number): Promise<boolean>;
+  
+  // Session store for authentication
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -224,6 +230,17 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    const PostgresStore = connectPg(session);
+    this.sessionStore = new PostgresStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
+    });
+  }
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
