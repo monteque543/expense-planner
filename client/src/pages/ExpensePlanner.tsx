@@ -384,21 +384,7 @@ export default function ExpensePlanner() {
               </button>
             </div>
             
-            {/* Test buttons for May/June 2025 */}
-            <div className="flex mr-2 space-x-2">
-              <button 
-                onClick={jumpToMay2025}
-                className="px-3 py-2 rounded-md bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600"
-              >
-                May 2025
-              </button>
-              <button 
-                onClick={jumpToJune2025}
-                className="px-3 py-2 rounded-md bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600"
-              >
-                June 2025
-              </button>
-            </div>
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

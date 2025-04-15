@@ -487,19 +487,14 @@ export default function ExpenseCalendar({
         const inView = nextDate >= viewStart && nextDate <= viewEnd;
         console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${inView}`);
         
-        // Add instances that fall within the current calendar view OR are important recurring transactions
-        // For important recurring transactions (especially income and subscriptions), 
-        // we want to show them in future months too, regardless of which month we're viewing
-        const isImportantForFutureDisplay = 
-          (transaction.title === "Omega" ||
-           transaction.title === "Techs Salary" ||
-           transaction.category?.name === "Subscription" || 
-           !transaction.isExpense); // all income is important
+        // Add instances that fall within the current calendar view OR any recurring transaction in future months
+        // This ensures ALL recurring transactions (not just income and subscriptions) 
+        // appear in future months too, regardless of which month we're viewing
         
         const isFutureOccurrence = nextDate > viewEnd && nextDate <= extendedEndDate;
            
-        // Always add to the calendar if it's in view OR it's an important transaction in the future
-        if (inView || (isImportantForFutureDisplay && isFutureOccurrence)) {
+        // Always add to the calendar if it's in view OR it's any recurring transaction in future months
+        if (inView || isFutureOccurrence) {
           const nextDateStr = format(nextDate, 'yyyy-MM-dd');
           if (!grouped[nextDateStr]) {
             grouped[nextDateStr] = [];
