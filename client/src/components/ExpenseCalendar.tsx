@@ -315,9 +315,10 @@ export default function ExpenseCalendar({
           break;
         }
         
-        // If we're past the view end, we can stop
-        if (nextDate > viewEnd && counter > 2) {
-          console.log('Reached past view end, stopping iteration');
+        // Continue generating a few more occurrences beyond the current view
+        // to ensure future months like May will show recurring transactions
+        if (nextDate > addMonths(viewEnd, 3) && counter > 2) {
+          console.log('Reached far past view end, stopping iteration');
           break;
         }
       }

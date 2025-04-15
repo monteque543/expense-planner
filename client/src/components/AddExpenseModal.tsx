@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
+import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, persons, recurringIntervals } from "@shared/schema";
 import { X } from "lucide-react";
 
