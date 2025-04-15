@@ -277,14 +277,14 @@ export default function ExpensePlanner() {
     }
   };
 
-  // Get hardcoded income transactions for critical months (May-August 2025)
+  // Get hardcoded income transactions for critical months (May 2025-Mar 2026)
   const hardcodedIncome = useMemo(() => {
     // Get month and year for current view
     const viewMonth = selectedDate.getMonth();
     const viewYear = selectedDate.getFullYear();
     
-    // Check if we're viewing May through August 2025
-    if ((viewMonth >= 4 && viewMonth <= 7) && viewYear === 2025) {
+    // Check if we're viewing May 2025 through March 2026
+    if ((viewYear === 2025 && viewMonth >= 4) || (viewYear === 2026 && viewMonth <= 2)) {
       // Create hardcoded transactions for this view
       const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
       
@@ -292,7 +292,7 @@ export default function ExpensePlanner() {
       const result = Object.values(hardcodedMap).flat();
       
       // Log for debugging
-      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(2025, viewMonth, 1), 'MMMM')} 2025`);
+      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
       
       return result;
     }

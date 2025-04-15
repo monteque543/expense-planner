@@ -13,8 +13,72 @@ export function createHardcodedIncomeTransactions(
 ): Record<string, TransactionWithCategory[]> {
   const result: Record<string, TransactionWithCategory[]> = {};
   
-  // Only apply to 2025 - for months May through March 2026 (inclusive)
-  if (year !== 2025 || month < 4) {
+  // Only apply to 2025 and early 2026 - for months May 2025 through March 2026 (inclusive)
+  if ((year !== 2025 && year !== 2026) || (year === 2025 && month < 4) || (year === 2026 && month > 2)) {
+    return result;
+  }
+  
+  // For 2026, handle January-March
+  if (year === 2026 && month <= 2) {
+    // Handle early 2026 months with similar logic
+    const monthName = new Date(2026, month, 1).toLocaleString('default', { month: 'long' });
+    console.log(`🔥 DIRECT HARDCODING: Creating income for ${monthName} 2026`);
+    
+    // Create the date string for this month's transactions
+    const dateStr = format(new Date(2026, month, 10, 12, 0, 0), 'yyyy-MM-dd');
+    
+    // Add Omega and Techs Salary for Jan-Mar 2026
+    const thisMonthTransactions: TransactionWithCategory[] = [];
+    
+    // Income category
+    const incomeCategory: Category = {
+      id: 20,
+      name: "Income",
+      color: "#059669",
+      emoji: "💰",
+      isExpense: false
+    };
+    
+    // Add Omega for early 2026
+    const omegaTransaction: TransactionWithCategory = {
+      id: 990000 + ((month + 12) * 100) + 1, // Unique ID that continues from Dec 2025
+      title: "Omega",
+      amount: 1019.9,
+      date: new Date(2026, month, 10, 12, 0, 0),
+      notes: `Monthly income for ${monthName} 2026 (hardcoded)`,
+      isExpense: false,
+      isPaid: false,
+      personLabel: "Michał",
+      categoryId: 20,
+      isRecurring: false, 
+      recurringInterval: "monthly",
+      recurringEndDate: null,
+      category: incomeCategory
+    };
+    thisMonthTransactions.push(omegaTransaction);
+    
+    // Add Techs Salary for early 2026
+    const techSalaryTransaction: TransactionWithCategory = {
+      id: 990000 + ((month + 12) * 100) + 2, // Unique ID that continues from Dec 2025
+      title: "Techs Salary",
+      amount: 4000,
+      date: new Date(2026, month, 10, 12, 0, 0),
+      notes: `Monthly salary for ${monthName} 2026 (hardcoded)`,
+      isExpense: false,
+      isPaid: false,
+      personLabel: "Michał",
+      categoryId: 20,
+      isRecurring: false,
+      recurringInterval: "monthly",
+      recurringEndDate: null,
+      category: incomeCategory
+    };
+    thisMonthTransactions.push(techSalaryTransaction);
+    
+    // Add transactions for this month
+    result[dateStr] = thisMonthTransactions;
+    console.log(`🔥 DIRECT HARDCODING: Added ${thisMonthTransactions.length} income transactions for ${dateStr}`);
+    
     return result;
   }
   
@@ -27,8 +91,8 @@ export function createHardcodedIncomeTransactions(
     isExpense: false
   };
 
-  // First, let's generate one-time hardcoded transactions for critical months (May-Aug)
-  if (month >= 4 && month <= 7) { // May through August
+  // First, let's generate one-time hardcoded transactions for critical months (May-Dec)
+  if (month >= 4 && month <= 11) { // May through December
     // Create explicit transactions for this specific month
     const monthName = new Date(2025, month, 1).toLocaleString('default', { month: 'long' });
     console.log(`🔥 DIRECT HARDCODING: Creating income for ${monthName} 2025`);
