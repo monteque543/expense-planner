@@ -277,14 +277,14 @@ export default function ExpensePlanner() {
     }
   };
 
-  // Get hardcoded income transactions for critical months (May/June 2025)
+  // Get hardcoded income transactions for critical months (May-August 2025)
   const hardcodedIncome = useMemo(() => {
     // Get month and year for current view
     const viewMonth = selectedDate.getMonth();
     const viewYear = selectedDate.getFullYear();
     
-    // Check if we're viewing May or June 2025
-    if ((viewMonth === 4 || viewMonth === 5) && viewYear === 2025) {
+    // Check if we're viewing May through August 2025
+    if ((viewMonth >= 4 && viewMonth <= 7) && viewYear === 2025) {
       // Create hardcoded transactions for this view
       const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
       
@@ -292,12 +292,37 @@ export default function ExpensePlanner() {
       const result = Object.values(hardcodedMap).flat();
       
       // Log for debugging
-      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${viewMonth === 4 ? 'May' : 'June'} 2025`);
+      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(2025, viewMonth, 1), 'MMMM')} 2025`);
       
       return result;
     }
     
     // For normal months, return empty array
+    return [];
+  }, [transactions, selectedDate]);
+  
+  // Get hardcoded recurring expenses/subscriptions for all months
+  const hardcodedExpenses = useMemo(() => {
+    // Get month and year for current view
+    const viewMonth = selectedDate.getMonth();
+    const viewYear = selectedDate.getFullYear();
+    
+    // Apply for all view months, focusing on 2025 and early 2026
+    if ((viewYear === 2025) || (viewYear === 2026 && viewMonth <= 2)) {
+      // Create hardcoded expense transactions for this view
+      const hardcodedMap = createHardcodedExpenseTransactions(viewMonth, viewYear, transactions);
+      
+      // Convert the map into an array of transactions
+      const result = Object.values(hardcodedMap).flat();
+      
+      if (result.length > 0) {
+        console.log(`🔄 Added ${result.length} hardcoded recurring expenses/subscriptions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
+      }
+      
+      return result;
+    }
+    
+    // For other months, return empty array
     return [];
   }, [transactions, selectedDate]);
   
@@ -316,10 +341,12 @@ export default function ExpensePlanner() {
       return transactionDate >= monthStart && transactionDate <= monthEnd;
     });
     
-    // If we have hardcoded income, add it
+    // Start with regular transactions
+    let result = regularTransactions;
+    
+    // If we have hardcoded income, add it (and filter out duplicates)
     if (hardcodedIncome.length > 0) {
-      // Return combined array, but first filter out any transactions with similar titles as hardcoded ones
-      return [
+      result = [
         ...hardcodedIncome,
         ...regularTransactions.filter(t => 
           // Keep all expenses
@@ -330,8 +357,26 @@ export default function ExpensePlanner() {
       ];
     }
     
-    return regularTransactions;
-  }, [transactions, hardcodedIncome, selectedDate]);
+    // If we have hardcoded expenses, add them (and filter out duplicates) 
+    if (hardcodedExpenses.length > 0) {
+      // Filter out any transactions that would be duplicates of hardcoded expenses
+      const filteredTransactions = result.filter(t => 
+        // Keep all income
+        !t.isExpense || 
+        // For expenses, filter out ones that would be duplicates of our hardcoded expenses
+        !hardcodedExpenses.some(he => 
+          he.title === t.title && 
+          he.isRecurring === t.isRecurring &&
+          format(new Date(he.date), 'yyyy-MM-dd') === format(new Date(t.date), 'yyyy-MM-dd')
+        )
+      );
+      
+      // Return combined array with hardcoded expenses
+      return [...filteredTransactions, ...hardcodedExpenses];
+    }
+    
+    return result;
+  }, [transactions, hardcodedIncome, hardcodedExpenses, selectedDate]);
   
   // Extract unique transaction titles for autocomplete
   const uniqueTitles = useMemo(() => {
