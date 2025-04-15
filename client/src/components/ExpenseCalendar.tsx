@@ -208,11 +208,11 @@ export default function ExpenseCalendar({
         console.log("*** EMERGENCY FIX: Added Omega directly to May 10, 2025 ***");
       }
       
-      // Find Techs Salary in original transactions (and other income)
-      const incomeTransactions = transactions.filter(t => !t.isExpense && t.isRecurring);
+      // Find Omega income only (not Techs Salary) to avoid duplication
+      const omegaIncome = transactions.find(t => !t.isExpense && t.isRecurring && t.title === "Omega");
       
-      incomeTransactions.forEach(incomeTransaction => {
-        const originalDate = new Date(incomeTransaction.date);
+      if (omegaIncome) {
+        const originalDate = new Date(omegaIncome.date);
         // Create May version with same day
         const dayOfMonth = Math.min(originalDate.getDate(), 31); // May has 31 days
         const mayIncomeDate = new Date(2025, 4, dayOfMonth, 12, 0, 0);
@@ -222,16 +222,16 @@ export default function ExpenseCalendar({
           grouped[dateStr] = [];
         }
         
-        // Add income directly to May
+        // Add Omega income directly to May
         const mayIncomeCopy = {
-          ...incomeTransaction,
+          ...omegaIncome,
           displayDate: mayIncomeDate,
           isRecurringInstance: true
         };
         
         grouped[dateStr].push(mayIncomeCopy);
-        console.log(`*** EMERGENCY FIX: Added ${incomeTransaction.title} directly to ${dateStr} ***`);
-      });
+        console.log(`*** EMERGENCY FIX: Added Omega income directly to ${dateStr} ***`);
+      }
       
       // Find subscription transactions
       const subscriptionTransactions = transactions.filter(
