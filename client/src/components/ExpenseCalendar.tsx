@@ -237,6 +237,29 @@ export default function ExpenseCalendar({
         console.log(`*** EMERGENCY FIX: Added Omega income directly to ${dateStr} ***`);
       }
       
+      // EXPLICITLY add Tech Salary for both May and June
+      const techSalary = transactions.find(t => !t.isExpense && t.isRecurring && t.title === "Techs Salary");
+      
+      if (techSalary) {
+        // Create date for current month (May 10th or June 10th)
+        const targetDate = new Date(2025, viewMonth, 10, 12, 0, 0);
+        const dateStr = format(targetDate, 'yyyy-MM-dd');
+        
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = [];
+        }
+        
+        // Add Tech Salary directly to the appropriate month
+        const techSalaryCopy = {
+          ...techSalary,
+          displayDate: targetDate,
+          isRecurringInstance: true
+        };
+        
+        grouped[dateStr].push(techSalaryCopy);
+        console.log(`*** EMERGENCY FIX: Added Techs Salary directly to ${dateStr} ***`);
+      }
+      
       // Find subscription transactions
       const subscriptionTransactions = transactions.filter(
         t => t.category?.name === "Subscription" && t.isRecurring
@@ -281,6 +304,7 @@ export default function ExpenseCalendar({
     
     const importantRecurringTransactions = recurringOnes.filter(t => 
       t.title === "Omega" || 
+      t.title === "Techs Salary" ||
       t.category?.name === "Subscription" || 
       !t.isExpense
     );
@@ -345,6 +369,7 @@ export default function ExpenseCalendar({
     // For each important recurring transaction (Omega, subscriptions)
     recurringOnes.forEach(transaction => {
       const isImportant = transaction.title === "Omega" || 
+                         transaction.title === "Techs Salary" ||
                          transaction.category?.name === "Subscription" || 
                          !transaction.isExpense;
                          
@@ -528,7 +553,8 @@ export default function ExpenseCalendar({
         // For important recurring transactions (especially income and subscriptions), 
         // we want to show them in future months too, regardless of which month we're viewing
         const isImportantForFutureDisplay = 
-          (transaction.title === "Omega" || 
+          (transaction.title === "Omega" ||
+           transaction.title === "Techs Salary" ||
            transaction.category?.name === "Subscription" || 
            !transaction.isExpense); // all income is important
         
