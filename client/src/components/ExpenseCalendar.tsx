@@ -216,23 +216,24 @@ export default function ExpenseCalendar({
       
       if (omegaIncome) {
         const originalDate = new Date(omegaIncome.date);
-        // Create May version with same day
-        const dayOfMonth = Math.min(originalDate.getDate(), 31); // May has 31 days
-        const mayIncomeDate = new Date(2025, 4, dayOfMonth, 12, 0, 0);
-        const dateStr = format(mayIncomeDate, 'yyyy-MM-dd');
+        // Create version with same day for current month
+        const daysInMonth = viewMonth === 4 ? 31 : 30; // May has 31 days, June has 30
+        const dayOfMonth = Math.min(originalDate.getDate(), daysInMonth);
+        const targetIncomeDate = new Date(2025, viewMonth, dayOfMonth, 12, 0, 0);
+        const dateStr = format(targetIncomeDate, 'yyyy-MM-dd');
         
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         
-        // Add Omega income directly to May
-        const mayIncomeCopy = {
+        // Add Omega income directly to the appropriate month
+        const incomeCopy = {
           ...omegaIncome,
-          displayDate: mayIncomeDate,
+          displayDate: targetIncomeDate,
           isRecurringInstance: true
         };
         
-        grouped[dateStr].push(mayIncomeCopy);
+        grouped[dateStr].push(incomeCopy);
         console.log(`*** EMERGENCY FIX: Added Omega income directly to ${dateStr} ***`);
       }
       
@@ -245,29 +246,31 @@ export default function ExpenseCalendar({
         // Skip any cancelled subscriptions
         if (subscription.recurringEndDate) {
           const endDate = new Date(subscription.recurringEndDate);
-          if (endDate < new Date(2025, 4, 1)) {
+          // Check against the current month we're viewing (May or June 2025)
+          if (endDate < new Date(2025, viewMonth, 1)) {
             return;
           }
         }
         
         const originalDate = new Date(subscription.date);
-        // Create May version with same day
-        const dayOfMonth = Math.min(originalDate.getDate(), 31); // May has 31 days
-        const maySubscriptionDate = new Date(2025, 4, dayOfMonth, 12, 0, 0);
-        const dateStr = format(maySubscriptionDate, 'yyyy-MM-dd');
+        // Create version with same day for current month
+        const daysInMonth = viewMonth === 4 ? 31 : 30; // May has 31 days, June has 30
+        const dayOfMonth = Math.min(originalDate.getDate(), daysInMonth);
+        const targetSubDate = new Date(2025, viewMonth, dayOfMonth, 12, 0, 0);
+        const dateStr = format(targetSubDate, 'yyyy-MM-dd');
         
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         
-        // Add subscription directly to May
-        const maySubscriptionCopy = {
+        // Add subscription directly to appropriate month
+        const subscriptionCopy = {
           ...subscription,
-          displayDate: maySubscriptionDate,
+          displayDate: targetSubDate,
           isRecurringInstance: true
         };
         
-        grouped[dateStr].push(maySubscriptionCopy);
+        grouped[dateStr].push(subscriptionCopy);
         console.log(`*** EMERGENCY FIX: Added ${subscription.title} subscription directly to ${dateStr} ***`);
       });
     }
