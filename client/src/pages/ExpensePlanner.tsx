@@ -240,6 +240,18 @@ export default function ExpensePlanner() {
   const handleToday = () => {
     setSelectedDate(new Date());
   };
+  
+  // For testing purposes: jump to May 2025
+  const jumpToMay2025 = () => {
+    const may2025 = new Date(2025, 4, 15); // May 15, 2025
+    setSelectedDate(may2025);
+  };
+  
+  // For testing purposes: jump to June 2025
+  const jumpToJune2025 = () => {
+    const june2025 = new Date(2025, 5, 15); // June 15, 2025
+    setSelectedDate(june2025);
+  };
 
   // Get date range based on active view
   const getDateRange = () => {
@@ -264,8 +276,8 @@ export default function ExpensePlanner() {
     }
   };
 
-  // Enhance transactions with hardcoded income for critical months
-  const enhancedTransactions = useMemo(() => {
+  // Get hardcoded income transactions for critical months (May/June 2025)
+  const hardcodedIncome = useMemo(() => {
     // Get month and year for current view
     const viewMonth = selectedDate.getMonth();
     const viewYear = selectedDate.getFullYear();
@@ -276,26 +288,16 @@ export default function ExpensePlanner() {
       const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
       
       // Convert the hardcoded map into an array of transactions
-      const hardcodedTransactions = Object.values(hardcodedMap).flat();
+      const result = Object.values(hardcodedMap).flat();
       
       // Log for debugging
-      console.log(`🔥 Applied ${hardcodedTransactions.length} hardcoded transactions for ${viewMonth === 4 ? 'May' : 'June'} 2025`);
+      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${viewMonth === 4 ? 'May' : 'June'} 2025`);
       
-      // Return combined array, deduplicating by filtering out any transactions with similar titles as hardcoded ones
-      return [
-        ...hardcodedTransactions,
-        ...transactions.filter(t => 
-          !hardcodedTransactions.some(ht => 
-            ht.title === t.title && 
-            !t.isExpense && 
-            new Date(t.date).getMonth() === viewMonth
-          )
-        )
-      ];
+      return result;
     }
     
-    // For normal months, return regular transactions
-    return transactions;
+    // For normal months, return empty array
+    return [];
   }, [transactions, selectedDate]);
   
   // Filter transactions to only show ones from the current month in the sidebar
@@ -303,23 +305,32 @@ export default function ExpensePlanner() {
     // Get the start and end of the current month
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
-    const viewMonth = selectedDate.getMonth();
-    const viewYear = selectedDate.getFullYear();
     
-    // Use the enhanced transactions for May/June 2025
-    const transactionsToFilter = (viewMonth === 4 || viewMonth === 5) && viewYear === 2025 
-      ? enhancedTransactions 
-      : transactions;
-
     // Only include transactions that occur within the current month
-    return transactionsToFilter.filter(transaction => {
+    const regularTransactions = transactions.filter(transaction => {
       const transactionDate = typeof transaction.date === 'string' 
         ? parseISO(transaction.date) 
         : transaction.date;
         
       return transactionDate >= monthStart && transactionDate <= monthEnd;
     });
-  }, [transactions, enhancedTransactions, selectedDate]);
+    
+    // If we have hardcoded income, add it
+    if (hardcodedIncome.length > 0) {
+      // Return combined array, but first filter out any transactions with similar titles as hardcoded ones
+      return [
+        ...hardcodedIncome,
+        ...regularTransactions.filter(t => 
+          // Keep all expenses
+          t.isExpense || 
+          // For income, filter out ones that would be duplicates of our hardcoded income
+          !hardcodedIncome.some(ht => ht.title === t.title)
+        )
+      ];
+    }
+    
+    return regularTransactions;
+  }, [transactions, hardcodedIncome, selectedDate]);
   
   // Extract unique transaction titles for autocomplete
   const uniqueTitles = useMemo(() => {
@@ -370,6 +381,22 @@ export default function ExpensePlanner() {
                 className={`px-3 py-1 text-xs font-medium ${activeView === 'year' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
               >
                 Year
+              </button>
+            </div>
+            
+            {/* Test buttons for May/June 2025 */}
+            <div className="flex mr-2 space-x-2">
+              <button 
+                onClick={jumpToMay2025}
+                className="px-3 py-2 rounded-md bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600"
+              >
+                May 2025
+              </button>
+              <button 
+                onClick={jumpToJune2025}
+                className="px-3 py-2 rounded-md bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600"
+              >
+                June 2025
               </button>
             </div>
             <TooltipProvider>
@@ -488,7 +515,7 @@ export default function ExpensePlanner() {
       <main className="flex-1 overflow-auto flex flex-col md:flex-row">
         {/* Calendar View */}
         <ExpenseCalendar 
-          transactions={selectedDate.getMonth() === 4 || selectedDate.getMonth() === 5 ? enhancedTransactions : filteredTransactions}
+          transactions={filteredTransactions}
           currentDate={selectedDate}
           currentMonthYear={currentMonthYear}
           onPrevMonth={handlePrevMonth}
