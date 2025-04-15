@@ -149,9 +149,6 @@ export default function ExpenseCalendar({
     const grouped: Record<string, TransactionWithCategory[]> = {};
     const today = new Date();
     
-    // Generate future dates for next 12 months (to ensure we have data for future views)
-    const calendarEndDate = addMonths(today, 12);
-    
     // Log recurring transactions
     const recurringOnes = transactions.filter(t => t.isRecurring);
     console.log('Recurring transactions:', recurringOnes);
@@ -174,6 +171,70 @@ export default function ExpenseCalendar({
       viewEnd = endOfMonth(currentDate);
       console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
     }
+    
+    // Important: ALWAYS add Omega income and subscriptions for the current month being viewed
+    // This is a direct approach to ensure critical recurring transactions always appear
+    const currentViewMonth = currentDate.getMonth();
+    const currentViewYear = currentDate.getFullYear();
+    
+    const importantRecurringTransactions = recurringOnes.filter(t => 
+      t.title === "Omega" || 
+      t.category?.name === "Subscription" || 
+      !t.isExpense
+    );
+    
+    console.log("Important recurring transactions to duplicate in current view:", importantRecurringTransactions);
+    
+    // For each important recurring transaction, create a version for the current viewing month
+    importantRecurringTransactions.forEach(transaction => {
+      // Skip if transaction has a recurring end date that's before the current view month
+      if (transaction.recurringEndDate) {
+        const endDate = new Date(transaction.recurringEndDate);
+        if (endDate < viewStart) {
+          console.log(`Skipping cancelled subscription: ${transaction.title}`);
+          return;
+        }
+      }
+      
+      const originalDate = new Date(transaction.date);
+      
+      // Create a new date for this transaction in the currently viewed month
+      const dayOfMonth = Math.min(originalDate.getDate(), lastDayOfMonth(new Date(currentViewYear, currentViewMonth)).getDate());
+      
+      const dateInCurrentView = new Date(
+        currentViewYear,
+        currentViewMonth,
+        dayOfMonth,
+        12, 0, 0 // noon to avoid timezone issues
+      );
+      
+      // Only add if the month being viewed is after the original transaction date's month
+      // or if we're viewing a future month
+      const originalMonth = originalDate.getMonth();
+      const originalYear = originalDate.getFullYear();
+      
+      const isViewingFutureFromOriginal = 
+        (currentViewYear > originalYear) || 
+        (currentViewYear === originalYear && currentViewMonth > originalMonth);
+      
+      if (isViewingFutureFromOriginal) {
+        const dateStr = format(dateInCurrentView, 'yyyy-MM-dd');
+        
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = [];
+        }
+        
+        // Create a copy for the current month
+        const futureCopy = {
+          ...transaction,
+          displayDate: dateInCurrentView,
+          isRecurringInstance: true
+        };
+        
+        grouped[dateStr].push(futureCopy);
+        console.log(`ADDED CRITICAL TRANSACTION FOR CURRENT VIEW: ${transaction.title} on ${dateStr}`);
+      }
+    });
     
     // PRE-GENERATE ALL FUTURE RECURRING INSTANCES
     // We'll do this separately to make sure critical recurring transactions
