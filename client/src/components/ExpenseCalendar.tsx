@@ -29,6 +29,11 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 
+// Helper function to check if a date is within a range
+function isWithinRange(date: Date, start: Date, end: Date): boolean {
+  return isWithinInterval(date, { start, end });
+}
+
 // Helper function to get date range based on active view
 function getDateRangeForView(date: Date, view: 'week' | 'month' | 'year'): { start: Date, end: Date } {
   switch (view) {
@@ -144,6 +149,9 @@ export default function ExpenseCalendar({
     const grouped: Record<string, TransactionWithCategory[]> = {};
     const today = new Date();
     
+    // Generate future dates for next 12 months (to ensure we have data for future views)
+    const calendarEndDate = addMonths(today, 12);
+    
     // Log recurring transactions
     const recurringOnes = transactions.filter(t => t.isRecurring);
     console.log('Recurring transactions:', recurringOnes);
@@ -166,6 +174,70 @@ export default function ExpenseCalendar({
       viewEnd = endOfMonth(currentDate);
       console.log(`View period for month: ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
     }
+    
+    // PRE-GENERATE ALL FUTURE RECURRING INSTANCES
+    // We'll do this separately to make sure critical recurring transactions
+    // (income, subscriptions) are ALWAYS available in all calendar views
+    
+    // For each important recurring transaction (Omega, subscriptions)
+    recurringOnes.forEach(transaction => {
+      const isImportant = transaction.title === "Omega" || 
+                         transaction.category?.name === "Subscription" || 
+                         !transaction.isExpense;
+                         
+      if (isImportant) {
+        const originalDate = new Date(transaction.date);
+        const interval = transaction.recurringInterval || 'monthly';
+        
+        // Generate 12 months of future instances immediately
+        for (let i = 0; i < 12; i++) {
+          let futureDate: Date;
+          
+          // Skip first instance if it would be the original transaction
+          if (i === 0 && isWithinRange(originalDate, viewStart, viewEnd)) {
+            continue;
+          }
+          
+          if (interval === 'monthly') {
+            // Add months while preserving day of month (when possible)
+            const nextMonth = addMonths(originalDate, i + 1);
+            const originalDay = originalDate.getDate();
+            const lastDayOfNextMonth = lastDayOfMonth(nextMonth);
+            const targetDay = Math.min(originalDay, lastDayOfNextMonth.getDate());
+            
+            futureDate = new Date(
+              nextMonth.getFullYear(),
+              nextMonth.getMonth(),
+              targetDay,
+              12, 0, 0 // noon to avoid timezone issues
+            );
+          } else if (interval === 'weekly') {
+            futureDate = addWeeks(originalDate, i + 1);
+          } else if (interval === 'yearly') {
+            futureDate = addYears(originalDate, i + 1);
+          } else {
+            // Default to monthly
+            futureDate = addMonths(originalDate, i + 1);
+          }
+          
+          // Store the future instance
+          const futureDateStr = format(futureDate, 'yyyy-MM-dd');
+          if (!grouped[futureDateStr]) {
+            grouped[futureDateStr] = [];
+          }
+          
+          // Create a copy of the transaction with the future date
+          const futureCopy = {
+            ...transaction,
+            displayDate: futureDate,
+            isRecurringInstance: true // Flag to indicate this is a recurring instance
+          };
+          
+          grouped[futureDateStr].push(futureCopy);
+          console.log(`PRE-GENERATED future instance of ${transaction.title} on ${futureDateStr}`);
+        }
+      }
+    });
     
     // First, add the non-recurring transactions that fall within the current view period
     console.log(`Filtering non-recurring transactions from ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
