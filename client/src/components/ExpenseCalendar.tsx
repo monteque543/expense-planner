@@ -350,7 +350,13 @@ export default function ExpenseCalendar({
             // Handle displayDate (which might be undefined in the type but is added by our code)
             const transactionDate = 'displayDate' in transaction ? 
               transaction.displayDate : transaction.date;
-            const key = `${transaction.title}-${format(new Date(transactionDate), 'yyyy-MM')}`;
+            // Safely convert the date to a Date object
+            const dateObj = transactionDate instanceof Date ? 
+              transactionDate : 
+              typeof transactionDate === 'string' ? 
+                parseISO(transactionDate) : 
+                new Date();
+            const key = `${transaction.title}-${format(dateObj, 'yyyy-MM')}`;
             
             if (seenTitles.has(key)) {
               console.log(`🗑️ REMOVED DUPLICATE: ${transaction.title} for ${key}`);
@@ -466,9 +472,19 @@ export default function ExpenseCalendar({
       
       // Calculate max future date (5 years from the selected date)
       const maxFutureDate = addYears(currentDate, 5);
-      const recurringEndDate = transaction.recurringEndDate ? 
-        (typeof transaction.recurringEndDate === 'string' ? parseISO(transaction.recurringEndDate) : transaction.recurringEndDate) 
-        : maxFutureDate;
+      // Safely convert the recurring end date to a Date object
+      let recurringEndDate: Date;
+      if (transaction.recurringEndDate) {
+        if (typeof transaction.recurringEndDate === 'string') {
+          recurringEndDate = parseISO(transaction.recurringEndDate);
+        } else if (transaction.recurringEndDate instanceof Date) {
+          recurringEndDate = transaction.recurringEndDate;
+        } else {
+          recurringEndDate = maxFutureDate; // Fallback to a safe default
+        }
+      } else {
+        recurringEndDate = maxFutureDate;
+      }
       
       // Create a counter to limit iterations
       let counter = 0;
@@ -479,7 +495,11 @@ export default function ExpenseCalendar({
       
       // Generate recurring instances within the current view and future months
       // Set the longer view period (up to 12 months in the future)
-      const extendedEndDate = addMonths(new Date(), 12);
+      const extendedEndDate = addYears(new Date(), 1); // Look ahead a full year for all recurring transactions
+      
+      // Determine which month/year we're currently viewing to compare with the nextDate
+      const viewingMonth = currentDate.getMonth();
+      const viewingYear = currentDate.getFullYear();
       
       while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
         counter++;
@@ -487,14 +507,21 @@ export default function ExpenseCalendar({
         const inView = nextDate >= viewStart && nextDate <= viewEnd;
         console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${inView}`);
         
-        // Add instances that fall within the current calendar view OR any recurring transaction in future months
-        // This ensures ALL recurring transactions (not just income and subscriptions) 
-        // appear in future months too, regardless of which month we're viewing
+        // Check if this occurrence is in the future relative to "now"
+        const isFutureDate = nextDate > new Date();
         
+        // Check if this occurrence is in the current month we're viewing
+        const nextMonth = nextDate.getMonth();
+        const nextYear = nextDate.getFullYear();
+        const isInViewingMonth = nextMonth === viewingMonth && nextYear === viewingYear;
+        
+        // Always add occurrences that are:
+        // 1. Either in the current view (date range) OR
+        // 2. In the month being viewed OR
+        // 3. Are future occurrences within our extended time window
         const isFutureOccurrence = nextDate > viewEnd && nextDate <= extendedEndDate;
-           
-        // Always add to the calendar if it's in view OR it's any recurring transaction in future months
-        if (inView || isFutureOccurrence) {
+        
+        if (inView || isInViewingMonth || isFutureOccurrence) {
           const nextDateStr = format(nextDate, 'yyyy-MM-dd');
           if (!grouped[nextDateStr]) {
             grouped[nextDateStr] = [];
