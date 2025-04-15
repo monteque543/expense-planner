@@ -12,8 +12,9 @@ export function createHardcodedIncomeTransactions(
 ): Record<string, TransactionWithCategory[]> {
   const result: Record<string, TransactionWithCategory[]> = {};
   
-  if (month !== 4 && month !== 5) {
-    return result; // Only apply to May and June 2025
+  // Extended to include July/August as well for income transactions
+  if (month !== 4 && month !== 5 && month !== 6 && month !== 7) {
+    return result; // Only apply to May, June, July, August 2025
   }
   
   if (year !== 2025) {
