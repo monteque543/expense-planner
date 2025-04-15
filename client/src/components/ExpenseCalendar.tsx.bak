@@ -443,6 +443,8 @@ export default function ExpenseCalendar({
               <div 
                 key={idx} 
                 className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'hover:bg-muted/40' : ''}`}
+                // We'll handle click in the empty areas instead of the whole cell
+                // This is to prevent conflicts with transaction pill clicks
               >
                 {/* Day number with highlighting for today */}
                 <div 
@@ -470,9 +472,9 @@ export default function ExpenseCalendar({
                 
                 {/* Transactions for this day */}
                 <div 
-                  className={`mt-1 overflow-y-auto max-h-[80px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
+                  className={`mt-1 overflow-y-auto max-h-[80px] ${isCurrentMonth ? 'cursor-pointer' : ''} relative group`}
                   onClick={(e) => {
-                    if (isCurrentMonth && onDayClick && !dayHasTransactions) {
+                    if (isCurrentMonth && onDayClick && dayTransactions.length === 0) {
                       // Only trigger if clicked directly on this element (not on a child)
                       if (e.target === e.currentTarget) {
                         // Create a new date object with time set to noon to avoid timezone issues
@@ -484,12 +486,11 @@ export default function ExpenseCalendar({
                   }}
                 >
                   {/* Visual hint for empty cells that are clickable */}
-                  {!dayHasTransactions && isCurrentMonth && (
+                  {dayTransactions.length === 0 && isCurrentMonth && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Plus className="h-5 w-5 text-muted-foreground/50" />
                     </div>
                   )}
-                  
                   {dayTransactions.map((transaction, transIdx) => {
                     // Determine if this is a recurring transaction instance (future occurrence)
                     const isRecurringInstance = 'isRecurringInstance' in transaction;
