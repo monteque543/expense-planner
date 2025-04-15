@@ -20,6 +20,7 @@ import {
   lastDayOfMonth
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
+import { createHardcodedIncomeTransactions } from '@/utils/income-hardcoder';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Edit, Trash2, MoreHorizontal, Plus } from 'lucide-react';
 import { 
@@ -187,114 +188,16 @@ export default function ExpenseCalendar({
       const monthName = viewMonth === 4 ? "May" : "June";
       console.log(`*** EMERGENCY FIX: Detected ${monthName} 2025 view, adding critical transactions directly ***`);
       
-      // Find Omega in original transactions
-      const omegaTransaction = transactions.find(t => t.title === "Omega" && t.isRecurring);
+      // Use our dedicated utility function to create hardcoded income transactions
+      const hardcodedTransactions = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
       
-      if (omegaTransaction) {
-        // Create a date for the appropriate month (May 10th or June 10th)
-        const targetMonth = viewMonth; // 4 for May, 5 for June
-        const targetDate = new Date(2025, targetMonth, 10, 12, 0, 0);
-        const dateStr = format(targetDate, 'yyyy-MM-dd'); // Will be either 2025-05-10 or 2025-06-10
-        
+      // Add these hardcoded transactions to our grouped object
+      Object.entries(hardcodedTransactions).forEach(([dateStr, txs]) => {
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
-        
-        // Add Omega directly to the appropriate month
-        const omegaCopy = {
-          ...omegaTransaction,
-          displayDate: targetDate,
-          isRecurringInstance: true
-        };
-        
-        grouped[dateStr].push(omegaCopy);
-        console.log(`*** EMERGENCY FIX: Added Omega directly to ${dateStr} ***`);
-      }
-      
-      // Find Omega income only (not Techs Salary) to avoid duplication
-      const omegaIncome = transactions.find(t => !t.isExpense && t.isRecurring && t.title === "Omega");
-      
-      if (omegaIncome) {
-        const originalDate = new Date(omegaIncome.date);
-        // Create version with same day for current month
-        const daysInMonth = viewMonth === 4 ? 31 : 30; // May has 31 days, June has 30
-        const dayOfMonth = Math.min(originalDate.getDate(), daysInMonth);
-        const targetIncomeDate = new Date(2025, viewMonth, dayOfMonth, 12, 0, 0);
-        const dateStr = format(targetIncomeDate, 'yyyy-MM-dd');
-        
-        if (!grouped[dateStr]) {
-          grouped[dateStr] = [];
-        }
-        
-        // Add Omega income directly to the appropriate month
-        const incomeCopy = {
-          ...omegaIncome,
-          displayDate: targetIncomeDate,
-          isRecurringInstance: true
-        };
-        
-        grouped[dateStr].push(incomeCopy);
-        console.log(`*** EMERGENCY FIX: Added Omega income directly to ${dateStr} ***`);
-      }
-      
-      // EXPLICITLY add Tech Salary for both May and June
-      const techSalary = transactions.find(t => !t.isExpense && t.isRecurring && t.title === "Techs Salary");
-      
-      if (techSalary) {
-        // Create date for current month (May 10th or June 10th)
-        const targetDate = new Date(2025, viewMonth, 10, 12, 0, 0);
-        const dateStr = format(targetDate, 'yyyy-MM-dd');
-        
-        if (!grouped[dateStr]) {
-          grouped[dateStr] = [];
-        }
-        
-        // Add Tech Salary directly to the appropriate month
-        const techSalaryCopy = {
-          ...techSalary,
-          displayDate: targetDate,
-          isRecurringInstance: true
-        };
-        
-        grouped[dateStr].push(techSalaryCopy);
-        console.log(`*** EMERGENCY FIX: Added Techs Salary directly to ${dateStr} ***`);
-      }
-      
-      // Find subscription transactions
-      const subscriptionTransactions = transactions.filter(
-        t => t.category?.name === "Subscription" && t.isRecurring
-      );
-      
-      subscriptionTransactions.forEach(subscription => {
-        // Skip any cancelled subscriptions
-        if (subscription.recurringEndDate) {
-          const endDate = new Date(subscription.recurringEndDate);
-          // Check against the current month we're viewing (May or June 2025)
-          if (endDate < new Date(2025, viewMonth, 1)) {
-            return;
-          }
-        }
-        
-        const originalDate = new Date(subscription.date);
-        // Create version with same day for current month
-        const daysInMonth = viewMonth === 4 ? 31 : 30; // May has 31 days, June has 30
-        const dayOfMonth = Math.min(originalDate.getDate(), daysInMonth);
-        const targetSubDate = new Date(2025, viewMonth, dayOfMonth, 12, 0, 0);
-        const dateStr = format(targetSubDate, 'yyyy-MM-dd');
-        
-        if (!grouped[dateStr]) {
-          grouped[dateStr] = [];
-        }
-        
-        // Add subscription directly to appropriate month
-        const subscriptionCopy = {
-          ...subscription,
-          displayDate: targetSubDate,
-          isRecurringInstance: true
-        };
-        
-        grouped[dateStr].push(subscriptionCopy);
-        console.log(`*** EMERGENCY FIX: Added ${subscription.title} subscription directly to ${dateStr} ***`);
+        grouped[dateStr].push(...txs);
+        console.log(`🔥 EMERGENCY FIX: Added ${txs.length} hardcoded transactions for ${dateStr}`);
       });
     }
     
@@ -426,6 +329,41 @@ export default function ExpenseCalendar({
         }
       }
     });
+    
+    // May/June 2025 - DEDUPLICATE ANY INCOME TRANSACTIONS
+    // This prevents any complex recurring logic from creating duplicates
+    if ((viewMonth === 4 || viewMonth === 5) && viewYear === 2025) {
+      console.log("🔄 DE-DUPLICATION: Removing any automatically generated income transactions for May/June 2025");
+      
+      // Check all dates in the grouped object
+      Object.keys(grouped).forEach(dateKey => {
+        if (grouped[dateKey] && Array.isArray(grouped[dateKey])) {
+          // Keep track of what we've seen to prevent duplicates
+          const seenTitles = new Set();
+          
+          // Filter out duplicate income transactions
+          grouped[dateKey] = grouped[dateKey].filter(transaction => {
+            // If it's not income, keep it
+            if (transaction.isExpense) return true;
+            
+            // For income, check if we've seen this title before
+            // Handle displayDate (which might be undefined in the type but is added by our code)
+            const transactionDate = 'displayDate' in transaction ? 
+              transaction.displayDate : transaction.date;
+            const key = `${transaction.title}-${format(new Date(transactionDate), 'yyyy-MM')}`;
+            
+            if (seenTitles.has(key)) {
+              console.log(`🗑️ REMOVED DUPLICATE: ${transaction.title} for ${key}`);
+              return false; // Remove duplicate
+            }
+            
+            // Keep this one and mark it as seen
+            seenTitles.add(key);
+            return true;
+          });
+        }
+      });
+    }
     
     // First, add the non-recurring transactions that fall within the current view period
     console.log(`Filtering non-recurring transactions from ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
