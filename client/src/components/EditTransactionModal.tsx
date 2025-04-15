@@ -398,8 +398,9 @@ export default function EditTransactionModal({
               </div>
             )}
             
-            {/* Cancel Subscription Button (only shown for existing recurring transactions) */}
-            {transaction?.isRecurring && watchIsRecurring && (
+            {/* Cancel Subscription Button (only shown for existing recurring subscription transactions) */}
+            {transaction?.isRecurring && watchIsRecurring && 
+              transaction?.category?.name === 'Subscription' && (
               <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-3 mt-2">
                 <div className="space-y-0.5">
                   <div className="text-sm font-medium text-red-800 dark:text-red-300">Cancel Subscription</div>

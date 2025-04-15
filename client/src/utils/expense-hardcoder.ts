@@ -66,7 +66,7 @@ export function createHardcodedExpenseTransactions(
         ...subscription,
         id: 980000 + (month * 100) + subscriptionTransactions.indexOf(subscription),
         date: subscriptionDate,
-        notes: `${subscription.notes || ''} (hardcoded recurring instance)`
+        notes: subscription.notes || ''
         // We don't need any extra properties, we'll use date to identify the appropriate month
       };
       
@@ -111,7 +111,7 @@ export function createHardcodedExpenseTransactions(
         ...expense,
         id: 970000 + (month * 100) + recurringExpenses.indexOf(expense),
         date: expenseDate,
-        notes: `${expense.notes || ''} (hardcoded recurring instance)`
+        notes: expense.notes || ''
         // No extra properties needed, just rely on the date
       };
       
