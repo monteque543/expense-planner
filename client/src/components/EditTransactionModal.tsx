@@ -413,12 +413,11 @@ export default function EditTransactionModal({
                   size="sm"
                   onClick={() => {
                     // Cancel the subscription by updating the form values
-                    // Use proper typing for the updated values
+                    // Set isRecurring to false to cancel subscription
                     form.setValue("isRecurring", false);
                     
-                    // Since we're setting isRecurring to false, we don't need to update the other fields
-                    // The submission logic will ignore them when isRecurring is false
-                    form.reset(updatedValues);
+                    // Submit the form automatically to apply the changes
+                    form.handleSubmit(onSubmit)();
                   }}
                   className="ml-2"
                 >
