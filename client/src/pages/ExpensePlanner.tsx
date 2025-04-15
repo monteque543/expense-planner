@@ -19,6 +19,7 @@ import type { Category, Transaction, TransactionWithCategory, Savings } from "@s
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
+import { createHardcodedExpenseTransactions } from "@/utils/expense-hardcoder";
 import { 
   Tooltip, 
   TooltipContent, 

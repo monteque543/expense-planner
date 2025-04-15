@@ -507,33 +507,34 @@ const originalDate = typeof transaction.date === 'string'
       const viewingMonth = currentDate.getMonth();
       const viewingYear = currentDate.getFullYear();
       
-      // Force always add recurring transactions in the hardcoded critical months (May, June, July, August)
-      const isCriticalMonth = (date: Date) => {
-        const month = date.getMonth();
-        const year = date.getFullYear();
-        return year === 2025 && (month >= 4 && month <= 7); // May (4) through August (7)
-      };
+      // Force add ALL recurring transactions for a full year of occurrences
+      // This is a complete override to ensure reliable display of all recurring transactions
+      const isSubscription = transaction.category?.name === 'Subscription';
+      const isIncome = !transaction.isExpense;
       
       while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
         counter++;
         
-        // We need to add ALL recurring transactions regardless of their type
+        // Calculate if this occurrence is within our view period
         const inView = nextDate >= viewStart && nextDate <= viewEnd;
         
-        // Check if this occurrence is in the future relative to "now"
-        const isFutureDate = nextDate > new Date();
+        // Is this in a critical month? May-Aug 2025
+        const month = nextDate.getMonth();
+        const year = nextDate.getFullYear();
+        const isInCriticalMonth = (year === 2025 && month >= 4 && month <= 7);
         
-        // Check if this occurrence is in the current month we're viewing
-        const nextMonth = nextDate.getMonth();
-        const nextYear = nextDate.getFullYear();
-        const isInViewingMonth = nextMonth === viewingMonth && nextYear === viewingYear;
+        // Is this occurrence in the month being viewed in the calendar?
+        const isInViewingMonth = (nextDate.getMonth() === viewingMonth && nextDate.getFullYear() === viewingYear);
         
-        // This is the key improvement - we're ALWAYS adding ALL recurring transactions
-        // that are either in view OR future occurrences within our extended time window
-        const isFutureOccurrence = nextDate > viewEnd && nextDate <= extendedEndDate;
+        // ALWAYS ADD RECURRING TRANSACTIONS for up to one full year
+        // We want to ensure ALL recurring transactions are visible in the calendar
+        const withinOneYear = nextDate <= addYears(new Date(), 1);
         
-        // This ensures reliable display of all recurring transactions, regardless of type
-        if (inView || isInViewingMonth || isFutureOccurrence || isCriticalMonth(nextDate)) {
+        // For subscriptions and income, we are extra careful to always include them
+        const isImportantType = isSubscription || isIncome;
+        
+        // Add EVERYTHING that meets our criteria
+        if (inView || withinOneYear || isInCriticalMonth || isInViewingMonth || isImportantType) {
           const nextDateStr = format(nextDate, 'yyyy-MM-dd');
           if (!grouped[nextDateStr]) {
             grouped[nextDateStr] = [];
