@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
+import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, TransactionWithCategory, persons, recurringIntervals } from "@shared/schema";
 import { X } from "lucide-react";
 import { format } from "date-fns";
@@ -188,47 +189,29 @@ export default function EditTransactionModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(parseInt(value));
-                      
-                      // Auto-select recurring if Subscription category is selected
-                      const category = categories.find(c => c.id === parseInt(value));
-                      if (category && category.name === 'Subscription') {
-                        // Set recurring to true
-                        form.setValue('isRecurring', true);
+                  <FormControl>
+                    <AutocompleteCategoryInput
+                      categories={filteredCategories}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
                         
-                        // Set default monthly interval if not already set
-                        if (!form.getValues('recurringInterval')) {
-                          form.setValue('recurringInterval', 'monthly');
+                        // Auto-select recurring if Subscription category is selected
+                        const category = categories.find(c => c.id === value);
+                        if (category && category.name === 'Subscription') {
+                          // Set recurring to true
+                          form.setValue('isRecurring', true);
+                          
+                          // Set default monthly interval if not already set
+                          if (!form.getValues('recurringInterval')) {
+                            form.setValue('recurringInterval', 'monthly');
+                          }
                         }
-                      }
-                    }}
-                    defaultValue={field.value?.toString()}
-                    value={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filteredCategories.map((category) => (
-                        <SelectItem 
-                          key={category.id} 
-                          value={category.id.toString()}
-                          className="flex items-center gap-2"
-                        >
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: category.color }} 
-                          />
-                          {category.emoji && <span className="mr-1">{category.emoji}</span>}
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      }}
+                      placeholder="Search for category..."
+                      emptyMessage="No matching categories found"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

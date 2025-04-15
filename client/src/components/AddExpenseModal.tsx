@@ -218,40 +218,29 @@ export default function AddExpenseModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(parseInt(value));
-                        
-                        // Auto-select recurring if Subscription category is selected
-                        const category = categories.find(c => c.id === parseInt(value));
-                        if (category && category.name === 'Subscription') {
-                          // Set recurring to true
-                          form.setValue('isRecurring', true);
+                    <FormControl>
+                      <AutocompleteCategoryInput
+                        categories={categories}
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
                           
-                          // Set default monthly interval if not already set
-                          if (!form.getValues('recurringInterval')) {
-                            form.setValue('recurringInterval', 'monthly');
+                          // Auto-select recurring if Subscription category is selected
+                          const category = categories.find(c => c.id === value);
+                          if (category && category.name === 'Subscription') {
+                            // Set recurring to true
+                            form.setValue('isRecurring', true);
+                            
+                            // Set default monthly interval if not already set
+                            if (!form.getValues('recurringInterval')) {
+                              form.setValue('recurringInterval', 'monthly');
+                            }
                           }
-                        }
-                      }}
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            <div className="flex items-center">
-                              {category.emoji && <span className="mr-2">{category.emoji}</span>}
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        }}
+                        placeholder="Search for category..."
+                        emptyMessage="No matching categories found"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
