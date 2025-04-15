@@ -91,6 +91,8 @@ export default function UpcomingExpenses({
         let nextDate = new Date(originalDate);
         let hasUpcomingInstanceInMonth = false;
         
+        console.log(`Checking recurring transaction: ${transaction.title}, interval: ${interval}, date: ${format(originalDate, 'yyyy-MM-dd')}, isRecurring: ${transaction.isRecurring}`);
+        
         // If the original date is in the selected month and is tomorrow or later AND not paid
         if (originalDate >= monthStart && 
             originalDate <= monthEnd && 
@@ -432,6 +434,42 @@ export default function UpcomingExpenses({
               ))}
             {transactions.filter(tx => tx.isRecurring && tx.isExpense && tx.recurringInterval === 'weekly').length === 0 && (
               <div className="text-sm text-muted-foreground text-center py-2">No weekly recurring expenses</div>
+            )}
+          </div>
+        </div>
+        
+        {/* Monthly Recurring Expenses Section */}
+        <div className="mb-4 border-b pb-3">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <span className="mr-1">📆</span> Monthly Recurring Expenses
+          </h3>
+          <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+            {transactions
+              .filter(tx => tx.isRecurring && tx.isExpense && 
+                    (tx.recurringInterval === 'monthly' || tx.recurringInterval === undefined) && 
+                    tx.category?.name !== 'Subscription')
+              .map((monthlyExpense) => (
+                <div 
+                  key={monthlyExpense.id} 
+                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer group"
+                  onClick={() => onEditTransaction(monthlyExpense)}
+                >
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                    <span className="font-medium text-sm">{monthlyExpense.title} ⟳</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium mr-2">{monthlyExpense.amount.toFixed(2)} PLN</span>
+                    <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-1.5 py-0.5 rounded">
+                      {format(new Date(monthlyExpense.date), 'dd.MM')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            {transactions.filter(tx => tx.isRecurring && tx.isExpense && 
+                  (tx.recurringInterval === 'monthly' || tx.recurringInterval === undefined) && 
+                  tx.category?.name !== 'Subscription').length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-2">No monthly recurring expenses</div>
             )}
           </div>
         </div>
