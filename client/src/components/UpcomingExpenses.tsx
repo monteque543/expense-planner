@@ -372,6 +372,38 @@ export default function UpcomingExpenses({
         <CardDescription>Expenses to pay in {displayMonth}</CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Active Subscriptions Section */}
+        <div className="mb-4 border-b pb-3">
+          <h3 className="text-sm font-medium mb-2 flex items-center">
+            <span className="mr-1">🔄</span> Active Subscriptions
+          </h3>
+          <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+            {transactions
+              .filter(tx => tx.isRecurring && tx.isExpense && tx.category?.name === 'Subscription')
+              .map((subscription) => (
+                <div 
+                  key={subscription.id} 
+                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer group"
+                  onClick={() => onEditTransaction(subscription)}
+                >
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                    <span className="font-medium text-sm">{subscription.title}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium mr-2">{subscription.amount.toFixed(2)} PLN</span>
+                    <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      Cancel
+                    </span>
+                  </div>
+                </div>
+              ))}
+            {transactions.filter(tx => tx.isRecurring && tx.isExpense && tx.category?.name === 'Subscription').length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-2">No active subscriptions</div>
+            )}
+          </div>
+        </div>
+
         {upcomingExpenses.length > 0 ? (
           <div className="space-y-3">
             {upcomingExpenses.map((expense, index) => {
