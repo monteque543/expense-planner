@@ -48,8 +48,8 @@ const editTransactionSchema = z.object({
   }),
   isExpense: z.boolean(),
   isRecurring: z.boolean().optional().default(false),
-  recurringInterval: z.enum(recurringIntervals).optional().default('monthly'),
-  recurringEndDate: z.string().optional(),
+  recurringInterval: z.enum(recurringIntervals).nullable().optional().default('monthly'),
+  recurringEndDate: z.string().nullable().optional(),
   isPaid: z.boolean().optional().default(false),
 });
 
@@ -357,8 +357,8 @@ export default function EditTransactionModal({
                       <FormLabel>Recurring Interval</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
+                        defaultValue={field.value || undefined}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -398,6 +398,36 @@ export default function EditTransactionModal({
               </div>
             )}
             
+            {/* Cancel Subscription Button (only shown for existing recurring transactions) */}
+            {transaction?.isRecurring && watchIsRecurring && (
+              <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-3 mt-2">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium text-red-800 dark:text-red-300">Cancel Subscription</div>
+                  <div className="text-xs text-red-700 dark:text-red-400">
+                    This will stop the recurring nature of this transaction after this month.
+                  </div>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    // Cancel the subscription by updating the form values
+                    const updatedValues = {
+                      ...form.getValues(),
+                      isRecurring: false,
+                      recurringInterval: 'monthly', // This value will not be used since isRecurring is false
+                      recurringEndDate: '',
+                    };
+                    form.reset(updatedValues);
+                  }}
+                  className="ml-2"
+                >
+                  Cancel Subscription
+                </Button>
+              </div>
+            )}
+
             <div className="sticky bottom-0 bg-background pt-4 pb-2 flex flex-col sm:flex-row sm:justify-end gap-2">
               <Button 
                 type="button" 
