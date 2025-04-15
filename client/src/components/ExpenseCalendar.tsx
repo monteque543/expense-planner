@@ -279,22 +279,28 @@ export default function ExpenseCalendar({
       // Track the previous date to detect if we're not advancing
       let prevDate = new Date(0); // Start with a date far in the past
       
-      // Generate recurring instances within the current view
+      // Generate recurring instances within the current view and future months
+      // Set the longer view period (up to 12 months in the future)
+      const extendedEndDate = addMonths(new Date(), 12);
+      
       while (nextDate <= recurringEndDate && counter < MAX_ITERATIONS) {
         counter++;
         
         const inView = nextDate >= viewStart && nextDate <= viewEnd;
         console.log(`Checking occurrence date: ${format(nextDate, 'yyyy-MM-dd')}, in view: ${inView}`);
         
-        // Add instances that fall within the current calendar view
+        // Add instances that fall within the current calendar view OR are important recurring transactions
         // For important recurring transactions (especially income and subscriptions), 
-        // we want to show them in future months too, even if we're only exploring next month
+        // we want to show them in future months too, regardless of which month we're viewing
         const isImportantForFutureDisplay = 
           (transaction.title === "Omega" || 
            transaction.category?.name === "Subscription" || 
            !transaction.isExpense); // all income is important
+        
+        const isFutureOccurrence = nextDate > viewEnd && nextDate <= extendedEndDate;
            
-        if (inView || (isImportantForFutureDisplay && nextDate > viewEnd && nextDate <= addMonths(viewEnd, 2))) {
+        // Always add to the calendar if it's in view OR it's an important transaction in the future
+        if (inView || (isImportantForFutureDisplay && isFutureOccurrence)) {
           const nextDateStr = format(nextDate, 'yyyy-MM-dd');
           if (!grouped[nextDateStr]) {
             grouped[nextDateStr] = [];
@@ -352,10 +358,10 @@ export default function ExpenseCalendar({
           break;
         }
         
-        // Continue generating a few more occurrences beyond the current view
-        // to ensure future months like May will show recurring transactions
-        if (nextDate > addMonths(viewEnd, 3) && counter > 2) {
-          console.log('Reached far past view end, stopping iteration');
+        // Keep generating occurrences for up to 12 months in the future
+        // to ensure all future calendar views will show recurring transactions
+        if (nextDate > addMonths(new Date(), 12) && counter > 2) {
+          console.log('Reached max future date limit, stopping iteration');
           break;
         }
       }
@@ -467,10 +473,10 @@ export default function ExpenseCalendar({
           {/* Calendar Days */}
           {calendarDays.map((day, idx) => {
             const dayStr = format(day, 'yyyy-MM-dd');
-            // Only show transactions for days that are in the current month view
+            // Check if day is in the currently displayed month
             const isCurrentMonth = isSameMonth(day, currentDate);
-            // Filter transactions - only show for current month days
-            const dayTransactions = isCurrentMonth ? (transactionsByDate[dayStr] || []) : [];
+            // Always show transactions for the day regardless of month, but ensure we have them
+            const dayTransactions = transactionsByDate[dayStr] || [];
             const isTodayDate = isToday(day);
             const isPastDay = isBefore(day, new Date());
             const dayHasTransactions = dayTransactions.length > 0;
