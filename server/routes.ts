@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -11,12 +11,24 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
+  
+  // Create an authentication middleware
+  function requireAuth(req: Request, res: Response, next: NextFunction) {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    res.status(401).json({ message: "Authentication required" });
+  }
+  
   const router = express.Router();
   
   // Transactions endpoints
-  router.get("/recurring-transactions", async (_req: Request, res: Response) => {
+  router.get("/recurring-transactions", requireAuth, async (_req: Request, res: Response) => {
     try {
       const recurringTransactions = await storage.getRecurringTransactions();
       
@@ -42,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  router.get("/transactions", async (req: Request, res: Response) => {
+  router.get("/transactions", requireAuth, async (req: Request, res: Response) => {
     try {
       const transactions = await storage.getTransactions();
       
@@ -95,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  router.post("/transactions", async (req: Request, res: Response) => {
+  router.post("/transactions", requireAuth, async (req: Request, res: Response) => {
     try {
       // Convert string date to Date object if needed
       if (req.body.date && typeof req.body.date === 'string') {
@@ -127,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  router.patch("/transactions/:id", async (req: Request, res: Response) => {
+  router.patch("/transactions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -177,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  router.delete("/transactions/:id", async (req: Request, res: Response) => {
+  router.delete("/transactions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -226,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  router.post("/categories", async (req: Request, res: Response) => {
+  router.post("/categories", requireAuth, async (req: Request, res: Response) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
       const newCategory = await storage.createCategory(categoryData);
