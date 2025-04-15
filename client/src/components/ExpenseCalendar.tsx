@@ -16,7 +16,8 @@ import {
   addDays,
   addWeeks,
   addMonths,
-  addYears
+  addYears,
+  lastDayOfMonth
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -219,6 +220,7 @@ export default function ExpenseCalendar({
         const MAX_SAFETY = 100;
         
         // Skip ahead until we find a date near or in our view range
+        // For monthly transactions, we need to be more careful about day-of-month alignment
         while (startingDate < viewStart && safety < MAX_SAFETY) {
           safety++;
           
@@ -230,9 +232,23 @@ export default function ExpenseCalendar({
             case 'weekly':
               startingDate = addWeeks(startingDate, 1);
               break;
-            case 'monthly':
-              startingDate = addMonths(startingDate, 1);
+            case 'monthly': {
+              // Keep the same day of month when adding months
+              const originalDay = originalDate.getDate();
+              const nextMonth = addMonths(startingDate, 1);
+              
+              // Create a new date with the correct day (accounting for month length)
+              const lastDayOfNextMonth = lastDayOfMonth(nextMonth);
+              const targetDay = Math.min(originalDay, lastDayOfNextMonth.getDate());
+              
+              startingDate = new Date(
+                nextMonth.getFullYear(), 
+                nextMonth.getMonth(), 
+                targetDay,
+                12, 0, 0 // noon to avoid timezone issues
+              );
               break;
+            }
             case 'yearly':
               startingDate = addYears(startingDate, 1);
               break;
@@ -299,9 +315,23 @@ export default function ExpenseCalendar({
           case 'weekly':
             nextDate = addWeeks(nextDate, 1);
             break;
-          case 'monthly':
-            nextDate = addMonths(nextDate, 1);
+          case 'monthly': {
+            // Keep the same day of month when adding months
+            const originalDay = originalDate.getDate();
+            const nextMonth = addMonths(nextDate, 1);
+            
+            // Create a new date with the correct day (accounting for month length)
+            const lastDayOfNextMonth = lastDayOfMonth(nextMonth);
+            const targetDay = Math.min(originalDay, lastDayOfNextMonth.getDate());
+            
+            nextDate = new Date(
+              nextMonth.getFullYear(), 
+              nextMonth.getMonth(), 
+              targetDay,
+              12, 0, 0 // noon to avoid timezone issues
+            );
             break;
+          }
           case 'yearly':
             nextDate = addYears(nextDate, 1);
             break;
