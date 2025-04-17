@@ -546,54 +546,77 @@ export default function ExpensePlanner() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col md:flex-row">
-        {/* Calendar View */}
-        <ExpenseCalendar 
-          transactions={filteredTransactions}
-          currentDate={selectedDate}
-          currentMonthYear={currentMonthYear}
-          onPrevMonth={handlePrevMonth}
-          onNextMonth={handleNextMonth}
-          onSelectToday={handleToday}
-          onEditTransaction={handleEditTransaction}
-          onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
-          onDayClick={(date) => {
-            // Create a new date object at noon to ensure timezone consistency
-            const year = date.getFullYear();
-            const month = date.getMonth();
-            const day = date.getDate();
-            const clickedDate = new Date(year, month, day, 12, 0, 0);
-            
-            console.log('Day clicked:', 
-                        `${year}-${month+1}-${day}`, 
-                        'ISO:', clickedDate.toISOString());
-            
-            // First update the date, then show the modal
-            setSelectedDate(clickedDate);
-            // Use setTimeout to ensure state is updated before showing the modal
-            setTimeout(() => {
-              setShowExpenseModal(true);
-            }, 50);
-          }}
-          isLoading={isLoadingTransactions}
-          activeView={activeView}
-        />
+      <div className="flex-1 overflow-auto flex flex-col">
+        {/* Calendar and Sidebar */}
+        <main className="flex-1 overflow-auto flex flex-col md:flex-row">
+          {/* Calendar View */}
+          <ExpenseCalendar 
+            transactions={filteredTransactions}
+            currentDate={selectedDate}
+            currentMonthYear={currentMonthYear}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            onSelectToday={handleToday}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
+            onDayClick={(date) => {
+              // Create a new date object at noon to ensure timezone consistency
+              const year = date.getFullYear();
+              const month = date.getMonth();
+              const day = date.getDate();
+              const clickedDate = new Date(year, month, day, 12, 0, 0);
+              
+              console.log('Day clicked:', 
+                          `${year}-${month+1}-${day}`, 
+                          'ISO:', clickedDate.toISOString());
+              
+              // First update the date, then show the modal
+              setSelectedDate(clickedDate);
+              // Use setTimeout to ensure state is updated before showing the modal
+              setTimeout(() => {
+                setShowExpenseModal(true);
+              }, 50);
+            }}
+            isLoading={isLoadingTransactions}
+            activeView={activeView}
+          />
 
-        {/* Sidebar View */}
-        <ExpenseSidebar 
-          transactions={currentMonthTransactions}
-          categories={categories}
-          currentMonthYear={currentMonthYear}
-          currentDate={selectedDate}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          activePersonFilter={activePersonFilter}
-          onPersonFilterChange={setActivePersonFilter}
-          onEditTransaction={handleEditTransaction}
-          onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
-          isLoading={isLoadingTransactions || isLoadingCategories}
-        />
-      </main>
+          {/* Sidebar View */}
+          <ExpenseSidebar 
+            transactions={currentMonthTransactions}
+            categories={categories}
+            currentMonthYear={currentMonthYear}
+            currentDate={selectedDate}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            activePersonFilter={activePersonFilter}
+            onPersonFilterChange={setActivePersonFilter}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
+            isLoading={isLoadingTransactions || isLoadingCategories}
+          />
+        </main>
+        
+        {/* Expense Analysis Charts */}
+        <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+          <h2 className="text-xl font-semibold mb-4">Expense Analysis</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Person Distribution Chart */}
+            <ExpensesPieChart 
+              transactions={currentMonthTransactions}
+              currentDate={selectedDate}
+              isLoading={isLoadingTransactions}
+            />
+            
+            {/* Category Distribution Chart */}
+            <ExpensesByCategoryChart
+              transactions={currentMonthTransactions}
+              currentDate={selectedDate}
+              isLoading={isLoadingTransactions}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Modals */}
       <AddExpenseModal
