@@ -175,12 +175,32 @@ export default function ExpensePlanner() {
       // For regular transactions, proceed with the DELETE request
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      // Show success message
       toast({
         title: "Success",
         description: "Transaction deleted successfully",
       });
+      
+      // Force a data refresh
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // If it's a hardcoded transaction, also manually update the UI state
+      if (id >= 970000) {
+        // Immediately update local state to reflect deletion for better UX
+        // For hardcoded transactions we can also manually update the state
+        // by filtering out the deleted transaction from our in-memory cache
+        const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+        if (currentData) {
+          queryClient.setQueryData<TransactionWithCategory[]>(
+            ['/api/transactions'],
+            currentData.filter(t => t.id !== id)
+          );
+        }
+        
+        // Force a re-render of the month view
+        setSelectedDate(new Date(selectedDate));
+      }
     },
     onError: (error) => {
       toast({
