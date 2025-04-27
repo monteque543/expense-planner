@@ -131,6 +131,40 @@ export default function ExpensePlanner() {
     }
   });
   
+  // Define the handleDeleteTransaction function first 
+  // so it can be used by the mutations
+  const handleDeleteTransaction = (id: number) => {
+    console.log(`Handling deletion for transaction ID: ${id}`);
+    
+    // If it's a hardcoded transaction (ID in the 970000+ range)
+    if (id >= 970000) {
+      // For hardcoded transactions, we'll implement client-side deletion
+      console.log(`Deleting hardcoded transaction with ID: ${id}`);
+      
+      // Show success message immediately
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully",
+      });
+      
+      // Manually update the UI by filtering out this transaction
+      // from the in-memory cache in React Query
+      const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+      if (currentData) {
+        const updatedData = currentData.filter(t => t.id !== id);
+        queryClient.setQueryData<TransactionWithCategory[]>(['/api/transactions'], updatedData);
+        
+        // Force a refresh of the UI
+        setSelectedDate(new Date(selectedDate));
+      }
+      
+      return; // Don't call the API for hardcoded transactions
+    }
+    
+    // For regular transactions, use the mutation
+    deleteTransaction.mutate(id);
+  };
+  
   // Update transaction mutation
   const updateTransaction = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
@@ -157,25 +191,10 @@ export default function ExpensePlanner() {
   // Delete transaction mutation
   const deleteTransaction = useMutation({
     mutationFn: (id: number) => {
-      // Check if this is a hardcoded transaction (ID range 970000+)
-      if (id >= 970000) {
-        // For hardcoded transactions, we don't need to hit the API
-        // Instead, return a success response to trigger the onSuccess handler
-        console.log(`Handling deletion of hardcoded transaction with ID: ${id}`);
-        return new Promise<Response>((resolve) => {
-          // Create a mock successful response
-          const mockResponse = new Response(JSON.stringify({ success: true }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          });
-          resolve(mockResponse);
-        });
-      }
-      
-      // For regular transactions, proceed with the DELETE request
+      // Regular transactions should use the DELETE request
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       // Show success message
       toast({
         title: "Success",
@@ -184,23 +203,6 @@ export default function ExpensePlanner() {
       
       // Force a data refresh
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
-      // If it's a hardcoded transaction, also manually update the UI state
-      if (id >= 970000) {
-        // Immediately update local state to reflect deletion for better UX
-        // For hardcoded transactions we can also manually update the state
-        // by filtering out the deleted transaction from our in-memory cache
-        const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
-        if (currentData) {
-          queryClient.setQueryData<TransactionWithCategory[]>(
-            ['/api/transactions'],
-            currentData.filter(t => t.id !== id)
-          );
-        }
-        
-        // Force a re-render of the month view
-        setSelectedDate(new Date(selectedDate));
-      }
     },
     onError: (error) => {
       toast({
@@ -594,7 +596,7 @@ export default function ExpensePlanner() {
             onNextMonth={handleNextMonth}
             onSelectToday={handleToday}
             onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
+            onDeleteTransaction={handleDeleteTransaction}
             onDayClick={(date) => {
               // Create a new date object at noon to ensure timezone consistency
               const year = date.getFullYear();
@@ -628,7 +630,7 @@ export default function ExpensePlanner() {
             activePersonFilter={activePersonFilter}
             onPersonFilterChange={setActivePersonFilter}
             onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={(id) => deleteTransaction.mutate(id)}
+            onDeleteTransaction={handleDeleteTransaction}
             isLoading={isLoadingTransactions || isLoadingCategories}
           />
         </main>
