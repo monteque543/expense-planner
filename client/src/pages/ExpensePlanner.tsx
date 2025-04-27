@@ -138,8 +138,8 @@ export default function ExpensePlanner() {
     
     // If it's a hardcoded transaction (ID in the 970000+ range)
     if (id >= 970000) {
-      // For hardcoded transactions, we'll implement client-side deletion
-      console.log(`Deleting hardcoded transaction with ID: ${id}`);
+      // For hardcoded transactions, implement direct UI update without API calls
+      console.log(`[DEBUG] DELETING HARDCODED TRANSACTION WITH ID: ${id}`);
       
       // Show success message immediately
       toast({
@@ -147,15 +147,62 @@ export default function ExpensePlanner() {
         description: "Transaction deleted successfully",
       });
       
-      // Manually update the UI by filtering out this transaction
-      // from the in-memory cache in React Query
-      const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
-      if (currentData) {
-        const updatedData = currentData.filter(t => t.id !== id);
-        queryClient.setQueryData<TransactionWithCategory[]>(['/api/transactions'], updatedData);
+      try {
+        // Directly modify the hardcoded expense source
+        console.log('Getting current state hardcoded expenses for filtering...');
         
-        // Force a refresh of the UI
-        setSelectedDate(new Date(selectedDate));
+        // Get current view month/year
+        const viewMonth = selectedDate.getMonth();
+        const viewYear = selectedDate.getFullYear();
+        
+        console.log(`Current view: Month ${viewMonth+1}, Year ${viewYear}`);
+        
+        // Get the current hardcoded data
+        const currentFiltered = [...filteredTransactions].filter(t => t.id !== id);
+        console.log(`Filtered out transaction ${id}, transactions count changed from ${filteredTransactions.length} to ${currentFiltered.length}`);
+        
+        // Immediately update local state to force refresh
+        // This is the key change - we're updating both places the data could be stored
+        // First, in the react-query cache
+        const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+        if (currentQueryData) {
+          const updatedQueryData = currentQueryData.filter(t => t.id !== id);
+          queryClient.setQueryData<TransactionWithCategory[]>(
+            ['/api/transactions'],
+            updatedQueryData
+          );
+          console.log('Updated react-query cache');
+        }
+        
+        // Force a refresh of all derived data
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        console.log('Invalidated transactions query');
+        
+        // Force a complete UI refresh
+        const newDate = new Date(selectedDate);
+        setSelectedDate(newDate);
+        console.log('Force refreshed by updating selected date');
+        
+        // Navigate to next month and back to trigger a fresh render
+        const nextMonth = new Date(selectedDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        setTimeout(() => {
+          setSelectedDate(nextMonth);
+          console.log('Moving to next month to force refresh');
+          
+          // Then come back after another small delay
+          setTimeout(() => {
+            setSelectedDate(newDate);
+            console.log('Moving back to original month');
+          }, 100);
+        }, 100);
+      } catch (error) {
+        console.error('Error during hardcoded transaction deletion:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete transaction, please try again",
+          variant: "destructive",
+        });
       }
       
       return; // Don't call the API for hardcoded transactions
@@ -638,7 +685,10 @@ export default function ExpensePlanner() {
         {/* Expense Analysis Charts */}
         <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
           <h2 className="text-xl font-semibold mb-4">Expense Analysis</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Use a current month key to force remounting of charts when month changes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" 
+               key={`charts-${selectedDate.getFullYear()}-${selectedDate.getMonth()}`}>
             {/* Person Distribution Chart */}
             <ExpensesPieChart 
               transactions={currentMonthTransactions}
