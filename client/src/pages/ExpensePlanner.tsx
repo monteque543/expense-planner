@@ -157,6 +157,22 @@ export default function ExpensePlanner() {
   // Delete transaction mutation
   const deleteTransaction = useMutation({
     mutationFn: (id: number) => {
+      // Check if this is a hardcoded transaction (ID range 970000+)
+      if (id >= 970000) {
+        // For hardcoded transactions, we don't need to hit the API
+        // Instead, return a success response to trigger the onSuccess handler
+        console.log(`Handling deletion of hardcoded transaction with ID: ${id}`);
+        return new Promise<Response>((resolve) => {
+          // Create a mock successful response
+          const mockResponse = new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+          resolve(mockResponse);
+        });
+      }
+      
+      // For regular transactions, proceed with the DELETE request
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
     onSuccess: () => {
