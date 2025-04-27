@@ -1,6 +1,33 @@
 import { type Transaction, type Category, type TransactionWithCategory } from "@shared/schema";
 import { format } from "date-fns";
 
+// Global ID counter for hardcoded transactions
+// Start at 970000 to prevent collisions with real data
+let hardcodedIdCounter = 970000;
+
+// Storage for deleted transaction IDs - use this to track what's been deleted
+export const deletedHardcodedTransactionIds = new Set<number>();
+
+// Get new ID that won't collide
+export function getNextHardcodedId(): number {
+  return hardcodedIdCounter++;
+}
+
+/**
+ * Check if a transaction has been deleted (client-side only)
+ */
+export function isTransactionDeleted(id: number): boolean {
+  return deletedHardcodedTransactionIds.has(id);
+}
+
+/**
+ * Mark a transaction as deleted (client-side only)
+ */
+export function markTransactionAsDeleted(id: number): void {
+  deletedHardcodedTransactionIds.add(id);
+  console.log(`Marked transaction ${id} as deleted. Current deleted count: ${deletedHardcodedTransactionIds.size}`);
+}
+
 /**
  * Creates hardcoded subscription and expense transactions for critical months
  * This is a direct solution to ensure all recurring expenses/subscriptions appear in calendar

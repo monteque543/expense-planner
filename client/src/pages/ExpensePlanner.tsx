@@ -21,7 +21,12 @@ import type { Category, Transaction, TransactionWithCategory, Savings } from "@s
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
-import { createHardcodedExpenseTransactions } from "@/utils/expense-hardcoder";
+import { 
+  createHardcodedExpenseTransactions,
+  isTransactionDeleted,
+  markTransactionAsDeleted,
+  deletedHardcodedTransactionIds
+} from "@/utils/expense-hardcoder";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -139,8 +144,12 @@ export default function ExpensePlanner() {
     
     // If it's a hardcoded transaction (ID in the 970000+ range)
     if (id >= 970000) {
-      // For hardcoded transactions, implement pure client-side deletion
+      // For hardcoded transactions, implement pure client-side deletion using our tracker
       console.log(`[CLIENT-SIDE DELETE] Removing hardcoded transaction with ID: ${id}`);
+      
+      // Mark this transaction as deleted in our global tracker
+      markTransactionAsDeleted(id);
+      console.log(`Transaction ${id} marked as deleted in global tracker`);
       
       // Show success message immediately
       toast({
@@ -155,33 +164,42 @@ export default function ExpensePlanner() {
         // Find and track the removed transaction title
         const transactionToDelete = filteredTransactions.find(t => t.id === id);
         const titleToRemove = transactionToDelete?.title;
-        console.log(`Removing transaction: "${titleToRemove}"`);
+        console.log(`Removing transaction: "${titleToRemove}" from UI`);
         
-        // 1. Update react-query cache
+        // 1. Update react-query cache to immediately reflect the change in UI
         const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
         if (currentQueryData) {
+          // Filter out the deleted transaction from cache
           const updatedQueryData = currentQueryData.filter(t => t.id !== id);
           queryClient.setQueryData<TransactionWithCategory[]>(
             ['/api/transactions'],
             updatedQueryData
           );
+          console.log(`Updated QueryClient cache to filter out transaction ${id}`);
         }
         
-        // 2. Force view refresh by switching months
-        // First switch to next month and then back
+        // 2. Force complete cache invalidation to rebuild all derived data
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        console.log(`Invalidated transaction queries to force refresh`);
+        
+        // 3. Force refresh by temporarily changing month and coming back
+        // This ensures all components re-render completely
         const nextMonth = new Date(selectedDate);
         nextMonth.setMonth(nextMonth.getMonth() + 1);
         
-        // Schedule the month changes with enough delay
+        // Immediate update to current month view
+        setSelectedDate(new Date(currentDate));
+        
+        // Schedule the month change with delay (helps trigger full rerender)
         setTimeout(() => {
+          console.log('Step 1: Moving to next month temporarily...');
           setSelectedDate(nextMonth);
-          console.log('Switched to next month temporarily');
           
-          // Then back to current month
+          // Then immediately back to current month
           setTimeout(() => {
+            console.log('Step 2: Returning to original month...');
             setSelectedDate(currentDate);
-            console.log('Returned to original month');
-          }, 150);
+          }, 200);
         }, 100);
       } catch (error) {
         console.error('Error during client-side transaction deletion:', error);
@@ -353,6 +371,7 @@ export default function ExpensePlanner() {
   };
 
   // Get hardcoded income transactions for critical months (May 2025-Mar 2026)
+  // Filter out any transactions that have been marked as deleted
   const hardcodedIncome = useMemo(() => {
     // Get month and year for current view
     const viewMonth = selectedDate.getMonth();
@@ -364,19 +383,26 @@ export default function ExpensePlanner() {
       const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
       
       // Convert the hardcoded map into an array of transactions
-      const result = Object.values(hardcodedMap).flat();
+      const allTransactions = Object.values(hardcodedMap).flat();
+      
+      // Filter out any transactions that have been marked as deleted
+      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
       
       // Log for debugging
       console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
+      if (allTransactions.length !== result.length) {
+        console.log(`[Income] Filtered out ${allTransactions.length - result.length} deleted transactions`);
+      }
       
       return result;
     }
     
     // For normal months, return empty array
     return [];
-  }, [transactions, selectedDate]);
+  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
   
   // Get hardcoded recurring expenses/subscriptions for all months
+  // Filter out any transactions that have been marked as deleted
   const hardcodedExpenses = useMemo(() => {
     // Get month and year for current view
     const viewMonth = selectedDate.getMonth();
@@ -388,10 +414,16 @@ export default function ExpensePlanner() {
       const hardcodedMap = createHardcodedExpenseTransactions(viewMonth, viewYear, transactions);
       
       // Convert the map into an array of transactions
-      const result = Object.values(hardcodedMap).flat();
+      const allTransactions = Object.values(hardcodedMap).flat();
+      
+      // Filter out any transactions that have been marked as deleted
+      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
       
       if (result.length > 0) {
         console.log(`🔄 Added ${result.length} hardcoded recurring expenses/subscriptions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
+        if (allTransactions.length !== result.length) {
+          console.log(`[Expenses] Filtered out ${allTransactions.length - result.length} deleted transactions`);
+        }
       }
       
       return result;
@@ -399,7 +431,7 @@ export default function ExpensePlanner() {
     
     // For other months, return empty array
     return [];
-  }, [transactions, selectedDate]);
+  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
   
   // Filter transactions to only show ones from the current month in the sidebar
   const currentMonthTransactions = useMemo(() => {
@@ -730,14 +762,48 @@ export default function ExpensePlanner() {
               description: "Transaction updated (client-side only)",
             });
             
-            // Force refresh by changing month and back
+            // 1. Update react-query cache to immediately reflect the change in UI
+            const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+            if (currentQueryData) {
+              // Find and update the transaction in cache
+              const updatedQueryData = currentQueryData.map(t => {
+                if (t.id === id) {
+                  // Return updated transaction 
+                  return { ...t, ...data };
+                }
+                return t;
+              });
+              
+              // Update cache
+              queryClient.setQueryData<TransactionWithCategory[]>(
+                ['/api/transactions'],
+                updatedQueryData
+              );
+              console.log(`Updated QueryClient cache for transaction ${id}`);
+            }
+            
+            // 2. Force complete cache invalidation to rebuild all derived data
+            queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+            console.log(`Invalidated transaction queries to force refresh`);
+            
+            // 3. Force refresh by temporarily changing month and coming back
             const currentDate = new Date(selectedDate);
             const nextMonth = new Date(selectedDate);
             nextMonth.setMonth(nextMonth.getMonth() + 1);
             
-            setSelectedDate(nextMonth);
+            // Immediate update to current month view
+            setSelectedDate(new Date(currentDate));
+            
+            // Schedule the month changes with delay (helps trigger full rerender)
             setTimeout(() => {
-              setSelectedDate(currentDate);
+              console.log('Step 1: Moving to next month temporarily...');
+              setSelectedDate(nextMonth);
+              
+              // Then back to current month
+              setTimeout(() => {
+                console.log('Step 2: Returning to original month...');
+                setSelectedDate(currentDate);
+              }, 200);
             }, 100);
             
             // Close the modal
