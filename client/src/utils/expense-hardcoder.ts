@@ -64,11 +64,24 @@ export function createHardcodedExpenseTransactions(
   // Process subscriptions first - we always want them to appear
   subscriptionTransactions.forEach(subscription => {
     // For each subscription, create a hardcoded instance for this month
-    const originalDay = typeof subscription.date === 'string' 
-      ? new Date(subscription.date).getDate() 
+    const originalDate = typeof subscription.date === 'string' 
+      ? new Date(subscription.date)
       : subscription.date instanceof Date 
-        ? subscription.date.getDate() 
-        : 1;
+        ? subscription.date
+        : new Date();
+    
+    const originalDay = originalDate.getDate();
+    const originalMonth = originalDate.getMonth();
+    const originalYear = originalDate.getFullYear();
+    
+    // Skip if this is a yearly recurrence and not the right month
+    const isYearlyRecurrence = subscription.recurringInterval === 'yearly';
+    
+    if (isYearlyRecurrence && month !== originalMonth) {
+      // For yearly transactions, only show in the original month
+      console.log(`Skipping yearly subscription "${subscription.title}" because current month ${month} doesn't match original month ${originalMonth}`);
+      return; // Skip to next transaction
+    }
     
     // Create a specific date for this month's instance
     const subscriptionDate = new Date(year, month, originalDay, 12, 0, 0);
@@ -109,11 +122,24 @@ export function createHardcodedExpenseTransactions(
   // Then process other recurring expenses 
   recurringExpenses.forEach(expense => {
     // For each expense, create a hardcoded instance for this month
-    const originalDay = typeof expense.date === 'string' 
-      ? new Date(expense.date).getDate() 
+    const originalDate = typeof expense.date === 'string' 
+      ? new Date(expense.date)
       : expense.date instanceof Date 
-        ? expense.date.getDate() 
-        : 1;
+        ? expense.date
+        : new Date();
+    
+    const originalDay = originalDate.getDate();
+    const originalMonth = originalDate.getMonth();
+    const originalYear = originalDate.getFullYear();
+    
+    // Skip if this is a yearly recurrence and not the right month
+    const isYearlyRecurrence = expense.recurringInterval === 'yearly';
+    
+    if (isYearlyRecurrence && month !== originalMonth) {
+      // For yearly transactions, only show in the original month
+      console.log(`Skipping yearly expense "${expense.title}" because current month ${month} doesn't match original month ${originalMonth}`);
+      return; // Skip to next transaction
+    }
     
     // Create a specific date for this month's instance
     const expenseDate = new Date(year, month, originalDay, 12, 0, 0);
