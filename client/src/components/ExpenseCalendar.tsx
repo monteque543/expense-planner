@@ -719,7 +719,18 @@ const originalDate = typeof transaction.date === 'string'
             return (
               <div 
                 key={idx} 
-                className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'hover:bg-muted/40' : ''}`}
+                className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'hover:bg-muted/40 cursor-pointer' : ''}`}
+                onClick={(e) => {
+                  // Handle click on the entire cell container
+                  if (isCurrentMonth && onDayClick) {
+                    // Only trigger if clicked directly on this element (not on a transaction)
+                    if (e.target === e.currentTarget) {
+                      const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
+                      console.log('ENTIRE CELL clicked:', format(clickedDate, 'yyyy-MM-dd'));
+                      onDayClick(clickedDate);
+                    }
+                  }
+                }}
               >
                 {/* Day number with highlighting for today */}
                 <div 
