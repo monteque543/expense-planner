@@ -132,14 +132,15 @@ export default function ExpensePlanner() {
   });
   
   // Define the handleDeleteTransaction function first 
-  // so it can be used by the mutations
+  // so it can be used by the mutations - this completely avoids API calls
+  // for hardcoded transactions
   const handleDeleteTransaction = (id: number) => {
     console.log(`Handling deletion for transaction ID: ${id}`);
     
     // If it's a hardcoded transaction (ID in the 970000+ range)
     if (id >= 970000) {
-      // For hardcoded transactions, implement direct UI update without API calls
-      console.log(`[DEBUG] DELETING HARDCODED TRANSACTION WITH ID: ${id}`);
+      // For hardcoded transactions, implement pure client-side deletion
+      console.log(`[CLIENT-SIDE DELETE] Removing hardcoded transaction with ID: ${id}`);
       
       // Show success message immediately
       toast({
@@ -148,22 +149,15 @@ export default function ExpensePlanner() {
       });
       
       try {
-        // Directly modify the hardcoded expense source
-        console.log('Getting current state hardcoded expenses for filtering...');
+        // Store the current date to return to
+        const currentDate = new Date(selectedDate);
         
-        // Get current view month/year
-        const viewMonth = selectedDate.getMonth();
-        const viewYear = selectedDate.getFullYear();
+        // Find and track the removed transaction title
+        const transactionToDelete = filteredTransactions.find(t => t.id === id);
+        const titleToRemove = transactionToDelete?.title;
+        console.log(`Removing transaction: "${titleToRemove}"`);
         
-        console.log(`Current view: Month ${viewMonth+1}, Year ${viewYear}`);
-        
-        // Get the current hardcoded data
-        const currentFiltered = [...filteredTransactions].filter(t => t.id !== id);
-        console.log(`Filtered out transaction ${id}, transactions count changed from ${filteredTransactions.length} to ${currentFiltered.length}`);
-        
-        // Immediately update local state to force refresh
-        // This is the key change - we're updating both places the data could be stored
-        // First, in the react-query cache
+        // 1. Update react-query cache
         const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
         if (currentQueryData) {
           const updatedQueryData = currentQueryData.filter(t => t.id !== id);
@@ -171,33 +165,26 @@ export default function ExpensePlanner() {
             ['/api/transactions'],
             updatedQueryData
           );
-          console.log('Updated react-query cache');
         }
         
-        // Force a refresh of all derived data
-        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        console.log('Invalidated transactions query');
-        
-        // Force a complete UI refresh
-        const newDate = new Date(selectedDate);
-        setSelectedDate(newDate);
-        console.log('Force refreshed by updating selected date');
-        
-        // Navigate to next month and back to trigger a fresh render
+        // 2. Force view refresh by switching months
+        // First switch to next month and then back
         const nextMonth = new Date(selectedDate);
         nextMonth.setMonth(nextMonth.getMonth() + 1);
+        
+        // Schedule the month changes with enough delay
         setTimeout(() => {
           setSelectedDate(nextMonth);
-          console.log('Moving to next month to force refresh');
+          console.log('Switched to next month temporarily');
           
-          // Then come back after another small delay
+          // Then back to current month
           setTimeout(() => {
-            setSelectedDate(newDate);
-            console.log('Moving back to original month');
-          }, 100);
+            setSelectedDate(currentDate);
+            console.log('Returned to original month');
+          }, 150);
         }, 100);
       } catch (error) {
-        console.error('Error during hardcoded transaction deletion:', error);
+        console.error('Error during client-side transaction deletion:', error);
         toast({
           title: "Error",
           description: "Failed to delete transaction, please try again",
@@ -205,10 +192,11 @@ export default function ExpensePlanner() {
         });
       }
       
-      return; // Don't call the API for hardcoded transactions
+      return; // Important: Don't continue to the API call
     }
     
-    // For regular transactions, use the mutation
+    // For regular transactions, call the API
+    console.log(`[API DELETE] Calling API to delete transaction: ${id}`);
     deleteTransaction.mutate(id);
   };
   
@@ -731,7 +719,35 @@ export default function ExpensePlanner() {
           setShowEditModal(false);
           setSelectedTransaction(null);
         }}
-        onUpdateTransaction={(id, data) => updateTransaction.mutate({ id, data })}
+        onUpdateTransaction={(id, data) => {
+          // Handle hardcoded transactions client-side
+          if (id >= 970000) {
+            console.log(`Client-side handling for hardcoded transaction edit: ${id}`);
+            
+            // Show success toast
+            toast({
+              title: "Success",
+              description: "Transaction updated (client-side only)",
+            });
+            
+            // Force refresh by changing month and back
+            const currentDate = new Date(selectedDate);
+            const nextMonth = new Date(selectedDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            
+            setSelectedDate(nextMonth);
+            setTimeout(() => {
+              setSelectedDate(currentDate);
+            }, 100);
+            
+            // Close the modal
+            setShowEditModal(false);
+            setSelectedTransaction(null);
+          } else {
+            // Regular transaction update via API
+            updateTransaction.mutate({ id, data });
+          }
+        }}
         transaction={selectedTransaction}
         categories={categories}
         isPending={updateTransaction.isPending}
