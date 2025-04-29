@@ -74,7 +74,8 @@ export function createHardcodedExpenseTransactions(
     const originalMonth = originalDate.getMonth();
     const originalYear = originalDate.getFullYear();
     
-    // Skip if this is a yearly recurrence and not the right month
+    // IMPORTANT: For yearly recurrence, we ONLY show the transaction in the same month as the original
+    // e.g., If a yearly subscription renews in May, we only show it in May of each year, not every month
     const isYearlyRecurrence = subscription.recurringInterval === 'yearly';
     
     if (isYearlyRecurrence && month !== originalMonth) {
@@ -132,7 +133,8 @@ export function createHardcodedExpenseTransactions(
     const originalMonth = originalDate.getMonth();
     const originalYear = originalDate.getFullYear();
     
-    // Skip if this is a yearly recurrence and not the right month
+    // IMPORTANT: For yearly recurrence, we ONLY show the transaction in the same month as the original
+    // e.g., If a Birthday is on June 9th, we only show it in June of each year, not every month
     const isYearlyRecurrence = expense.recurringInterval === 'yearly';
     
     if (isYearlyRecurrence && month !== originalMonth) {
