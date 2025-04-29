@@ -145,7 +145,7 @@ export function createHardcodedIncomeTransactions(
       const techSalaryTransaction: TransactionWithCategory = {
         id: 990000 + (month * 100) + 2, // Unique ID like 990402 for May
         title: "Techs Salary",
-        amount: 4000,
+        amount: 3000, // Updated from 4000 to 3000 as requested by user
         date: new Date(2025, month, 10, 12, 0, 0),
         notes: `Monthly salary for ${monthName} 2025 (hardcoded)`,
         isExpense: false,
