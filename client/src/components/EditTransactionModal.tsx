@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,8 +12,15 @@ import { Switch } from "@/components/ui/switch";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, TransactionWithCategory, persons, recurringIntervals } from "@shared/schema";
-import { X } from "lucide-react";
+import { DollarSign, Euro, X } from "lucide-react";
 import { format } from "date-fns";
+import { 
+  SupportedCurrency, 
+  convertToPLN, 
+  fetchLatestRates, 
+  formatCurrency, 
+  getExchangeRate 
+} from "@/utils/currency-converter";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -72,6 +79,15 @@ export default function EditTransactionModal({
   isPending,
   titleSuggestions = []
 }: EditTransactionModalProps) {
+  // State for the selected currency
+  const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('PLN');
+  // State for displaying converted amount
+  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  
+  // Fetch exchange rates when component mounts
+  useEffect(() => {
+    fetchLatestRates();
+  }, []);
   
   // Create form with default values
   const form = useForm<EditTransactionFormValues>({
@@ -119,13 +135,34 @@ export default function EditTransactionModal({
     }
   }, [transaction, form]);
   
+  // Watch the amount to update the converted value display
+  const amount = form.watch("amount");
+  
+  // Update converted amount when amount or currency changes
+  useEffect(() => {
+    if (amount && selectedCurrency !== 'PLN') {
+      const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
+      const convertedToPlnAmount = convertToPLN(amountNumber, selectedCurrency);
+      setConvertedAmount(convertedToPlnAmount);
+    } else {
+      setConvertedAmount(null);
+    }
+  }, [amount, selectedCurrency]);
+
   function onSubmit(data: EditTransactionFormValues) {
     if (!transaction) return;
     
-    // Number conversion is now handled by Zod transformation
+    // Number conversion is handled by Zod transformation
+    
+    // If currency is not PLN, convert to PLN
+    let finalAmount = data.amount;
+    if (selectedCurrency !== 'PLN') {
+      finalAmount = convertToPLN(finalAmount, selectedCurrency);
+    }
     
     onUpdateTransaction(transaction.id, {
       ...data,
+      amount: finalAmount, // Use the converted amount
       // Convert string dates to Date objects
       date: new Date(data.date),
       notes: data.notes || null,
@@ -136,6 +173,10 @@ export default function EditTransactionModal({
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
       isPaid: data.isPaid || false, // Include the isPaid field
     });
+    
+    // Reset currency after submission
+    setSelectedCurrency('PLN');
+    setConvertedAmount(null);
   }
 
   const watchIsRecurring = form.watch("isRecurring");
@@ -263,14 +304,67 @@ export default function EditTransactionModal({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount (PLN)</FormLabel>
+                  <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="0.00" 
-                      step="0.01"
-                      {...field} 
-                    />
+                    <div className="space-y-2">
+                      {/* Currency selector buttons */}
+                      <div className="flex space-x-2 mb-2">
+                        <Button 
+                          type="button" 
+                          variant={selectedCurrency === 'PLN' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCurrency('PLN')}
+                          className="flex-1"
+                        >
+                          PLN
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={selectedCurrency === 'EUR' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCurrency('EUR')}
+                          className="flex-1"
+                        >
+                          <Euro className="h-4 w-4 mr-1" /> EUR
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={selectedCurrency === 'USD' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCurrency('USD')}
+                          className="flex-1"
+                        >
+                          <DollarSign className="h-4 w-4 mr-1" /> USD
+                        </Button>
+                      </div>
+                      
+                      {/* Amount input with currency prefix */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500">
+                            {selectedCurrency === 'PLN' ? 'PLN' : 
+                             selectedCurrency === 'USD' ? '$' : '€'}
+                          </span>
+                        </div>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          {...field} 
+                          className="pl-12" 
+                        />
+                      </div>
+                      
+                      {/* Show converted amount if currency is not PLN */}
+                      {convertedAmount !== null && selectedCurrency !== 'PLN' && (
+                        <div className="text-sm text-muted-foreground mt-1">
+                          ≈ {formatCurrency(convertedAmount, 'PLN')} 
+                          <span className="text-xs ml-1">
+                            (Rate: {getExchangeRate(selectedCurrency, 'PLN').toFixed(4)})
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
