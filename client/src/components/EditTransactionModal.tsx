@@ -155,6 +155,15 @@ export default function EditTransactionModal({
     
     // Number conversion is handled by Zod transformation
     
+    // Debug transaction ID and details
+    console.log("EDITING TRANSACTION:", {
+      id: transaction.id,
+      title: transaction.title,
+      isHardcoded: transaction.id >= 970000,
+      originalAmount: transaction.amount,
+      newAmount: data.amount
+    });
+    
     // If currency is not PLN, convert to PLN
     let finalAmount = data.amount;
     console.log("Original amount before conversion:", finalAmount, typeof finalAmount);
