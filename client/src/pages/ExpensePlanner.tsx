@@ -777,9 +777,34 @@ export default function ExpensePlanner() {
           setSelectedTransaction(null);
         }}
         onUpdateTransaction={(id, data) => {
-          // Handle hardcoded transactions client-side
-          console.log(`Transaction ID to update: ${id} - Is it hardcoded? ${id >= 970000}`);
-          if (id >= 970000) {
+          // Get the current transaction we're editing to check if it's part of our data model
+          const transactionToUpdate = transactions.find(t => t.id === id);
+          const transactionInHardcodedIncome = hardcodedIncome.find(t => t.id === id);  
+          const transactionInHardcodedExpenses = hardcodedExpenses.find(t => t.id === id);
+          
+          // Get the title of the transaction being edited
+          const transactionTitle = selectedTransaction?.title || '';
+          
+          // Special hardcoded transactions we know need client-side handling
+          const specialTransactionTitles = ['Sukienka Fabi', 'Coffee Machine', 'Beni Birthdays'];
+          const isSpecialTransaction = specialTransactionTitles.includes(transactionTitle);
+          
+          // Check if it's a hardcoded transaction (either by ID range, presence in hardcoded arrays, or special title)
+          const isHardcoded = id >= 970000 || 
+                            transactionInHardcodedIncome !== undefined || 
+                            transactionInHardcodedExpenses !== undefined ||
+                            isSpecialTransaction;
+          
+          console.log(`Transaction ID to update: ${id} - Is it hardcoded?`, {
+            title: transactionTitle,
+            byIdRange: id >= 970000,
+            inHardcodedIncome: transactionInHardcodedIncome !== undefined,
+            inHardcodedExpenses: transactionInHardcodedExpenses !== undefined,
+            isSpecialTransaction,
+            finalDecision: isHardcoded
+          });
+          
+          if (isHardcoded) {
             console.log(`Client-side handling for hardcoded transaction edit: ${id}`);
             
             // Show success toast
