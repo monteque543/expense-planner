@@ -48,7 +48,7 @@ const editTransactionSchema = z.object({
   }),
   isExpense: z.boolean(),
   isRecurring: z.boolean().optional().default(false),
-  recurringInterval: z.enum(recurringIntervals).nullable().optional().default('monthly'),
+  recurringInterval: z.enum(recurringIntervals).optional(),
   recurringEndDate: z.string().nullable().optional(),
   isPaid: z.boolean().optional().default(false),
 });
