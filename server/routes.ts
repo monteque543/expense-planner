@@ -157,7 +157,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body with all new fields
       const validFields = z.object({
         title: z.string().min(1, "Title is required").optional(),
-        amount: z.number().positive("Amount must be positive").optional(),
+        amount: z.union([
+          z.number().positive("Amount must be positive"),
+          z.string().transform(val => {
+            // Handle input as string (coming from text input)
+            const normalizedStr = val.replace(/,/g, '.');
+            const num = parseFloat(normalizedStr);
+            return isNaN(num) ? 0 : num;
+          }).refine(val => val > 0, "Amount must be positive")
+        ]).optional(),
         date: z.date().optional(),
         notes: z.string().nullable().optional(),
         isExpense: z.boolean().optional(),
