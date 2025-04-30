@@ -37,7 +37,8 @@ const editTransactionSchema = z.object({
   amount: z.union([z.number(), z.string()]).transform(val => {
     // Handle both number and string inputs
     if (typeof val === 'string') {
-      const normalizedStr = val.replace(',', '.');
+      // Replace all commas with dots for decimal handling
+      const normalizedStr = val.replace(/,/g, '.');
       const num = parseFloat(normalizedStr);
       return isNaN(num) ? 0 : num;
     }
@@ -347,11 +348,16 @@ export default function EditTransactionModal({
                           </span>
                         </div>
                         <Input 
-                          type="number" 
-                          step="0.01" 
+                          type="text" 
+                          inputMode="decimal"
                           placeholder="0.00" 
                           {...field} 
-                          className="pl-12" 
+                          className="pl-12"
+                          onChange={(e) => {
+                            // Only allow numbers, decimal points, and commas
+                            const value = e.target.value.replace(/[^0-9.,]/g, '');
+                            field.onChange(value);
+                          }}
                         />
                       </div>
                       
