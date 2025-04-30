@@ -1,5 +1,6 @@
 import { type Transaction, type Category, type TransactionWithCategory } from "@shared/schema";
 import { format } from "date-fns";
+import { applyUserEditsIfExists, filterDeletedTransactions } from "./user-preferences";
 
 /**
  * Complete overhaul of income hardcoding
@@ -75,9 +76,19 @@ export function createHardcodedIncomeTransactions(
     };
     thisMonthTransactions.push(techSalaryTransaction);
     
-    // Add transactions for this month
-    result[dateStr] = thisMonthTransactions;
-    console.log(`🔥 DIRECT HARDCODING: Added ${thisMonthTransactions.length} income transactions for ${dateStr}`);
+    // Apply any user edits to these transactions
+    const processedTransactions = thisMonthTransactions.map(transaction => 
+      applyUserEditsIfExists(transaction)
+    );
+
+    // Filter out any transactions that the user has marked as deleted
+    const finalTransactions = filterDeletedTransactions(processedTransactions);
+    
+    // Add transactions for this month (if any remain after filtering)
+    if (finalTransactions.length > 0) {
+      result[dateStr] = finalTransactions;
+      console.log(`🔥 DIRECT HARDCODING: Added ${finalTransactions.length} income transactions for ${dateStr}`);
+    }
     
     return result;
   }
@@ -160,10 +171,18 @@ export function createHardcodedIncomeTransactions(
       thisMonthTransactions.push(techSalaryTransaction);
     }
     
-    // Add transactions for this month if we created any
-    if (thisMonthTransactions.length > 0) {
-      result[dateStr] = thisMonthTransactions;
-      console.log(`🔥 DIRECT HARDCODING: Added ${thisMonthTransactions.length} income transactions for ${dateStr}`);
+    // Apply any user edits to these transactions
+    const processedTransactions = thisMonthTransactions.map(transaction => 
+      applyUserEditsIfExists(transaction)
+    );
+
+    // Filter out any transactions that the user has marked as deleted
+    const finalTransactions = filterDeletedTransactions(processedTransactions);
+    
+    // Add transactions for this month (if any remain after filtering)
+    if (finalTransactions.length > 0) {
+      result[dateStr] = finalTransactions;
+      console.log(`🔥 DIRECT HARDCODING: Added ${finalTransactions.length} income transactions for ${dateStr}`);
     }
   }
   

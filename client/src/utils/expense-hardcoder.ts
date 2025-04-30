@@ -1,5 +1,6 @@
 import { type Transaction, type Category, type TransactionWithCategory } from "@shared/schema";
 import { format } from "date-fns";
+import { applyUserEditsIfExists, filterDeletedTransactions } from "./user-preferences";
 
 // Global ID counter for hardcoded transactions
 // Start at 970000 to prevent collisions with real data
@@ -111,12 +112,22 @@ export function createHardcodedExpenseTransactions(
         // We don't need any extra properties, we'll use date to identify the appropriate month
       };
       
-      // Add it to the result
-      if (!result[dateStr]) {
-        result[dateStr] = [];
+      // Apply any user edits to the hardcoded transaction
+      const processedSubscription = applyUserEditsIfExists(hardcodedSubscription);
+      
+      // Check if this transaction has been deleted by user
+      const isDeleted = isTransactionDeleted(processedSubscription.id);
+      
+      if (!isDeleted) {
+        // Add it to the result
+        if (!result[dateStr]) {
+          result[dateStr] = [];
+        }
+        result[dateStr].push(processedSubscription);
+        console.log(`🔄 Added hardcoded subscription "${processedSubscription.title}" for ${dateStr}`);
+      } else {
+        console.log(`🔄 Skipped deleted subscription "${subscription.title}" for ${dateStr}`);
       }
-      result[dateStr].push(hardcodedSubscription);
-      console.log(`🔄 Added hardcoded subscription "${subscription.title}" for ${dateStr}`);
     }
   });
   
