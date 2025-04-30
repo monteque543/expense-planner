@@ -171,7 +171,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isRecurring: z.boolean().nullable().optional(),
         recurringInterval: z.enum(recurringIntervals).nullable().optional(),
         recurringEndDate: z.date().nullable().optional(),
-      }).parse(req.body);
+      })
+      .refine(data => {
+        // If isRecurring is true, recurringInterval must be provided
+        if (data.isRecurring === true && (data.recurringInterval === null || data.recurringInterval === undefined)) {
+          return false;
+        }
+        return true;
+      }, {
+        message: "Recurring interval is required for recurring transactions",
+        path: ["recurringInterval"]
+      })
+      .parse(req.body);
       
       const updatedTransaction = await storage.updateTransaction(id, validFields);
       if (!updatedTransaction) {

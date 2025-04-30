@@ -132,7 +132,7 @@ export default function EditTransactionModal({
       categoryId: data.categoryId || null,
       personLabel: data.personLabel, // Required field in schema
       isRecurring: data.isRecurring || false,
-      recurringInterval: data.isRecurring ? data.recurringInterval : null,
+      recurringInterval: data.isRecurring ? (data.recurringInterval || 'monthly') : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
       isPaid: data.isPaid || false, // Include the isPaid field
     });
@@ -140,6 +140,13 @@ export default function EditTransactionModal({
 
   const watchIsRecurring = form.watch("isRecurring");
   const watchIsExpense = form.watch("isExpense");
+  
+  // Set default recurring interval when isRecurring is toggled on
+  useEffect(() => {
+    if (watchIsRecurring && !form.getValues('recurringInterval')) {
+      form.setValue('recurringInterval', 'monthly');
+    }
+  }, [watchIsRecurring, form]);
   
   // Filter categories based on transaction type
   const filteredCategories = categories.filter(
