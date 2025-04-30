@@ -778,6 +778,7 @@ export default function ExpensePlanner() {
         }}
         onUpdateTransaction={(id, data) => {
           // Handle hardcoded transactions client-side
+          console.log(`Transaction ID to update: ${id} - Is it hardcoded? ${id >= 970000}`);
           if (id >= 970000) {
             console.log(`Client-side handling for hardcoded transaction edit: ${id}`);
             
