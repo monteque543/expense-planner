@@ -181,12 +181,22 @@ export function createHardcodedExpenseTransactions(
         // No extra properties needed, just rely on the date
       };
       
-      // Add it to the result
-      if (!result[dateStr]) {
-        result[dateStr] = [];
+      // Apply any user edits to the hardcoded transaction
+      const processedExpense = applyUserEditsIfExists(hardcodedExpense);
+      
+      // Check if this transaction has been deleted by user
+      const isDeleted = isTransactionDeleted(processedExpense.id);
+      
+      if (!isDeleted) {
+        // Add it to the result
+        if (!result[dateStr]) {
+          result[dateStr] = [];
+        }
+        result[dateStr].push(processedExpense);
+        console.log(`🔄 Added hardcoded expense "${processedExpense.title}" for ${dateStr}`);
+      } else {
+        console.log(`🔄 Skipped deleted expense "${expense.title}" for ${dateStr}`);
       }
-      result[dateStr].push(hardcodedExpense);
-      console.log(`🔄 Added hardcoded expense "${expense.title}" for ${dateStr}`);
     }
   });
   

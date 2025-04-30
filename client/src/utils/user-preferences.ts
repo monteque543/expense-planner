@@ -49,7 +49,7 @@ export function saveEditedTransaction(transaction: Transaction): void {
       id: transaction.id,
       title: transaction.title,
       amount: transaction.amount,
-      personLabel: transaction.personLabel,
+      personLabel: transaction.personLabel || 'Michał', // Default value to avoid type errors
       isExpense: transaction.isExpense,
       date: transaction.date instanceof Date ? 
         transaction.date.toISOString() : 
