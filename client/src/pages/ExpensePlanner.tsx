@@ -848,6 +848,8 @@ export default function ExpensePlanner() {
             setSelectedTransaction(null);
           } else {
             // Regular transaction update via API
+            console.log("Sending API update for transaction:", id);
+            console.log("Update data:", data);
             updateTransaction.mutate({ id, data });
           }
         }}

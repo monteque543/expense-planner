@@ -141,6 +141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   router.patch("/transactions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
+      console.log("Received PATCH request to update transaction");
+      console.log("Request body:", req.body);
+      
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid transaction ID" });
