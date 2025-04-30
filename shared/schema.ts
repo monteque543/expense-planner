@@ -69,7 +69,15 @@ export const transactions = pgTable("transactions", {
 // Override the auto-generated schema with our custom validations
 export const insertTransactionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.union([
+    z.number().positive("Amount must be positive"),
+    z.string().transform(val => {
+      // Handle input as string (coming from text input)
+      const normalizedStr = val.replace(/,/g, '.');
+      const num = parseFloat(normalizedStr);
+      return isNaN(num) ? 0 : num;
+    }).refine(val => val > 0, "Amount must be positive")
+  ]),
   date: dateTransformer,
   notes: z.string().nullable().optional(),
   isExpense: z.boolean(),
@@ -119,7 +127,15 @@ export const savings = pgTable("savings", {
 
 // Schema for savings
 export const insertSavingsSchema = z.object({
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.union([
+    z.number().positive("Amount must be positive"),
+    z.string().transform(val => {
+      // Handle input as string (coming from text input)
+      const normalizedStr = val.replace(/,/g, '.');
+      const num = parseFloat(normalizedStr);
+      return isNaN(num) ? 0 : num;
+    }).refine(val => val > 0, "Amount must be positive")
+  ]),
   date: dateTransformer,
   notes: z.string().nullable().optional(),
   personLabel: z.enum(persons, {
