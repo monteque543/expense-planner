@@ -37,7 +37,10 @@ const expenseFormSchema = z.object({
   }).refine(val => val > 0, "Amount must be positive"),
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
-  categoryId: z.coerce.number().optional(),
+  categoryId: z.coerce.number({
+    required_error: "Category is required",
+    invalid_type_error: "Category is required",
+  }),
   personLabel: z.enum(persons),
   isRecurring: z.boolean().optional().default(false),
   recurringInterval: z.enum(recurringIntervals).optional().default('monthly'),
@@ -121,7 +124,7 @@ export default function AddExpenseModal({
       ...data,
       date: new Date(data.date),
       notes: data.notes || null,
-      categoryId: data.categoryId || null,
+      categoryId: data.categoryId, // Now required
       personLabel: data.personLabel,  // Now required in schema
       isRecurring: data.isRecurring || false,
       recurringInterval: data.isRecurring ? data.recurringInterval : null,
