@@ -229,7 +229,21 @@ export default function ExpensePlanner() {
     mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
       return apiRequest('PATCH', `/api/transactions/${id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Save the updated transaction to localStorage for persistence
+      const { id, data } = variables;
+      const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+      const transaction = currentQueryData?.find(t => t.id === id);
+      
+      if (transaction) {
+        // Create updated transaction
+        const updatedTransaction = { ...transaction, ...data };
+        
+        // Save to localStorage for persistence across sessions
+        saveEditedTransaction(updatedTransaction);
+        console.log(`Saved regular transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
+      }
+      
       toast({
         title: "Success",
         description: "Transaction updated successfully",
@@ -253,7 +267,11 @@ export default function ExpensePlanner() {
       // Regular transactions should use the DELETE request
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      // Also save to localStorage for consistent handling
+      persistDeletedTransaction(id);
+      console.log(`Regular transaction ${id} deletion saved to localStorage`);
+      
       // Show success message
       toast({
         title: "Success",
@@ -768,7 +786,10 @@ export default function ExpensePlanner() {
               description: "Transaction updated (client-side only)",
             });
             
-            // 1. Save the updated transaction to localStorage for persistence
+            // 1. Get the current data from cache
+            const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+            
+            // 2. Save the updated transaction to localStorage for persistence
             const transaction = currentQueryData?.find(t => t.id === id);
             if (transaction) {
               // Create updated transaction
@@ -779,8 +800,7 @@ export default function ExpensePlanner() {
               console.log(`Saved transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
             }
             
-            // 2. Update react-query cache to immediately reflect the change in UI
-            const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+            // 3. Update react-query cache to immediately reflect the change in UI
             if (currentQueryData) {
               // Find and update the transaction in cache
               const updatedQueryData = currentQueryData.map(t => {
