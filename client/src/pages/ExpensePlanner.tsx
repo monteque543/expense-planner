@@ -27,6 +27,10 @@ import {
   markTransactionAsDeleted,
   deletedHardcodedTransactionIds
 } from "@/utils/expense-hardcoder";
+import {
+  saveEditedTransaction,
+  markTransactionAsDeleted as persistDeletedTransaction
+} from "@/utils/user-preferences";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -149,7 +153,9 @@ export default function ExpensePlanner() {
       
       // Mark this transaction as deleted in our global tracker
       markTransactionAsDeleted(id);
-      console.log(`Transaction ${id} marked as deleted in global tracker`);
+      // Also save to localStorage for persistence
+      persistDeletedTransaction(id);
+      console.log(`Transaction ${id} marked as deleted in global tracker and saved to localStorage`);
       
       // Show success message immediately
       toast({
@@ -762,7 +768,18 @@ export default function ExpensePlanner() {
               description: "Transaction updated (client-side only)",
             });
             
-            // 1. Update react-query cache to immediately reflect the change in UI
+            // 1. Save the updated transaction to localStorage for persistence
+            const transaction = currentQueryData?.find(t => t.id === id);
+            if (transaction) {
+              // Create updated transaction
+              const updatedTransaction = { ...transaction, ...data };
+              
+              // Save to localStorage for persistence across sessions
+              saveEditedTransaction(updatedTransaction);
+              console.log(`Saved transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
+            }
+            
+            // 2. Update react-query cache to immediately reflect the change in UI
             const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
             if (currentQueryData) {
               // Find and update the transaction in cache
