@@ -157,8 +157,11 @@ export default function EditTransactionModal({
     
     // If currency is not PLN, convert to PLN
     let finalAmount = data.amount;
+    console.log("Original amount before conversion:", finalAmount, typeof finalAmount);
+    
     if (selectedCurrency !== 'PLN') {
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
+      console.log("Converted amount to PLN:", finalAmount);
     }
     
     onUpdateTransaction(transaction.id, {

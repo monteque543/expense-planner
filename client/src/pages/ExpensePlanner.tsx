@@ -227,6 +227,7 @@ export default function ExpensePlanner() {
   // Update transaction mutation
   const updateTransaction = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
+      console.log(`[API REQUEST] PATCH /api/transactions/${id} with data:`, data);
       return apiRequest('PATCH', `/api/transactions/${id}`, data);
     },
     onSuccess: (_, variables) => {

@@ -303,12 +303,20 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateTransaction(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
-    const [updatedTransaction] = await db.update(transactions)
-      .set(transaction)
-      .where(eq(transactions.id, id))
-      .returning();
+    console.log(`[DATABASE] Updating transaction ${id} with data:`, transaction);
     
-    return updatedTransaction;
+    try {
+      const [updatedTransaction] = await db.update(transactions)
+        .set(transaction)
+        .where(eq(transactions.id, id))
+        .returning();
+      
+      console.log(`[DATABASE] Update result:`, updatedTransaction);
+      return updatedTransaction;
+    } catch (error) {
+      console.error(`[DATABASE] Error updating transaction ${id}:`, error);
+      throw error;
+    }
   }
   
   async deleteTransaction(id: number): Promise<boolean> {
