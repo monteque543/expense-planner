@@ -791,11 +791,18 @@ export default function ExpensePlanner() {
           const specialTransactionTitles: string[] = [];
           const isSpecialTransaction = false;
           
+          // Specifically exclude certain real database transactions from being treated as hardcoded
+          // even if they appear in hardcoded arrays due to being recurring
+          const excludeFromHardcoded = ["Grocerries", "Sukienka Fabi", "Coffee Machine"];
+          const shouldForceAPI = id < 970000 && excludeFromHardcoded.includes(transactionTitle);
+          
           // Check if it's a hardcoded transaction (either by ID range, presence in hardcoded arrays, or special title)
-          const isHardcoded = id >= 970000 || 
+          // If it's in our exclude list, always use the API
+          const isHardcoded = shouldForceAPI ? false : 
+                            (id >= 970000 || 
                             transactionInHardcodedIncome !== undefined || 
                             transactionInHardcodedExpenses !== undefined ||
-                            isSpecialTransaction;
+                            isSpecialTransaction);
           
           console.log(`Transaction ID to update: ${id} - Is it hardcoded?`, {
             title: transactionTitle,
@@ -803,6 +810,8 @@ export default function ExpensePlanner() {
             inHardcodedIncome: transactionInHardcodedIncome !== undefined,
             inHardcodedExpenses: transactionInHardcodedExpenses !== undefined,
             isSpecialTransaction,
+            isExcluded: excludeFromHardcoded.includes(transactionTitle),
+            shouldForceAPI,
             finalDecision: isHardcoded
           });
           
