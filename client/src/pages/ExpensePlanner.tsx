@@ -786,8 +786,10 @@ export default function ExpensePlanner() {
           const transactionTitle = selectedTransaction?.title || '';
           
           // Special hardcoded transactions we know need client-side handling
-          const specialTransactionTitles = ['Sukienka Fabi', 'Coffee Machine', 'Beni Birthdays'];
-          const isSpecialTransaction = specialTransactionTitles.includes(transactionTitle);
+          // NOTE: We've removed special transaction detection by title to allow all transactions with large amounts
+          // to be properly stored in the database
+          const specialTransactionTitles: string[] = [];
+          const isSpecialTransaction = false;
           
           // Check if it's a hardcoded transaction (either by ID range, presence in hardcoded arrays, or special title)
           const isHardcoded = id >= 970000 || 
