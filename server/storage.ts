@@ -303,9 +303,45 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateTransaction(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
-    console.log(`[DATABASE] Updating transaction ${id} with data:`, transaction);
-    
     try {
+      console.log(`[DATABASE] Updating transaction ${id} with data:`, transaction);
+      
+      // Pre-process amount to ensure it's a valid number
+      // Sometimes the amount comes in as a string even after validation
+      if (transaction.amount !== undefined) {
+        const amountValue = transaction.amount;
+        console.log(`[DATABASE] Processing amount: ${amountValue} (${typeof amountValue})`);
+        
+        if (typeof amountValue === 'string') {
+          const parsedAmount = parseFloat(amountValue.replace(/[^\d.-]/g, ''));
+          if (!isNaN(parsedAmount)) {
+            console.log(`[DATABASE] Converting string amount "${amountValue}" to number: ${parsedAmount}`);
+            transaction.amount = parsedAmount;
+          } else {
+            console.error(`[DATABASE] Could not parse amount: "${amountValue}"`);
+          }
+        }
+        
+        // Ensure it's a valid number (not NaN or Infinity)
+        if (typeof transaction.amount === 'number') {
+          if (!isFinite(transaction.amount)) {
+            console.error(`[DATABASE] Invalid amount value: ${transaction.amount}`);
+            delete transaction.amount; // Remove invalid amount
+          } else {
+            console.log(`[DATABASE] Final amount to be saved: ${transaction.amount}`);
+          }
+        }
+      }
+      
+      // Ensure all date fields are proper Date objects
+      if (transaction.date && typeof transaction.date === 'string') {
+        transaction.date = new Date(transaction.date);
+      }
+      
+      if (transaction.recurringEndDate && typeof transaction.recurringEndDate === 'string') {
+        transaction.recurringEndDate = new Date(transaction.recurringEndDate);
+      }
+      
       const [updatedTransaction] = await db.update(transactions)
         .set(transaction)
         .where(eq(transactions.id, id))
@@ -315,6 +351,7 @@ export class DatabaseStorage implements IStorage {
       return updatedTransaction;
     } catch (error) {
       console.error(`[DATABASE] Error updating transaction ${id}:`, error);
+      console.error(`[DATABASE] Error details:`, error);
       throw error;
     }
   }

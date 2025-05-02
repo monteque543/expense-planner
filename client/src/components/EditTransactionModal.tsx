@@ -153,29 +153,53 @@ export default function EditTransactionModal({
   function onSubmit(data: EditTransactionFormValues) {
     if (!transaction) return;
     
-    // Number conversion is handled by Zod transformation
+    // Enhanced debug logging for transaction processing
+    console.log(`[EditModal] Processing transaction update for ID ${transaction.id} - "${transaction.title}"`);
+    console.log(`[EditModal] Original amount: ${transaction.amount}, New amount: ${data.amount} (${typeof data.amount})`);
+    console.log(`[EditModal] Is ID possibly hardcoded? ${transaction.id >= 970000}`);
     
-    // Debug transaction ID and details
-    console.log("EDITING TRANSACTION:", {
-      id: transaction.id,
-      title: transaction.title,
-      isHardcoded: transaction.id >= 970000,
-      originalAmount: transaction.amount,
-      newAmount: data.amount
-    });
-    
-    // If currency is not PLN, convert to PLN
+    // Process amount with extra safeguards for large values
     let finalAmount = data.amount;
-    console.log("Original amount before conversion:", finalAmount, typeof finalAmount);
     
-    if (selectedCurrency !== 'PLN') {
-      finalAmount = convertToPLN(finalAmount, selectedCurrency);
-      console.log("Converted amount to PLN:", finalAmount);
+    // Additional validation for string inputs (ensuring proper parsing)
+    if (typeof finalAmount === 'string') {
+      // Clean the string of any non-numeric characters except decimal points
+      const cleanAmount = finalAmount.replace(/[^\d.,]/g, '').replace(/,/g, '.');
+      console.log(`[EditModal] Cleaned amount string from "${finalAmount}" to "${cleanAmount}"`);
+      
+      // Parse the cleaned string
+      const parsedAmount = parseFloat(cleanAmount);
+      
+      if (isNaN(parsedAmount)) {
+        console.error(`[EditModal] ERROR: Unable to parse amount "${finalAmount}" -> "${cleanAmount}"`);
+        // Use the original amount as fallback
+        finalAmount = transaction.amount;
+        console.log(`[EditModal] Using original amount as fallback: ${finalAmount}`);
+      } else {
+        finalAmount = parsedAmount;
+        console.log(`[EditModal] Successfully parsed amount to number: ${finalAmount}`);
+      }
     }
     
-    onUpdateTransaction(transaction.id, {
+    // Currency conversion if needed
+    if (selectedCurrency !== 'PLN') {
+      const originalAmount = finalAmount;
+      finalAmount = convertToPLN(finalAmount, selectedCurrency);
+      console.log(`[EditModal] Converted ${originalAmount} ${selectedCurrency} to ${finalAmount} PLN`);
+    }
+    
+    // Final validation to ensure we have a valid number
+    if (typeof finalAmount !== 'number' || !isFinite(finalAmount) || finalAmount <= 0) {
+      console.error(`[EditModal] Invalid final amount: ${finalAmount}. Using original amount instead.`);
+      finalAmount = transaction.amount; // Use original as fallback
+    }
+    
+    console.log(`[EditModal] Final amount to save: ${finalAmount} (${typeof finalAmount})`);
+    
+    // Prepare update data
+    const updateData = {
       ...data,
-      amount: finalAmount, // Use the converted amount
+      amount: finalAmount, // Use validated amount
       // Convert string dates to Date objects
       date: new Date(data.date),
       notes: data.notes || null,
@@ -185,7 +209,12 @@ export default function EditTransactionModal({
       recurringInterval: data.isRecurring ? (data.recurringInterval || 'monthly') : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
       isPaid: data.isPaid || false, // Include the isPaid field
-    });
+    };
+    
+    console.log(`[EditModal] Sending update to backend for transaction ${transaction.id}:`, updateData);
+    
+    // Submit the update
+    onUpdateTransaction(transaction.id, updateData);
     
     // Reset currency after submission
     setSelectedCurrency('PLN');

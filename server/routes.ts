@@ -149,6 +149,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid transaction ID" });
       }
       
+      // Enhanced logging for debugging
+      console.log(`[DEBUG] Processing transaction update for ID ${id}`);
+      
+      // Pre-process amount field for better handling of large values
+      if (req.body.amount !== undefined) {
+        console.log(`[DEBUG] Original amount value: ${req.body.amount} (${typeof req.body.amount})`);
+        
+        if (typeof req.body.amount === 'string') {
+          // Remove any non-numeric characters except decimal point/comma
+          const cleanedAmount = req.body.amount.replace(/[^\d.,]/g, '').replace(/,/g, '.');
+          const parsedAmount = parseFloat(cleanedAmount);
+          
+          if (!isNaN(parsedAmount)) {
+            console.log(`[DEBUG] Converted amount from '${req.body.amount}' to numeric value: ${parsedAmount}`);
+            req.body.amount = parsedAmount;
+          } else {
+            console.log(`[DEBUG] WARNING: Failed to parse amount string: '${req.body.amount}'`);
+          }
+        }
+      }
+      
       // Convert dates if needed
       if (req.body.date && typeof req.body.date === 'string') {
         req.body.date = new Date(req.body.date);
@@ -161,12 +182,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validFields = z.object({
         title: z.string().min(1, "Title is required").optional(),
         amount: z.union([
-          z.number().positive("Amount must be positive"),
+          z.number().positive("Amount must be positive"), 
           z.string().transform(val => {
             // Handle input as string (coming from text input)
-            const normalizedStr = val.replace(/,/g, '.');
+            console.log(`[DEBUG] Transforming string amount: '${val}'`);
+            const normalizedStr = val.replace(/[^\d.,]/g, '').replace(/,/g, '.');
             const num = parseFloat(normalizedStr);
-            return isNaN(num) ? 0 : num;
+            const result = isNaN(num) ? 0 : num;
+            console.log(`[DEBUG] Transformed to: ${result}`);
+            return result;
           }).refine(val => val > 0, "Amount must be positive")
         ]).optional(),
         date: z.date().optional(),
