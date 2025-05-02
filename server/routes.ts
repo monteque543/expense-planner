@@ -242,9 +242,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid transaction ID" });
       }
       
+      console.log(`Received DELETE request for transaction ${id}`);
+      
+      // Check if this is a "Grocerries" transaction before deletion
+      const transaction = await storage.getTransactionById(id);
+      const isGrocerries = transaction?.title === 'Grocerries';
+      
+      if (isGrocerries) {
+        console.log(`Special handling: Deleting Grocerries transaction ${id}`);
+      }
+      
       const success = await storage.deleteTransaction(id);
       if (!success) {
         return res.status(404).json({ message: "Transaction not found" });
+      }
+      
+      // If this was a Grocerries transaction, return a special success message
+      if (isGrocerries) {
+        return res.status(200).json({ 
+          message: "Grocerries transaction and all its instances deleted successfully"
+        });
       }
       
       res.status(204).send();

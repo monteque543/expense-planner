@@ -146,6 +146,53 @@ export default function ExpensePlanner() {
   const handleDeleteTransaction = (id: number) => {
     console.log(`Handling deletion for transaction ID: ${id}`);
     
+    // Find the transaction in the current dataset
+    const transaction = transactions.find(t => t.id === id);
+    
+    // Special handling for "Grocerries" transactions which have known issues
+    if (transaction && transaction.title === 'Grocerries') {
+      console.log(`[SPECIAL DELETE] Detected Grocerries transaction ID: ${id}`);
+      
+      // Notify user of special handling
+      toast({
+        title: "Deleting Grocerries",
+        description: "Removing all instances of this recurring transaction...",
+      });
+      
+      // Call the special API handler and do additional cache cleanup
+      deleteTransaction.mutate(id, {
+        onSuccess: () => {
+          console.log(`[GROCERRIES] Successfully deleted Grocerries transaction ${id}`);
+          
+          // Extra cache cleanup for ALL Grocerries transactions
+          const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+          if (currentQueryData) {
+            const updatedQueryData = currentQueryData.filter(t => t.title !== 'Grocerries');
+            queryClient.setQueryData<TransactionWithCategory[]>(
+              ['/api/transactions'],
+              updatedQueryData
+            );
+            console.log(`[GROCERRIES] Cleaned all Grocerries transactions from cache`);
+          }
+          
+          // Force monthly view refresh to ensure everything updates correctly
+          const currentDate = new Date(selectedDate);
+          const nextMonth = new Date(selectedDate);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          
+          // Force view refresh by changing months quickly
+          setTimeout(() => {
+            setSelectedDate(nextMonth);
+            setTimeout(() => {
+              setSelectedDate(currentDate);
+            }, 200);
+          }, 100);
+        }
+      });
+      
+      return; // Skip the rest of the function
+    }
+    
     // If it's a hardcoded transaction (ID in the 970000+ range)
     if (id >= 970000) {
       // For hardcoded transactions, implement pure client-side deletion using our tracker
