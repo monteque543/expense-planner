@@ -51,8 +51,13 @@ export function createHardcodedExpenseTransactions(
   );
   
   // Find all recurring expense transactions
+  // Exclude transactions with explicit title matches to ensure they go through normal API flow
+  const excludedTitles = ['Grocerries', 'Coffee Machine', 'Sukienka Fabi', 'Beni Birthdays', 'Fabi'];
   const recurringExpenses = transactions.filter(t => 
-    t.isRecurring && t.isExpense && t.category?.name !== 'Subscription'
+    t.isRecurring && 
+    t.isExpense && 
+    t.category?.name !== 'Subscription' &&
+    !excludedTitles.includes(t.title)
   );
   
   // Nothing to do if we have no recurring transactions
