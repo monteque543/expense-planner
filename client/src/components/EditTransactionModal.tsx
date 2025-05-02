@@ -163,21 +163,29 @@ export default function EditTransactionModal({
     
     // Additional validation for string inputs (ensuring proper parsing)
     if (typeof finalAmount === 'string') {
-      // Clean the string of any non-numeric characters except decimal points
-      const cleanAmount = finalAmount.replace(/[^\d.,]/g, '').replace(/,/g, '.');
-      console.log(`[EditModal] Cleaned amount string from "${finalAmount}" to "${cleanAmount}"`);
-      
-      // Parse the cleaned string
-      const parsedAmount = parseFloat(cleanAmount);
-      
-      if (isNaN(parsedAmount)) {
-        console.error(`[EditModal] ERROR: Unable to parse amount "${finalAmount}" -> "${cleanAmount}"`);
-        // Use the original amount as fallback
+      try {
+        // Ensure we're working with a proper string
+        const amountStr = String(finalAmount);
+        // Clean the string of any non-numeric characters except decimal points
+        const cleanAmount = amountStr.replace(/[^\d.,]/g, '').replace(/,/g, '.');
+        console.log(`[EditModal] Cleaned amount string from "${amountStr}" to "${cleanAmount}"`);
+        
+        // Parse the cleaned string
+        const parsedAmount = parseFloat(cleanAmount);
+        
+        if (isNaN(parsedAmount)) {
+          console.error(`[EditModal] ERROR: Unable to parse amount "${amountStr}" -> "${cleanAmount}"`);
+          // Use the original amount as fallback
+          finalAmount = transaction.amount;
+          console.log(`[EditModal] Using original amount as fallback: ${finalAmount}`);
+        } else {
+          finalAmount = parsedAmount;
+          console.log(`[EditModal] Successfully parsed amount to number: ${finalAmount}`);
+        }
+      } catch (error) {
+        console.error('[EditModal] Error processing amount string:', error);
+        // Use original amount as fallback in case of any error
         finalAmount = transaction.amount;
-        console.log(`[EditModal] Using original amount as fallback: ${finalAmount}`);
-      } else {
-        finalAmount = parsedAmount;
-        console.log(`[EditModal] Successfully parsed amount to number: ${finalAmount}`);
       }
     }
     

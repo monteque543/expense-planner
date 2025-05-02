@@ -69,15 +69,34 @@ export const transactions = pgTable("transactions", {
 // Override the auto-generated schema with our custom validations
 export const insertTransactionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  amount: z.union([
-    z.number().positive("Amount must be positive"),
-    z.string().transform(val => {
-      // Handle input as string (coming from text input)
-      const normalizedStr = val.replace(/,/g, '.');
-      const num = parseFloat(normalizedStr);
-      return isNaN(num) ? 0 : num;
-    }).refine(val => val > 0, "Amount must be positive")
-  ]),
+  amount: z.preprocess(
+    // First preprocess to handle any input type
+    (val) => {
+      // If it's already a number, return it
+      if (typeof val === 'number') return val;
+      
+      // If it's a string, clean and parse it
+      if (typeof val === 'string') {
+        try {
+          // Clean the string (remove currency symbols, spaces, use consistent decimal)
+          const cleanedStr = String(val).replace(/[^\d.,]/g, '').replace(/,/g, '.');
+          const parsedNum = parseFloat(cleanedStr);
+          if (!isNaN(parsedNum)) return parsedNum;
+        } catch (e) {
+          // In case of any errors, continue to validation step
+          console.error("Error preprocessing amount:", e);
+        }
+      }
+      
+      // Fall back to original value if processing fails
+      return val;
+    },
+    // Then validate the processed value
+    z.number({ 
+      required_error: "Amount is required",
+      invalid_type_error: "Amount must be a number"  
+    }).positive("Amount must be positive")
+  ),
   date: dateTransformer,
   notes: z.string().nullable().optional(),
   isExpense: z.boolean(),
@@ -127,15 +146,34 @@ export const savings = pgTable("savings", {
 
 // Schema for savings
 export const insertSavingsSchema = z.object({
-  amount: z.union([
-    z.number().positive("Amount must be positive"),
-    z.string().transform(val => {
-      // Handle input as string (coming from text input)
-      const normalizedStr = val.replace(/,/g, '.');
-      const num = parseFloat(normalizedStr);
-      return isNaN(num) ? 0 : num;
-    }).refine(val => val > 0, "Amount must be positive")
-  ]),
+  amount: z.preprocess(
+    // First preprocess to handle any input type
+    (val) => {
+      // If it's already a number, return it
+      if (typeof val === 'number') return val;
+      
+      // If it's a string, clean and parse it
+      if (typeof val === 'string') {
+        try {
+          // Clean the string (remove currency symbols, spaces, use consistent decimal)
+          const cleanedStr = String(val).replace(/[^\d.,]/g, '').replace(/,/g, '.');
+          const parsedNum = parseFloat(cleanedStr);
+          if (!isNaN(parsedNum)) return parsedNum;
+        } catch (e) {
+          // In case of any errors, continue to validation step
+          console.error("Error preprocessing amount:", e);
+        }
+      }
+      
+      // Fall back to original value if processing fails
+      return val;
+    },
+    // Then validate the processed value
+    z.number({ 
+      required_error: "Amount is required",
+      invalid_type_error: "Amount must be a number"  
+    }).positive("Amount must be positive")
+  ),
   date: dateTransformer,
   notes: z.string().nullable().optional(),
   personLabel: z.enum(persons, {

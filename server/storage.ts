@@ -313,12 +313,21 @@ export class DatabaseStorage implements IStorage {
         console.log(`[DATABASE] Processing amount: ${amountValue} (${typeof amountValue})`);
         
         if (typeof amountValue === 'string') {
-          const parsedAmount = parseFloat(amountValue.replace(/[^\d.-]/g, ''));
-          if (!isNaN(parsedAmount)) {
-            console.log(`[DATABASE] Converting string amount "${amountValue}" to number: ${parsedAmount}`);
-            transaction.amount = parsedAmount;
-          } else {
-            console.error(`[DATABASE] Could not parse amount: "${amountValue}"`);
+          try {
+            // Convert to string explicitly to ensure string methods are available
+            const amountStr = String(amountValue);
+            // Clean the string of any non-numeric characters except decimal point/separator
+            const cleanedAmount = amountStr.replace(/[^\d.,]/g, '').replace(/,/g, '.');
+            const parsedAmount = parseFloat(cleanedAmount);
+            
+            if (!isNaN(parsedAmount)) {
+              console.log(`[DATABASE] Converting string amount "${amountStr}" to number: ${parsedAmount}`);
+              transaction.amount = parsedAmount;
+            } else {
+              console.error(`[DATABASE] Could not parse amount: "${amountStr}"`);
+            }
+          } catch (error) {
+            console.error(`[DATABASE] Error processing amount string:`, error);
           }
         }
         
