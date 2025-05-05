@@ -46,13 +46,17 @@ export function createHardcodedExpenseTransactions(
   }
   
   // Find all subscription transactions in the original data
+  // IMPORTANT: Always exclude Grocerries from any recurring transaction processing
   const subscriptionTransactions = transactions.filter(t => 
-    t.isRecurring && t.category?.name === 'Subscription'
+    t.isRecurring && 
+    t.category?.name === 'Subscription' &&
+    t.title !== 'Grocerries'
   );
   
   // Find all recurring expense transactions
   // Exclude only the titles we know caused issues with large amount values
-  const excludedTitles = ['Coffee Machine', 'Sukienka Fabi', 'Beni Birthdays', 'Fabi'];
+  // IMPORTANT: Grocerries must always be excluded due to recurring regeneration issues
+  const excludedTitles = ['Coffee Machine', 'Sukienka Fabi', 'Beni Birthdays', 'Fabi', 'Grocerries'];
   const recurringExpenses = transactions.filter(t => 
     t.isRecurring && 
     t.isExpense && 
