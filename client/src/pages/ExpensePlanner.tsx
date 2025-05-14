@@ -736,41 +736,74 @@ export default function ExpensePlanner() {
             <h1 className="text-2xl font-bold text-foreground">Expense Planner</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => {
-                // Debug function to check localStorage values
-                const paidStatuses = JSON.parse(localStorage.getItem('recurring_transaction_paid_statuses') || '[]');
-                console.log('[DEBUG] Current paid statuses in localStorage:', paidStatuses);
-                
-                // Check for duplicates or issues
-                const titles: Set<string> = new Set();
-                const potentialDuplicates: string[] = [];
-                
-                paidStatuses.forEach((status: { key: string }) => {
-                  const [title, date] = status.key.split('_');
-                  const simplifiedKey = `${title}_${date.substring(0, 10)}`;  // Only keep YYYY-MM-DD part
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => {
+                  // Debug function to check localStorage values
+                  const paidStatuses = JSON.parse(localStorage.getItem('recurring-transaction-paid-status') || '[]') as RecurringTransactionPaidStatus[];
+                  console.log('[DEBUG] Current paid statuses in localStorage:', paidStatuses);
                   
-                  if (titles.has(simplifiedKey)) {
-                    potentialDuplicates.push(simplifiedKey);
+                  // Check for duplicates or issues
+                  const titles: Set<string> = new Set();
+                  const potentialDuplicates: string[] = [];
+                  
+                  paidStatuses.forEach(status => {
+                    const [title, date] = status.key.split('_');
+                    const simplifiedKey = `${title}_${date.substring(0, 10)}`;  // Only keep YYYY-MM-DD part
+                    
+                    if (titles.has(simplifiedKey)) {
+                      potentialDuplicates.push(simplifiedKey);
+                    }
+                    titles.add(simplifiedKey);
+                  });
+                  
+                  if (potentialDuplicates.length > 0) {
+                    console.log('[DEBUG] Found potential duplicate keys:', potentialDuplicates);
                   }
-                  titles.add(simplifiedKey);
-                });
-                
-                if (potentialDuplicates.length > 0) {
-                  console.log('[DEBUG] Found potential duplicate keys:', potentialDuplicates);
-                }
-                
-                // Display toast to confirm debug ran
-                toast({
-                  title: "Debug Complete",
-                  description: `Check console for localStorage data. Found ${paidStatuses.length} paid statuses.`,
-                  variant: "default",
-                });
-              }}
-              className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded-md"
-            >
-              Debug
-            </button>
+                  
+                  // Check for problematic transactions
+                  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+                  const problematicStatuses = paidStatuses.filter(status => {
+                    const title = status.key.split('_')[0];
+                    return problematicTitles.includes(title);
+                  });
+                  
+                  if (problematicStatuses.length > 0) {
+                    console.log('[DEBUG] Problematic transaction statuses:', problematicStatuses);
+                  }
+                  
+                  // Display toast to confirm debug ran
+                  toast({
+                    title: "Debug Complete",
+                    description: `Check console for localStorage data. Found ${paidStatuses.length} paid statuses.`,
+                    variant: "default",
+                  });
+                }}
+                className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded-md"
+              >
+                Debug
+              </button>
+              
+              <button 
+                onClick={() => {
+                  // Run the clear function
+                  clearProblematicTransactionStatuses();
+                  
+                  // Force refresh
+                  queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+                  
+                  // Display toast to confirm
+                  toast({
+                    title: "Reset Complete",
+                    description: "Recurring transaction paid statuses have been reset for problematic transactions.",
+                    variant: "default",
+                  });
+                }}
+                className="text-xs bg-rose-100 hover:bg-rose-200 dark:bg-rose-800 dark:hover:bg-rose-700 px-2 py-1 rounded-md"
+              >
+                Reset Statuses
+              </button>
+            </div>
             <ThemeToggle />
             
             <div className="hidden sm:flex rounded-md overflow-hidden border border-border shadow-sm mr-2">
