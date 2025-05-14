@@ -95,14 +95,12 @@ export function filterTransactions(transactions: TransactionWithCategory[]): Tra
     }
     
     // Approach 3: Filter by known transaction ID if we can identify it
-    // We can add specific IDs here if we find them in the logs
-    const knownRpTrainingAppIds: number[] = []; // Add IDs here if found
-    if (transaction.id && knownRpTrainingAppIds.includes(transaction.id) && transaction.date) {
-      const date = new Date(transaction.date);
-      if (date.getFullYear() === 2025 && date.getMonth() <= 4) {
-        console.log(`[CLIENT FILTER] ID match - Removing transaction ID ${transaction.id} from ${date.toISOString()}`);
-        return false;
-      }
+    // We KNOW the ID is 58 based on console logs
+    const knownRpTrainingAppIds: number[] = [58]; // ID 58 is the RP training app from logs
+    if (transaction.id && knownRpTrainingAppIds.includes(transaction.id)) {
+      // Remove RP training app completely regardless of date
+      console.log(`[COMPLETE REMOVAL] Removing RP training app transaction ID ${transaction.id} completely`);
+      return false;
     }
     
     // Return true to keep all other transactions

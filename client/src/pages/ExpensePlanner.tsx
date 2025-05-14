@@ -437,6 +437,35 @@ export default function ExpensePlanner() {
     const june2025 = new Date(2025, 5, 15); // June 15, 2025
     setSelectedDate(june2025);
   };
+  
+  // Special function to create a new RP training app starting in June
+  const createRPTrainingApp = () => {
+    const june2025 = new Date(2025, 5, 12); // June 12, 2025
+    
+    // Create a recurring transaction that starts in June
+    addTransaction.mutate({
+      title: "RP Training App",
+      amount: 151.12, // Original amount
+      date: june2025,
+      categoryId: categories.find(c => c.name === "Subscriptions")?.id || 1,
+      personLabel: "Michał",
+      isExpense: true,
+      isRecurring: true,
+      recurringInterval: "monthly",
+      recurringEndDate: null, // No end date
+      notes: "Created as a replacement starting from June 2025",
+      isPaid: false
+    });
+    
+    // Navigate to June to see it
+    setSelectedDate(june2025);
+    
+    toast({
+      title: "RP Training App Created",
+      description: "Created new recurring transaction starting from June 2025",
+      duration: 5000,
+    });
+  };
 
   // Get date range based on active view
   const getDateRange = () => {
@@ -618,6 +647,15 @@ export default function ExpensePlanner() {
           </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
+            
+            {/* Special debug button to fix RP training app */}
+            <button 
+              onClick={createRPTrainingApp}
+              className="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
+              title="Remove old RP training app and create new one from June"
+            >
+              🔄 Fix RP App
+            </button>
             
             <div className="hidden sm:flex rounded-md overflow-hidden border border-border shadow-sm mr-2">
               <button 
