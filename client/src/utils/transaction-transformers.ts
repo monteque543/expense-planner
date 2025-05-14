@@ -41,19 +41,29 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
  * Apply preferences to a single transaction
  */
 export function applyTransactionPreference(transaction: TransactionWithCategory): TransactionWithCategory {
-  // Get user's preferred amount from localStorage (for any transaction)
-  const preferredAmount = getPreferredAmount(transaction.title);
+  // Create a new transaction object to apply modifications
+  let modifiedTransaction = { ...transaction };
   
+  // Apply amount preference if exists
+  const preferredAmount = getPreferredAmount(transaction.title);
   if (preferredAmount !== null) {
     console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
-    return {
-      ...transaction,
-      amount: preferredAmount
-    };
+    modifiedTransaction.amount = preferredAmount;
   }
   
-  // Return the transaction unchanged if no transformations apply
-  return transaction;
+  // Apply paid status for recurring transaction occurrences
+  if (transaction.isRecurring && transaction.isRecurringInstance && transaction.displayDate) {
+    // Check if we have a saved paid status for this specific occurrence
+    const paidStatus = getOccurrencePaidStatus(transaction.title, transaction.displayDate);
+    
+    // Only override if we have a stored value
+    if (paidStatus !== null) {
+      console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${transaction.displayDate}: ${paidStatus}`);
+      modifiedTransaction.isPaid = paidStatus;
+    }
+  }
+  
+  return modifiedTransaction;
 }
 
 /**
