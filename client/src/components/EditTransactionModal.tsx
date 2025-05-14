@@ -278,36 +278,46 @@ export default function EditTransactionModal({
       // instead we save the paid status locally for this specific occurrence
       if (data.isPaid !== transaction.isPaid) {
         // Determine which date to use for the occurrence key
-        let occurrenceDate = transactionAny.displayDate || transaction.date;
+        let occurrenceDate = transactionAny.displayDateStr || 
+                           transactionAny.displayDate || 
+                           transaction.date;
         
         console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${occurrenceDate}: ${data.isPaid}`);
         
-        // Ensure we format the date correctly when passing to the storage function
+        // Ensure we have a consistently formatted date string for the storage key
         let formattedDate: string;
         
-        if (occurrenceDate instanceof Date) {
-          formattedDate = occurrenceDate.toISOString().split('T')[0];
+        if (transactionAny.displayDateStr) {
+          // If we already have a pre-formatted date string, use it directly
+          formattedDate = transactionAny.displayDateStr;
+          console.log(`[EditModal] Using pre-formatted displayDateStr: ${formattedDate}`);
+        } else if (occurrenceDate instanceof Date) {
+          formattedDate = format(occurrenceDate, 'yyyy-MM-dd');
+          console.log(`[EditModal] Formatted Date object: ${formattedDate}`);
         } else if (typeof occurrenceDate === 'string') {
           // Handle different string formats
           if (occurrenceDate.includes('T')) {
             formattedDate = occurrenceDate.split('T')[0];
+            console.log(`[EditModal] Extracted date from ISO string: ${formattedDate}`);
           } else if (occurrenceDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
             formattedDate = occurrenceDate;
+            console.log(`[EditModal] Using existing YYYY-MM-DD string: ${formattedDate}`);
           } else {
             // Try to parse the date
             try {
-              formattedDate = new Date(occurrenceDate).toISOString().split('T')[0];
+              formattedDate = format(new Date(occurrenceDate), 'yyyy-MM-dd');
+              console.log(`[EditModal] Parsed and formatted date string: ${formattedDate}`);
             } catch (e) {
-              console.error(`[EditModal] Invalid date string: ${occurrenceDate}`, e);
-              formattedDate = new Date().toISOString().split('T')[0];
+              console.error(`[EditModal] Failed to parse date string: ${occurrenceDate}`, e);
+              formattedDate = format(new Date(), 'yyyy-MM-dd');
             }
           }
         } else {
           console.warn(`[EditModal] No valid date found for occurrence, using current date`);
-          formattedDate = new Date().toISOString().split('T')[0];
+          formattedDate = format(new Date(), 'yyyy-MM-dd');
         }
         
-        console.log(`[EditModal Debug] Saving paid status for occurrence. Title: ${transaction.title}, Date: ${formattedDate}, IsPaid: ${data.isPaid}`);
+        console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
         // Save the paid status for this specific occurrence
         saveOccurrencePaidStatus(transaction.title, formattedDate, data.isPaid);

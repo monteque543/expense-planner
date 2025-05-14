@@ -322,6 +322,7 @@ export default function ExpenseCalendar({
           const futureCopy = {
             ...transaction,
             displayDate: futureDate,
+            displayDateStr: format(futureDate, 'yyyy-MM-dd'), // Add formatted string date for consistent key generation
             isRecurringInstance: true // Flag to indicate this is a recurring instance
           };
           

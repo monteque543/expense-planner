@@ -1,5 +1,6 @@
 import { Transaction, TransactionWithCategory } from "@shared/schema";
 import { getPreferredAmount, getOccurrencePaidStatus } from "./transaction-preferences";
+import { format } from "date-fns";
 
 /**
  * Apply user preferences to transactions coming from the server
@@ -28,8 +29,15 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
     
     // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
     if ((transactionAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
-      // Use displayDate if available, otherwise use transaction.date
-      let occurrenceDate = transactionAny.displayDate || transaction.date;
+      // Use displayDateStr if available (for consistent formatting), then displayDate, then transaction.date
+      let occurrenceDate = transactionAny.displayDateStr || 
+                          (transactionAny.displayDate ? 
+                            (transactionAny.displayDate instanceof Date ? 
+                              format(transactionAny.displayDate, 'yyyy-MM-dd') : 
+                              transactionAny.displayDate) : 
+                            (transaction.date instanceof Date ? 
+                              format(transaction.date, 'yyyy-MM-dd') : 
+                              transaction.date));
       
       console.log(`[Transformer Debug] Checking recurring transaction: ${transaction.title}, using date: ${occurrenceDate}`);
       
@@ -72,8 +80,15 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   
   // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
   if ((transactionAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
-    // Use displayDate if available, otherwise use transaction.date
-    let occurrenceDate = transactionAny.displayDate || transaction.date;
+    // Use displayDateStr if available (for consistent formatting), then displayDate, then transaction.date
+    let occurrenceDate = transactionAny.displayDateStr || 
+                        (transactionAny.displayDate ? 
+                          (transactionAny.displayDate instanceof Date ? 
+                            format(transactionAny.displayDate, 'yyyy-MM-dd') : 
+                            transactionAny.displayDate) : 
+                          (transaction.date instanceof Date ? 
+                            format(transaction.date, 'yyyy-MM-dd') : 
+                            transaction.date));
     
     console.log(`[Single Transformer Debug] Checking recurring transaction: ${transaction.title}, using date: ${occurrenceDate}`);
     
