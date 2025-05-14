@@ -641,8 +641,9 @@ export default function ExpensePlanner() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
-      {/* Header */}
+    <DndProvider backend={HTML5Backend}>
+      <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
+        {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -1021,5 +1022,6 @@ export default function ExpensePlanner() {
         isPending={addSavings.isPending}
       />
     </div>
+    </DndProvider>
   );
 }
