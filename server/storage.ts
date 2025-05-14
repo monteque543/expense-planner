@@ -275,7 +275,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getRecurringTransactions(): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.isRecurring, true));
+    // Get all recurring transactions
+    const recurringTransactions = await db.select().from(transactions)
+      .where(eq(transactions.isRecurring, true));
+    
+    // Also filter out problematic Grocerries transactions from recurring list
+    return recurringTransactions.filter(t => t.title !== "Grocerries");
   }
   
   async getTransactionById(id: number): Promise<Transaction | undefined> {
@@ -284,9 +289,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(
+    // Get transactions in date range
+    const dateRangeTransactions = await db.select().from(transactions).where(
       between(transactions.date, startDate, endDate)
     );
+    
+    // Filter out problematic Grocerries transactions from date range results
+    return dateRangeTransactions.filter(t => t.title !== "Grocerries");
   }
   
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
