@@ -1,5 +1,5 @@
 import { Transaction, TransactionWithCategory } from "@shared/schema";
-import { getPreferredAmount } from "./transaction-preferences";
+import { getPreferredAmount, getOccurrencePaidStatus } from "./transaction-preferences";
 
 /**
  * Apply user preferences to transactions coming from the server
@@ -7,22 +7,33 @@ import { getPreferredAmount } from "./transaction-preferences";
  */
 export function applyTransactionPreferences(transactions: TransactionWithCategory[]): TransactionWithCategory[] {
   return transactions.map(transaction => {
+    // Create a new transaction object to apply modifications
+    let modifiedTransaction = { ...transaction };
+    
     // Apply preferences to any transaction with stored preferences
     // Get user's preferred amount from localStorage
     const preferredAmount = getPreferredAmount(transaction.title);
     
     if (preferredAmount !== null) {
       console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
-      return {
-        ...transaction,
-        amount: preferredAmount
-      };
+      modifiedTransaction.amount = preferredAmount;
+    }
+    
+    // Apply paid status for recurring transaction occurrences
+    if (transaction.isRecurringInstance && transaction.displayDate) {
+      // Check if we have a saved paid status for this specific occurrence
+      const paidStatus = getOccurrencePaidStatus(transaction.title, transaction.displayDate);
+      
+      // Only override if we have a stored value
+      if (paidStatus !== null) {
+        console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${transaction.displayDate}: ${paidStatus}`);
+        modifiedTransaction.isPaid = paidStatus;
+      }
     }
     
     // Apply any other transaction-specific transformations here
     
-    // Return the transaction unchanged if no transformations apply
-    return transaction;
+    return modifiedTransaction;
   });
 }
 
