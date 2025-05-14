@@ -19,16 +19,11 @@ function Router() {
 }
 
 function App() {
-  // Add dark class to document for dark mode
-  document.documentElement.classList.add('dark');
-  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="dark min-h-screen">
-          <Router />
-          <Toaster />
-        </div>
+        <Router />
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -72,29 +72,4 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
-
-  /* Custom styling */
-  .card {
-    @apply rounded-xl border border-border/40 shadow-md;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-  }
-  
-  .card:hover {
-    @apply border-primary/40;
-    transform: translateY(-2px);
-  }
-  
-  /* Gradient buttons */
-  .btn-gradient {
-    @apply bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700;
-  }
-  
-  /* Enhance dark mode */
-  .dark .bg-background {
-    @apply bg-gradient-to-br from-gray-900 to-gray-950;
-  }
-  
-  .dark .card {
-    @apply bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm;
-  }
 }
