@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Keyboard } from "lucide-react";
 import { getUniqueTitles } from "@/utils/titleUtils";
+import IdleSessionHandler from "@/components/IdleSessionHandler";
+import SecurityOverlay from "@/components/SecurityOverlay";
 
 
 
@@ -56,7 +58,17 @@ export default function ExpensePlanner() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [activePersonFilter, setActivePersonFilter] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'month' | 'week' | 'year'>('month');
+  const [isIdle, setIsIdle] = useState(false);
   const { toast } = useToast();
+  
+  // Handle when user becomes idle or returns
+  const handleUserIdle = useCallback(() => {
+    setIsIdle(prevState => {
+      const newState = !prevState;
+      console.log(`User is ${newState ? 'idle - activating' : 'active - deactivating'} security overlay`);
+      return newState;
+    });
+  }, []);
   
   // Setup keyboard shortcuts
   useEffect(() => {
@@ -643,6 +655,13 @@ export default function ExpensePlanner() {
 
   return (
       <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
+        {/* Idle detection and security overlay */}
+        <IdleSessionHandler 
+          timeoutMs={2 * 60 * 1000} // 2 minutes timeout
+          onTimeout={handleUserIdle} 
+        />
+        <SecurityOverlay isVisible={isIdle} />
+        
         {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
