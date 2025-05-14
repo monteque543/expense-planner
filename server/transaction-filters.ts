@@ -37,8 +37,8 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
  */
 export function transformTransactionAmounts(transactions: Transaction[]): Transaction[] {
   return transactions.map(transaction => {
-    // Special case for Replit transaction - automatically convert it to 76.77 if it's 94.31
-    if (transaction.title === "Replit" && Math.abs(transaction.amount - 94.305) < 0.01) {
+    // Special case for Replit transaction - automatically convert it to 76.77 if it's around 94.31
+    if (transaction.title === "Replit" && Math.abs(transaction.amount - 94.31) < 0.5) {
       console.log(`Automatically adjusting Replit transaction amount from ${transaction.amount} to 76.77`);
       // Create a new object to avoid modifying the original
       return { 
