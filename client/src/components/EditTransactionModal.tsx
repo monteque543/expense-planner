@@ -205,6 +205,14 @@ export default function EditTransactionModal({
     
     console.log(`[EditModal] Final amount to save: ${finalAmount} (${typeof finalAmount})`);
     
+    // Special handling for specific transactions
+    if (transaction.title === "Replit") {
+      // Save the preferred amount for Replit transactions in localStorage
+      // This ensures the preference is remembered between sessions
+      console.log(`[EditModal] Saving preferred amount for Replit: ${finalAmount} PLN`);
+      saveTransactionAmountPreference('Replit', finalAmount);
+    }
+    
     // Prepare update data
     const updateData = {
       ...data,

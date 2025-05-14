@@ -11,17 +11,39 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
       return false;
     }
     
-    // 2. Filter out all variations of "RP training app" transactions in May (only show from June onwards)
-    // Use case-insensitive matching to catch all variations of capitalization
-    if (transaction.title.toLowerCase().includes("training app")) {
+    // 2. DIRECT FILTERING of any training app transactions - specifically target all possible variations
+    // Hard-coded complete removal of all known RP training app transactions from May
+    const trainingAppVariations = [
+      "RP training app", 
+      "Rp training app", 
+      "rp training app",
+      "RP Training App", 
+      "Training App",
+      "training app"
+    ];
+    
+    // Direct match by exact title (exact match approach)
+    if (trainingAppVariations.includes(transaction.title)) {
       const transactionDate = new Date(transaction.date);
       
-      // Debug log to see what variations we're finding
-      console.log(`Found training app transaction: "${transaction.title}" on ${transactionDate.toISOString()}`);
+      // Debug log
+      console.log(`[FOUND] "${transaction.title}" (ID: ${transaction.id}) on ${transactionDate.toISOString()}`);
       
-      // If month is May (index 4) or earlier in 2025, filter it out completely
+      // Extremely aggressive filtering - remove from May or earlier months in 2025
       if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() <= 4) {
-        console.log(`Filtering out "${transaction.title}" from ${transactionDate.toISOString()}`);
+        console.log(`[FILTERING] Removing "${transaction.title}" from ${transactionDate.toISOString()}`);
+        return false;
+      }
+    }
+    
+    // Secondary filter using substring check (for any variation we missed)
+    if (transaction.title.toLowerCase().includes("training") && 
+        transaction.title.toLowerCase().includes("app")) {
+      const transactionDate = new Date(transaction.date);
+      
+      // Extremely aggressive filtering - remove from May or earlier months
+      if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() <= 4) {
+        console.log(`[SUBSTRING FILTERING] Removing "${transaction.title}" from ${transactionDate.toISOString()}`);
         return false;
       }
     }
