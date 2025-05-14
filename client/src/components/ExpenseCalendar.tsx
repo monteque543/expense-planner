@@ -790,7 +790,7 @@ const originalDate = typeof transaction.date === 'string'
                           text-white rounded-sm px-1 py-0.5 mb-0.5 text-xs flex items-center justify-between
                           cursor-pointer hover:opacity-90 group relative
                           ${isRecurringInstance ? 'border-l-2 border-white' : ''}
-                          ${transaction.isPaid ? 'opacity-75' : ''}`}
+                          ${transaction.isPaid ? 'border-2 border-green-300' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                         onContextMenu={(e) => {
@@ -809,13 +809,19 @@ const originalDate = typeof transaction.date === 'string'
                         {/* Left side with title */}
                         <div className="flex items-center truncate mr-1">
                           {/* Icons */}
-                          <div className="flex-shrink-0 mr-0.5">
+                          <div className="flex-shrink-0 mr-1">
                             {(transaction.isRecurring || isRecurringInstance) && <span title="Recurring">⟳</span>}
-                            {transaction.isPaid && <span title="Paid" className="text-green-500">✓</span>}
+                            {transaction.isPaid && (
+                              <span title="Paid" className="text-green-300 font-bold">
+                                ✓
+                              </span>
+                            )}
                           </div>
                           
                           {/* Title */}
-                          <span className="truncate">{transaction.title}</span>
+                          <span className={`truncate ${transaction.isPaid ? 'line-through decoration-green-300 decoration-2' : ''}`}>
+                            {transaction.title}
+                          </span>
                         </div>
                         
                         {/* Right side with amount */}
