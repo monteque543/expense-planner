@@ -143,10 +143,31 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
     return null;
   }
   
-  const yearMonth = `${dateParts[0]}-${dateParts[1]}`;
+  const year = dateParts[0];
+  const month = dateParts[1];
+  const yearMonth = `${year}-${month}`;
+  
+  // The correct storage key for this exact month/year
   const storageKey = `fixed_status_${transaction.title}_${yearMonth}`;
   
-  // Check if we have a stored value for this month-year
+  // For super-problematic recurring transactions, add extra logging
+  const isCriticalTransaction = ['Karma daisy', 'Netflix', 'Orange'].includes(transaction.title);
+  
+  // Log all keys in localstorage for this transaction (for debugging)
+  if (isCriticalTransaction) {
+    console.log(`[DIRECT FIX DEBUG] Transaction: ${transaction.title}, Date: ${fullDateStr}, Month-Year: ${yearMonth}`);
+    const matchingKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes(transaction.title)) {
+        const value = localStorage.getItem(key);
+        matchingKeys.push({ key, value });
+      }
+    }
+    console.log(`[DIRECT FIX DEBUG] All storage keys for ${transaction.title}:`, matchingKeys);
+  }
+  
+  // Check if we have a stored value for this SPECIFIC month-year
   const storedValue = localStorage.getItem(storageKey);
   
   if (storedValue !== null) {
@@ -156,7 +177,7 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
     return isPaid;
   }
   
-  console.log(`[DIRECT FIX] No stored value found for ${transaction.title} in ${yearMonth}`);
+  console.log(`[DIRECT FIX] No stored value found for ${transaction.title} in ${yearMonth} with key ${storageKey}`);
   // No direct fix found
   return null;
 }
@@ -244,14 +265,28 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   
   // First check for direct fixes for problematic transactions
   if (isProblematicTransaction(transaction.title)) {
+    // Extract transaction date for detailed logging
+    const transactionAny = transaction as any;
+    let dateStr = '';
+    
+    if (transactionAny.displayDateStr) {
+      dateStr = transactionAny.displayDateStr;
+    } else if (transaction.date) {
+      dateStr = transaction.date instanceof Date 
+        ? format(transaction.date, 'yyyy-MM-dd') 
+        : String(transaction.date);
+    }
+    
+    console.log(`[SINGLE TXN] Checking problematic transaction: ${transaction.title}, date: ${dateStr}`);
+    
     const directFix = applyDirectFixForProblematicTransactions(transaction);
     if (directFix !== null) {
       // We have a direct fix to apply
-      console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
+      console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title} date=${dateStr}: ${directFix}`);
       modifiedTransaction.isPaid = directFix;
       return modifiedTransaction;
     } else {
-      console.log(`[DIRECT FIX] No fixed status found for problematic transaction: ${transaction.title}`);
+      console.log(`[DIRECT FIX] No fixed status found for ${transaction.title} date=${dateStr}`);
     }
   }
   

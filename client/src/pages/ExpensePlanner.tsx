@@ -786,8 +786,7 @@ export default function ExpensePlanner() {
               
               <button 
                 onClick={() => {
-                  // Remove all transaction-related statuses from localStorage
-                  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+                  console.log("[FACTORY RESET STARTED] Clearing all paid statuses...");
                   
                   // Get all localStorage keys
                   const allKeys = [];
@@ -798,22 +797,47 @@ export default function ExpensePlanner() {
                     }
                   }
                   
-                  console.log("[FACTORY RESET] Current localStorage keys:", allKeys);
+                  console.log("[FACTORY RESET] All localStorage keys:", allKeys);
                   
-                  // Standard statuses
+                  // CLEAR ABSOLUTELY EVERYTHING
+                  // 1. Clear the standard recurring transaction status store
                   localStorage.removeItem('recurring-transaction-paid-status');
+                  console.log("[FACTORY RESET] Removed recurring-transaction-paid-status");
                   
-                  // Direct fix format for problematic transactions
+                  // 2. Clear direct fix formats for problematic transactions
                   let found = 0;
                   allKeys.forEach(key => {
-                    if (key.startsWith('fixed_status_')) {
+                    // Delete the main status keys and any debug info
+                    if (key.startsWith('fixed_status_') || 
+                        key.includes('_debug') || 
+                        key.includes('_timestamp')) {
                       localStorage.removeItem(key);
                       found++;
-                      console.log(`[FACTORY RESET] Removed direct fix key: ${key}`);
+                      console.log(`[FACTORY RESET] Removed key: ${key}`);
                     }
                   });
                   
-                  console.log(`[FACTORY RESET] Removed ${found} direct fix status records`);
+                  // 3. Also clear any other transaction-related storage that might be causing issues
+                  const additionalKeys = [
+                    'transaction-amount-preferences',
+                    'recurring-transaction-paid-status',
+                    'transaction-preferences',
+                    'karma-status',
+                    'netflix-status',
+                    'orange-status',
+                    'trw-status',
+                    'replit-status'
+                  ];
+                  
+                  additionalKeys.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                      localStorage.removeItem(key);
+                      console.log(`[FACTORY RESET] Removed possible status key: ${key}`);
+                      found++;
+                    }
+                  });
+                  
+                  console.log(`[FACTORY RESET] Removed ${found} status records in total`);
                   
                   // Force refresh of transactions
                   queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -821,14 +845,12 @@ export default function ExpensePlanner() {
                   // Display toast to confirm
                   toast({
                     title: "Factory Reset Complete",
-                    description: `Reset all transaction statuses: removed ${found} fixed status records and all regular records.`,
+                    description: `Deep clean of all statuses: removed ${found} records.`,
                     variant: "destructive",
                   });
                   
-                  // Force refresh page after short delay to ensure clean state
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1000);
+                  // Force refresh page to ensure clean state
+                  window.location.reload();
                 }}
                 className="text-xs bg-rose-100 hover:bg-rose-200 dark:bg-rose-800 dark:hover:bg-rose-700 px-2 py-1 rounded-md"
               >
