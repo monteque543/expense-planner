@@ -404,6 +404,36 @@ export default function ExpensePlanner() {
     setSelectedTransaction(transaction);
     setShowEditModal(true);
   };
+  
+  // Handle moving a transaction to a new date
+  const handleMoveTransaction = (id: number, newDate: Date) => {
+    console.log(`Moving transaction ${id} to new date: ${format(newDate, 'yyyy-MM-dd')}`);
+    
+    // Find the transaction to move
+    const transaction = transactions.find(t => t.id === id);
+    
+    if (!transaction) {
+      console.error(`Transaction with ID ${id} not found`);
+      return;
+    }
+    
+    // Create the date string in the format expected by the API
+    const dateString = format(newDate, 'yyyy-MM-dd');
+    
+    // Update the transaction with the new date
+    updateTransaction.mutate({
+      id,
+      data: {
+        date: dateString
+      }
+    });
+    
+    // Show success toast
+    toast({
+      title: "Transaction Moved",
+      description: `"${transaction.title}" moved to ${format(newDate, 'MMMM d, yyyy')}`,
+    });
+  };
 
   // Date manipulation for current view
   const currentMonthYear = format(selectedDate, 'MMMM yyyy');
@@ -798,6 +828,7 @@ export default function ExpensePlanner() {
             onSelectToday={handleToday}
             onEditTransaction={handleEditTransaction}
             onDeleteTransaction={handleDeleteTransaction}
+            onMoveTransaction={handleMoveTransaction}
             onDayClick={(date) => {
               // Create a new date object at noon to ensure timezone consistency
               const year = date.getFullYear();

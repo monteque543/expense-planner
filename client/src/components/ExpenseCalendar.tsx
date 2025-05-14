@@ -790,90 +790,98 @@ const originalDate = typeof transaction.date === 'string'
                         key={transIdx}
                         className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
                           text-white rounded-sm px-1 py-0.5 mb-0.5 text-xs flex items-center justify-between
-                          cursor-pointer hover:opacity-90 
+                          cursor-pointer hover:opacity-90 group relative
                           ${isRecurringInstance ? 'border-l-2 border-white' : ''}
                           ${transaction.isPaid ? 'opacity-75' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                         onContextMenu={(e) => {
-                          // Prevent the default context menu
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // Only allow operations for actual transactions that have an ID
                           if (transaction.id) {
-                            // Create a custom context menu with options
-                            const menuItems = [
-                              { label: 'Delete', action: 'delete' },
-                              { label: 'Move to another day', action: 'move' }
-                            ];
-                            
-                            const menuHtml = `
-                              <div id="custom-context-menu" style="position: fixed; z-index: 9999; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); padding: 5px 0;">
-                                ${menuItems.map(item => `<div class="menu-item" data-action="${item.action}" style="padding: 8px 15px; cursor: pointer; font-size: 14px; hover:background-color: #f5f5f5;">${item.label}</div>`).join('')}
-                              </div>
-                            `;
-                            
-                            // Remove any existing menu
+                            // Remove any existing context menu
                             const existingMenu = document.getElementById('custom-context-menu');
                             if (existingMenu) {
                               existingMenu.remove();
                             }
                             
-                            // Create and append the new menu
-                            const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = menuHtml;
-                            const menuElement = tempDiv.firstElementChild as HTMLElement;
-                            if (menuElement) {
-                              document.body.appendChild(menuElement);
-                              
-                              // Position the menu at the mouse position
-                              menuElement.style.left = `${e.clientX}px`;
-                              menuElement.style.top = `${e.clientY}px`;
-                              
-                              // Add event listeners to menu items
-                              menuElement.querySelectorAll('.menu-item').forEach(item => {
-                              item.addEventListener('click', () => {
-                                const action = item.getAttribute('data-action');
-                                
-                                if (action === 'delete') {
-                                  if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
-                                    onDeleteTransaction(transaction.id);
-                                  }
-                                } else if (action === 'move' && onMoveTransaction) {
-                                  // Ask the user to select a new date
-                                  const newDateStr = prompt('Enter a new date (YYYY-MM-DD):', 
-                                                           format(new Date(transaction.date), 'yyyy-MM-dd'));
-                                  
-                                  if (newDateStr) {
-                                    try {
-                                      // Parse the date string
-                                      const [year, month, day] = newDateStr.split('-').map(Number);
-                                      
-                                      // Date values: month is 0-indexed in JavaScript
-                                      const newDate = new Date(year, month - 1, day, 12, 0, 0);
-                                      
-                                      // Call the callback to move the transaction
-                                      onMoveTransaction(transaction.id, newDate);
-                                    } catch (error) {
-                                      alert('Invalid date format. Please use YYYY-MM-DD');
-                                    }
-                                  }
-                                }
-                                
-                                // Remove the menu after an action is taken
-                                menuElement.remove();
-                              });
+                            // Create menu element
+                            const menu = document.createElement('div');
+                            menu.id = 'custom-context-menu';
+                            menu.style.position = 'fixed';
+                            menu.style.zIndex = '9999';
+                            menu.style.left = `${e.clientX}px`;
+                            menu.style.top = `${e.clientY}px`;
+                            menu.style.backgroundColor = 'white';
+                            menu.style.border = '1px solid #ccc';
+                            menu.style.borderRadius = '4px';
+                            menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+                            menu.style.padding = '5px 0';
+                            
+                            // Delete option
+                            const deleteOption = document.createElement('div');
+                            deleteOption.textContent = 'Delete';
+                            deleteOption.style.padding = '8px 15px';
+                            deleteOption.style.cursor = 'pointer';
+                            deleteOption.style.fontSize = '14px';
+                            deleteOption.addEventListener('mouseenter', () => {
+                              deleteOption.style.backgroundColor = '#f5f5f5';
+                            });
+                            deleteOption.addEventListener('mouseleave', () => {
+                              deleteOption.style.backgroundColor = 'transparent';
+                            });
+                            deleteOption.addEventListener('click', () => {
+                              if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
+                                onDeleteTransaction(transaction.id);
+                              }
+                              menu.remove();
                             });
                             
-                            // Close the menu when clicking outside
+                            // Move option
+                            const moveOption = document.createElement('div');
+                            moveOption.textContent = 'Move to another day';
+                            moveOption.style.padding = '8px 15px';
+                            moveOption.style.cursor = 'pointer';
+                            moveOption.style.fontSize = '14px';
+                            moveOption.addEventListener('mouseenter', () => {
+                              moveOption.style.backgroundColor = '#f5f5f5';
+                            });
+                            moveOption.addEventListener('mouseleave', () => {
+                              moveOption.style.backgroundColor = 'transparent';
+                            });
+                            moveOption.addEventListener('click', () => {
+                              if (onMoveTransaction) {
+                                const newDateStr = prompt('Enter a new date (YYYY-MM-DD):', 
+                                  format(new Date(transaction.date), 'yyyy-MM-dd'));
+                                
+                                if (newDateStr) {
+                                  try {
+                                    const [year, month, day] = newDateStr.split('-').map(Number);
+                                    const newDate = new Date(year, month - 1, day, 12, 0, 0);
+                                    onMoveTransaction(transaction.id, newDate);
+                                  } catch (error) {
+                                    alert('Invalid date format. Please use YYYY-MM-DD');
+                                  }
+                                }
+                              }
+                              menu.remove();
+                            });
+                            
+                            // Add options to menu
+                            menu.appendChild(deleteOption);
+                            menu.appendChild(moveOption);
+                            
+                            // Add menu to document
+                            document.body.appendChild(menu);
+                            
+                            // Close menu when clicking outside
                             document.addEventListener('click', function closeMenu() {
-                              menuElement.remove();
+                              menu.remove();
                               document.removeEventListener('click', closeMenu);
                             });
                           }
-                        }
-                      }}
+                        }}
                       >
                         {/* Left side with title */}
                         <div className="flex items-center truncate mr-1">
