@@ -758,7 +758,7 @@ const originalDate = typeof transaction.date === 'string'
                 
                 {/* Transactions for this day */}
                 <div 
-                  className={`mt-1 overflow-y-auto max-h-[120px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
+                  className={`mt-1 overflow-y-auto max-h-[200px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
                   onClick={(e) => {
                     if (isCurrentMonth && onDayClick && !dayHasTransactions) {
                       // Only trigger if clicked directly on this element (not on a child)
@@ -786,64 +786,27 @@ const originalDate = typeof transaction.date === 'string'
                       <div 
                         key={transIdx}
                         className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
-                          text-white rounded-sm px-1 py-0.5 mb-1 text-xs flex flex-col 
-                          group cursor-pointer hover:opacity-90 
+                          text-white rounded-sm px-1 py-0.5 mb-0.5 text-[9px] flex items-center justify-between
+                          cursor-pointer hover:opacity-90 
                           ${isRecurringInstance ? 'border-l-2 border-white' : ''}
                           ${transaction.isPaid ? 'opacity-75' : ''}`}
-                        title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN${isRecurringInstance ? ' (Recurring)' : ''}`}
+                        title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                       >
-                        {/* First row: Title with recurring indicator and paid status */}
-                        <div className="flex items-center w-full break-words">
-                          {/* Recurring indicator */}
-                          {(transaction.isRecurring || isRecurringInstance) && (
-                            <span className="mr-0.5 flex-shrink-0">⟳</span>
-                          )}
+                        {/* Left side with title */}
+                        <div className="flex items-center truncate mr-1">
+                          {/* Icons */}
+                          <div className="flex-shrink-0 mr-0.5">
+                            {(transaction.isRecurring || isRecurringInstance) && <span title="Recurring">⟳</span>}
+                            {transaction.isPaid && <span title="Paid">✓</span>}
+                          </div>
                           
-                          {/* Paid status indicator */}
-                          {transaction.isPaid && (
-                            <span className="mr-0.5 flex-shrink-0" title="Paid">✓</span>
-                          )}
-                          
-                          <span className="break-words">{transaction.title}</span>
+                          {/* Title */}
+                          <span className="truncate">{transaction.title}</span>
                         </div>
                         
-                        {/* Second row: Amount and actions */}
-                        <div className="flex justify-between items-center w-full mt-0.5">
-                          <span className="font-medium">{transaction.amount.toFixed(2)} PLN</span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button 
-                                className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                                onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
-                              >
-                                <MoreHorizontal className="h-3 w-3" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[160px]">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditTransaction(transaction);
-                                }}
-                                className="cursor-pointer"
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                <span>Edit</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteTransaction(transaction.id);
-                                }}
-                                className="cursor-pointer text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Delete</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        {/* Right side with amount */}
+                        <span className="flex-shrink-0 font-medium whitespace-nowrap">{transaction.amount.toFixed(0)} PLN</span>
                       </div>
                     );
                   })}
