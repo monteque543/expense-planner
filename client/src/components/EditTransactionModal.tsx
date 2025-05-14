@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, TransactionWithCategory, persons, recurringIntervals } from "@shared/schema";
-import { DollarSign, Euro, X } from "lucide-react";
+import { AlertCircle, Check, DollarSign, Euro, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
