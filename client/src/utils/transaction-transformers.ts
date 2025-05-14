@@ -55,15 +55,57 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
  * This is a backup to our server-side filtering
  */
 export function filterTransactions(transactions: TransactionWithCategory[]): TransactionWithCategory[] {
+  // First log all training app related transactions for debugging
+  transactions.forEach(transaction => {
+    if (transaction.title.toLowerCase().includes("training")) {
+      console.log(`[DEBUG] Found training app transaction: "${transaction.title}" (ID: ${transaction.id}) on ${new Date(transaction.date).toISOString()}`);
+    }
+  });
+  
   return transactions.filter(transaction => {
-    // Filter out "RP training app" from May
-    if ((transaction.title === "RP training app" || transaction.title === "Rp training app") 
-        && transaction.date) {
+    // Ultra aggressive filtering with multiple approaches
+    
+    // Approach 1: Exact title match with specific titles
+    const rpTrainingVariations = [
+      "RP training app", 
+      "Rp training app", 
+      "rp training app",
+      "RP Training App", 
+      "Rp Training App",
+      "Training App",
+      "training app"
+    ];
+    
+    if (rpTrainingVariations.includes(transaction.title) && transaction.date) {
       const date = new Date(transaction.date);
       
       // If in May 2025 or earlier, filter it out
       if (date.getFullYear() === 2025 && date.getMonth() <= 4) {
-        console.log(`[Client Filter] Removing "${transaction.title}" from ${date.toISOString()}`);
+        console.log(`[CLIENT FILTER] Exact match - Removing "${transaction.title}" (ID: ${transaction.id}) from ${date.toISOString()}`);
+        return false;
+      }
+    }
+    
+    // Approach 2: Case-insensitive substring match
+    if (transaction.title.toLowerCase().includes("training") && 
+        transaction.title.toLowerCase().includes("app") && 
+        transaction.date) {
+      const date = new Date(transaction.date);
+      
+      // If in May 2025 or earlier, filter it out
+      if (date.getFullYear() === 2025 && date.getMonth() <= 4) {
+        console.log(`[CLIENT FILTER] Substring match - Removing "${transaction.title}" (ID: ${transaction.id}) from ${date.toISOString()}`);
+        return false;
+      }
+    }
+    
+    // Approach 3: Filter by known transaction ID if we can identify it
+    // We can add specific IDs here if we find them in the logs
+    const knownRpTrainingAppIds = []; // Add IDs here if found
+    if (knownRpTrainingAppIds.includes(transaction.id) && transaction.date) {
+      const date = new Date(transaction.date);
+      if (date.getFullYear() === 2025 && date.getMonth() <= 4) {
+        console.log(`[CLIENT FILTER] ID match - Removing transaction ID ${transaction.id} from ${date.toISOString()}`);
         return false;
       }
     }

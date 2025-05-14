@@ -31,6 +31,10 @@ import {
   saveEditedTransaction,
   markTransactionAsDeleted as persistDeletedTransaction
 } from "@/utils/user-preferences";
+import {
+  applyTransactionPreferences,
+  filterTransactions
+} from "@/utils/transaction-transformers";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -104,10 +108,25 @@ export default function ExpensePlanner() {
   }, [showExpenseModal, showIncomeModal, showSavingsModal]);
 
   // Fetch transactions
-  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionWithCategory[]>({
+  const { data: rawTransactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionWithCategory[]>({
     queryKey: ['/api/transactions'],
     staleTime: 0, // Always refetch to ensure fresh data
   });
+  
+  // Apply our client-side transformations to transactions
+  // This includes filtering out problematic transactions and applying user preferences
+  const transactions = useMemo(() => {
+    console.log(`[TRANSFORM] Processing ${rawTransactions.length} transactions from server`);
+    
+    // First filter out problematic transactions (RP training app in May, etc.)
+    const filteredResults = filterTransactions(rawTransactions);
+    
+    // Then apply user preferences for transaction amounts (like Replit preferred amount)
+    const transformedResults = applyTransactionPreferences(filteredResults);
+    
+    console.log(`[TRANSFORM] Returned ${transformedResults.length} transactions after filtering/transforming`);
+    return transformedResults;
+  }, [rawTransactions]);
 
   // Fetch categories
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
