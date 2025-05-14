@@ -23,7 +23,8 @@ import {
   formatCurrency, 
   getExchangeRate 
 } from "@/utils/currency-converter";
-import { saveTransactionAmountPreference, saveOccurrencePaidStatus } from "@/utils/transaction-preferences";
+import { saveTransactionAmountPreference, saveOccurrencePaidStatus, isProblematicTransaction } from "@/utils/transaction-preferences";
+import { saveDirectFixForTransaction } from "@/utils/transaction-transformers";
 
 interface EditTransactionModalProps {
   isOpen: boolean;

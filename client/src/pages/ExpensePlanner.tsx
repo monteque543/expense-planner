@@ -786,22 +786,27 @@ export default function ExpensePlanner() {
               
               <button 
                 onClick={() => {
-                  // Run the clear function
-                  clearProblematicTransactionStatuses();
+                  // Full reset of localStorage paid statuses
+                  localStorage.removeItem('recurring-transaction-paid-status');
                   
-                  // Force refresh
+                  // Force refresh of transactions
                   queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
                   
                   // Display toast to confirm
                   toast({
-                    title: "Reset Complete",
-                    description: "Recurring transaction paid statuses have been reset for problematic transactions.",
-                    variant: "default",
+                    title: "Factory Reset Complete",
+                    description: "All recurring transaction paid statuses have been completely cleared.",
+                    variant: "destructive",
                   });
+                  
+                  // Force refresh page after short delay to ensure clean state
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
                 }}
                 className="text-xs bg-rose-100 hover:bg-rose-200 dark:bg-rose-800 dark:hover:bg-rose-700 px-2 py-1 rounded-md"
               >
-                Reset Statuses
+                Factory Reset
               </button>
             </div>
             <ThemeToggle />
