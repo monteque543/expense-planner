@@ -269,9 +269,30 @@ export class DatabaseStorage implements IStorage {
     // Get all transactions from the database
     const allTransactions = await db.select().from(transactions);
     
-    // Filter out any "Grocerries" transactions that have caused issues
-    // This ensures they won't appear in the UI at all
-    return allTransactions.filter(t => t.title !== "Grocerries");
+    // Apply the same filtering we do in getTransactionsByDateRange
+    return allTransactions.filter(transaction => {
+      // 1. Always remove any "Grocerries" transactions
+      if (transaction.title === "Grocerries") {
+        return false;
+      }
+      
+      // 2. Filter out "Rp training app" transactions in May (only show from June onwards)
+      if (transaction.title === "Rp training app") {
+        const transactionDate = new Date(transaction.date);
+        // If we're looking at May 2025 (month index 4), filter it out
+        if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() === 4) {
+          return false;
+        }
+      }
+      
+      // 3. Filter out "Fabi Phone Play" with amount 25 PLN (user deleted it)
+      if (transaction.title === "Fabi Phone Play" && Math.abs(transaction.amount - 25) < 0.01) {
+        return false;
+      }
+      
+      // Keep all other transactions
+      return true;
+    });
   }
   
   async getRecurringTransactions(): Promise<Transaction[]> {
@@ -279,8 +300,29 @@ export class DatabaseStorage implements IStorage {
     const recurringTransactions = await db.select().from(transactions)
       .where(eq(transactions.isRecurring, true));
     
-    // Also filter out problematic Grocerries transactions from recurring list
-    return recurringTransactions.filter(t => t.title !== "Grocerries");
+    // Apply same filtering as in the other methods
+    return recurringTransactions.filter(transaction => {
+      // 1. Always remove any "Grocerries" transactions
+      if (transaction.title === "Grocerries") {
+        return false;
+      }
+      
+      // 2. Filter out "Rp training app" transactions in May (only show from June onwards)
+      if (transaction.title === "Rp training app") {
+        const transactionDate = new Date(transaction.date);
+        // If we're looking at May 2025 (month index 4), filter it out
+        if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() === 4) {
+          return false;
+        }
+      }
+      
+      // 3. Filter out "Fabi Phone Play" with amount 25 PLN (user deleted it)
+      if (transaction.title === "Fabi Phone Play" && Math.abs(transaction.amount - 25) < 0.01) {
+        return false;
+      }
+      
+      return true;
+    });
   }
   
   async getTransactionById(id: number): Promise<Transaction | undefined> {
@@ -294,8 +336,31 @@ export class DatabaseStorage implements IStorage {
       between(transactions.date, startDate, endDate)
     );
     
-    // Filter out problematic Grocerries transactions from date range results
-    return dateRangeTransactions.filter(t => t.title !== "Grocerries");
+    return dateRangeTransactions.filter(transaction => {
+      // Filter out problematic transactions
+      
+      // 1. Always remove any "Grocerries" transactions
+      if (transaction.title === "Grocerries") {
+        return false;
+      }
+      
+      // 2. Filter out "Rp training app" transactions in May (only show from June onwards)
+      if (transaction.title === "Rp training app") {
+        const transactionDate = new Date(transaction.date);
+        // If we're looking at May 2025 (month index 4), filter it out
+        if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() === 4) {
+          return false;
+        }
+      }
+      
+      // 3. Filter out "Fabi Phone Play" with amount 25 PLN (user deleted it)
+      if (transaction.title === "Fabi Phone Play" && Math.abs(transaction.amount - 25) < 0.01) {
+        return false;
+      }
+      
+      // Keep all other transactions
+      return true;
+    });
   }
   
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
@@ -328,7 +393,7 @@ export class DatabaseStorage implements IStorage {
         console.log(`[DATABASE] Found existing transaction with title: "${title}"`);
         
         // Special handling for specific transactions that have issues with updates
-        const specialTitles = ["Grocerries", "Sukienka Fabi", "Coffee Machine"];
+        const specialTitles = ["Grocerries", "Sukienka Fabi", "Coffee Machine", "Replit", "Rp training app", "Fabi Phone Play"];
         const isSpecialTransaction = specialTitles.includes(title);
         
         if (isSpecialTransaction) {
