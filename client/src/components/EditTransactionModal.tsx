@@ -83,6 +83,9 @@ export default function EditTransactionModal({
   isPending,
   titleSuggestions = []
 }: EditTransactionModalProps) {
+  // Hook for showing toast notifications
+  const { toast } = useToast();
+  
   // State for the selected currency
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('PLN');
   // State for displaying converted amount
@@ -224,7 +227,7 @@ export default function EditTransactionModal({
       // Immediately update the cached data to reflect the change without refresh
       const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
       if (currentData) {
-        const updatedData = currentData.map(t => {
+        const updatedData = currentData.map((t: TransactionWithCategory) => {
           if (t.title === "Replit") {
             return { ...t, amount: finalAmount };
           }
