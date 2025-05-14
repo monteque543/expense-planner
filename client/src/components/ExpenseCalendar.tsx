@@ -106,7 +106,6 @@ interface ExpenseCalendarProps {
   onSelectToday: () => void;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   onDeleteTransaction: (id: number) => void;
-  onMoveTransaction?: (id: number, newDate: Date) => void; // Add this prop for moving transactions between days
   onDayClick?: (date: Date) => void;
   isLoading: boolean;
   activeView: 'week' | 'month' | 'year';
@@ -121,7 +120,6 @@ export default function ExpenseCalendar({
   onSelectToday,
   onEditTransaction,
   onDeleteTransaction,
-  onMoveTransaction,
   onDayClick,
   isLoading,
   activeView
@@ -799,31 +797,11 @@ const originalDate = typeof transaction.date === 'string'
                           e.preventDefault();
                           e.stopPropagation();
                           
+                          // Only allow deletion for actual transactions that have an ID
                           if (transaction.id) {
-                            // Show a simple confirmation dialog for delete
-                            const action = window.confirm(`What would you like to do with "${transaction.title}"?\n\n- OK to delete \n- Cancel to move to another date`);
-                            
-                            if (action) {
-                              // User clicked OK - Delete
-                              if (window.confirm(`Are you sure you want to delete "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
-                                onDeleteTransaction(transaction.id);
-                              }
-                            } else {
-                              // User clicked Cancel - Move to another date
-                              if (onMoveTransaction) {
-                                const newDateStr = prompt('Enter a new date (YYYY-MM-DD):', 
-                                  format(new Date(transaction.date), 'yyyy-MM-dd'));
-                                
-                                if (newDateStr) {
-                                  try {
-                                    const [year, month, day] = newDateStr.split('-').map(Number);
-                                    const newDate = new Date(year, month - 1, day, 12, 0, 0);
-                                    onMoveTransaction(transaction.id, newDate);
-                                  } catch (error) {
-                                    alert('Invalid date format. Please use YYYY-MM-DD');
-                                  }
-                                }
-                              }
+                            // Show confirmation and delete if confirmed
+                            if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
+                              onDeleteTransaction(transaction.id);
                             }
                           }
                         }}
@@ -845,7 +823,7 @@ const originalDate = typeof transaction.date === 'string'
                         
                         {/* Context menu hint on hover */}
                         <div className="absolute right-0 bottom-0 opacity-0 group-hover:opacity-50 text-[9px] text-white">
-                          Right-click for menu
+                          Right-click to delete
                         </div>
                       </div>
                     );

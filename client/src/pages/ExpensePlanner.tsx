@@ -825,7 +825,6 @@ export default function ExpensePlanner() {
             onSelectToday={handleToday}
             onEditTransaction={handleEditTransaction}
             onDeleteTransaction={handleDeleteTransaction}
-            onMoveTransaction={handleMoveTransaction}
             onDayClick={(date) => {
               // Create a new date object at noon to ensure timezone consistency
               const year = date.getFullYear();
