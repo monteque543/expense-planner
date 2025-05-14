@@ -7,20 +7,16 @@ import { getPreferredAmount } from "./transaction-preferences";
  */
 export function applyTransactionPreferences(transactions: TransactionWithCategory[]): TransactionWithCategory[] {
   return transactions.map(transaction => {
-    // Check for transactions with saved amount preferences
-    const specialTransactions = ["Replit", "trw"];
+    // Apply preferences to any transaction with stored preferences
+    // Get user's preferred amount from localStorage
+    const preferredAmount = getPreferredAmount(transaction.title);
     
-    if (specialTransactions.includes(transaction.title)) {
-      // Get user's preferred amount from localStorage
-      const preferredAmount = getPreferredAmount(transaction.title);
-      
-      if (preferredAmount !== null) {
-        console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
-        return {
-          ...transaction,
-          amount: preferredAmount
-        };
-      }
+    if (preferredAmount !== null) {
+      console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
+      return {
+        ...transaction,
+        amount: preferredAmount
+      };
     }
     
     // Apply any other transaction-specific transformations here
@@ -34,20 +30,15 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
  * Apply preferences to a single transaction
  */
 export function applyTransactionPreference(transaction: TransactionWithCategory): TransactionWithCategory {
-  // Check for transactions with saved amount preferences
-  const specialTransactions = ["Replit", "trw"];
+  // Get user's preferred amount from localStorage (for any transaction)
+  const preferredAmount = getPreferredAmount(transaction.title);
   
-  if (specialTransactions.includes(transaction.title)) {
-    // Get user's preferred amount from localStorage
-    const preferredAmount = getPreferredAmount(transaction.title);
-    
-    if (preferredAmount !== null) {
-      console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
-      return {
-        ...transaction,
-        amount: preferredAmount
-      };
-    }
+  if (preferredAmount !== null) {
+    console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
+    return {
+      ...transaction,
+      amount: preferredAmount
+    };
   }
   
   // Return the transaction unchanged if no transformations apply

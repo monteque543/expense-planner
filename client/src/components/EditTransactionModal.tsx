@@ -210,9 +210,9 @@ export default function EditTransactionModal({
     
     console.log(`[EditModal] Final amount to save: ${finalAmount} (${typeof finalAmount})`);
     
-    // Special handling for specific transactions - for both Replit and trw
-    if (transaction.title === "Replit" || transaction.title === "trw") {
-      // Save the preferred amount for these transactions in localStorage
+    // Special handling for all recurring transactions
+    if (transaction.isRecurring) {
+      // Save the preferred amount for recurring transactions in localStorage
       // This ensures the preference is remembered between sessions
       console.log(`[EditModal] Saving preferred amount for ${transaction.title}: ${finalAmount} PLN`);
       saveTransactionAmountPreference(transaction.title, finalAmount);
