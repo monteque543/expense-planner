@@ -111,37 +111,50 @@ export function getRecurringTransactionPaidStatuses(): RecurringTransactionPaidS
 
 /**
  * Generate a unique key for a recurring transaction occurrence
+ * 
+ * IMPORTANT: This key is used to track paid status for specific occurrences
+ * of recurring transactions. It must be unique per transaction per month/year/day.
  */
 export function generateOccurrenceKey(title: string, date: Date | string): string {
   // Format date to YYYY-MM-DD
   let dateStr: string;
+  let normalizedDate: Date;
   
+  // First, ensure we have a valid Date object
   if (date instanceof Date) {
-    // Use format from date-fns for consistent formatting
-    dateStr = format(date, 'yyyy-MM-dd');
+    normalizedDate = date;
   } else if (typeof date === 'string') {
-    // Handle different string formats to ensure we get YYYY-MM-DD
-    if (date.includes('T')) {
-      // Handle ISO format with time
-      dateStr = date.split('T')[0];
-    } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Already in YYYY-MM-DD format
-      dateStr = date;
-    } else {
-      // Try to parse the date
-      try {
-        // Use format from date-fns for consistent formatting
-        dateStr = format(new Date(date), 'yyyy-MM-dd');
-      } catch (e) {
-        console.error(`[Key Generate] Invalid date string: ${date}`, e);
-        dateStr = format(new Date(), 'yyyy-MM-dd');
+    try {
+      // Handle different string formats
+      if (date.includes('T')) {
+        // Handle ISO format with time
+        normalizedDate = new Date(date);
+      } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Already in YYYY-MM-DD format
+        normalizedDate = new Date(date + 'T12:00:00Z'); // Add noon time to avoid timezone issues
+      } else {
+        // Try to parse any other date format
+        normalizedDate = new Date(date);
       }
+      
+      // Check if we got a valid date
+      if (isNaN(normalizedDate.getTime())) {
+        console.error(`[Key Generate] Invalid date after parsing: ${date}`);
+        normalizedDate = new Date(); // Fallback to current date
+      }
+    } catch (e) {
+      console.error(`[Key Generate] Error parsing date string: ${date}`, e);
+      normalizedDate = new Date(); // Fallback to current date
     }
   } else {
     console.warn(`[Key Generate] Unexpected date type: ${typeof date}, using current date`);
-    dateStr = format(new Date(), 'yyyy-MM-dd');
+    normalizedDate = new Date();
   }
   
+  // Format the date consistently using date-fns
+  dateStr = format(normalizedDate, 'yyyy-MM-dd');
+  
+  // Include the full title and exact date in the key for specificity
   const key = `${title}_${dateStr}`;
   console.log(`[Key Generate] Created key: "${key}" for title="${title}", date=${String(date)}`);
   return key;
@@ -280,7 +293,8 @@ function cleanupDuplicateStatuses(): RecurringTransactionPaidStatus[] {
         datePart = datePart.match(/^\d{4}-\d{2}-\d{2}/)![0];
       }
       
-      // Create a normalized key
+      // Create a normalized key - be sure to keep year, month, day for proper specificity
+      // This ensures we don't accidentally mark the wrong month's occurrence as paid
       const normalizedKey = `${title}_${datePart}`;
       
       // Add to the appropriate group
@@ -299,7 +313,38 @@ function cleanupDuplicateStatuses(): RecurringTransactionPaidStatus[] {
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
       );
       
-      dedupedStatuses.push(sortedGroup[0]);
+      // Get the latest entry
+      const latestEntry = sortedGroup[0];
+      
+      // Extract its normalized date (ensuring we preserve a consistent format)
+      const parts = latestEntry.key.split('_');
+      const title = parts[0];
+      let datePart = parts[1];
+      
+      // Standardize the date format
+      if (datePart.includes('T')) {
+        datePart = datePart.split('T')[0];
+      } else if (datePart.match(/^\d{4}-\d{2}-\d{2}/)) {
+        datePart = datePart.match(/^\d{4}-\d{2}-\d{2}/)![0];
+      }
+      
+      // Create a consistent key format
+      const normalizedKey = `${title}_${datePart}`;
+      
+      // Add the entry with the normalized key
+      dedupedStatuses.push({
+        ...latestEntry,
+        key: normalizedKey // Use the normalized key for consistency
+      });
+    });
+    
+    // Log specific transactions for debugging
+    const debugTransactions = ['Netflix', 'TRW', 'Replit', 'Karma daisy', 'Orange'];
+    debugTransactions.forEach(title => {
+      const entries = dedupedStatuses.filter(status => status.key.startsWith(`${title}_`));
+      if (entries.length > 0) {
+        console.log(`[Paid Status Debug] ${title} entries:`, entries);
+      }
     });
     
     // Save back to localStorage

@@ -546,6 +546,7 @@ const originalDate = typeof transaction.date === 'string'
           const futureCopy = {
             ...transaction,
             displayDate: nextDate, // Store occurrence date
+            displayDateStr: nextDateStr, // Add a formatted date string for consistent key generation
             isRecurringInstance: true // Flag to indicate this is a recurring instance
           };
           
