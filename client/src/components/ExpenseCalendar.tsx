@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -19,10 +19,11 @@ import {
   addYears,
   lastDayOfMonth
 } from 'date-fns';
+import { useDrag, useDrop } from 'react-dnd';
 import { TransactionWithCategory } from '@shared/schema';
 import { createHardcodedIncomeTransactions } from '@/utils/income-hardcoder';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, Edit, Trash2, MoreHorizontal, Plus } from 'lucide-react';
+import { CheckCircle2, Edit, Trash2, MoreHorizontal, Plus, MoveHorizontal } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -792,6 +793,19 @@ const originalDate = typeof transaction.date === 'string'
                           ${transaction.isPaid ? 'opacity-75' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
+                        onContextMenu={(e) => {
+                          // Prevent the default context menu
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          // Only allow deletion for actual transactions that have an ID
+                          if (transaction.id) {
+                            // Show confirmation and delete if confirmed
+                            if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
+                              onDeleteTransaction(transaction.id);
+                            }
+                          }
+                        }}
                       >
                         {/* Left side with title */}
                         <div className="flex items-center truncate mr-1">
@@ -807,6 +821,11 @@ const originalDate = typeof transaction.date === 'string'
                         
                         {/* Right side with amount */}
                         <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(2)} PLN</span>
+                        
+                        {/* Deletion hint on hover */}
+                        <div className="absolute right-0 bottom-0 opacity-0 group-hover:opacity-50 text-[9px] text-white">
+                          Right-click to delete
+                        </div>
                       </div>
                     );
                   })}

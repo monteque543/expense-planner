@@ -44,6 +44,9 @@ import {
 import { Keyboard } from "lucide-react";
 import { getUniqueTitles } from "@/utils/titleUtils";
 
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
