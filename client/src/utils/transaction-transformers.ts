@@ -101,8 +101,8 @@ export function filterTransactions(transactions: TransactionWithCategory[]): Tra
     
     // Approach 3: Filter by known transaction ID if we can identify it
     // We can add specific IDs here if we find them in the logs
-    const knownRpTrainingAppIds = []; // Add IDs here if found
-    if (knownRpTrainingAppIds.includes(transaction.id) && transaction.date) {
+    const knownRpTrainingAppIds: number[] = []; // Add IDs here if found
+    if (transaction.id && knownRpTrainingAppIds.includes(transaction.id) && transaction.date) {
       const date = new Date(transaction.date);
       if (date.getFullYear() === 2025 && date.getMonth() <= 4) {
         console.log(`[CLIENT FILTER] ID match - Removing transaction ID ${transaction.id} from ${date.toISOString()}`);

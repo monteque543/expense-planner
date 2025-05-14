@@ -14,6 +14,8 @@ import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category
 import { Category, Transaction, TransactionWithCategory, persons, recurringIntervals } from "@shared/schema";
 import { DollarSign, Euro, X } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { 
   SupportedCurrency, 
   convertToPLN, 
@@ -211,6 +213,27 @@ export default function EditTransactionModal({
       // This ensures the preference is remembered between sessions
       console.log(`[EditModal] Saving preferred amount for Replit: ${finalAmount} PLN`);
       saveTransactionAmountPreference('Replit', finalAmount);
+      
+      // Show a message about refreshing
+      toast({
+        title: "Replit transaction updated",
+        description: "The preferred amount has been saved. Changes will be visible on this page immediately.",
+        duration: 5000,
+      });
+      
+      // Immediately update the cached data to reflect the change without refresh
+      const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+      if (currentData) {
+        const updatedData = currentData.map(t => {
+          if (t.title === "Replit") {
+            return { ...t, amount: finalAmount };
+          }
+          return t;
+        });
+        
+        // Update the cache immediately
+        queryClient.setQueryData(['/api/transactions'], updatedData);
+      }
     }
     
     // Prepare update data
