@@ -127,12 +127,18 @@ export function getOccurrencePaidStatus(title: string, date: Date | string): boo
   try {
     const key = generateOccurrenceKey(title, date);
     const statuses = getRecurringTransactionPaidStatuses();
+    
+    console.log(`[Lookup Debug] Looking up paid status for "${key}"`);
+    console.log(`[Lookup Debug] Available status keys:`, statuses.map(s => s.key));
+    
     const status = statuses.find(s => s.key === key);
     
     if (status) {
+      console.log(`[Lookup Debug] Found status for "${key}": ${status.isPaid}`);
       return status.isPaid;
     }
     
+    console.log(`[Lookup Debug] No status found for "${key}"`);
     return null;
   } catch (error) {
     console.error('Error retrieving paid status for occurrence:', error);
@@ -148,6 +154,9 @@ export function saveOccurrencePaidStatus(title: string, date: Date | string, isP
     const key = generateOccurrenceKey(title, date);
     const statuses = getRecurringTransactionPaidStatuses();
     
+    console.log(`[Storage Debug] Saving paid status for key "${key}", isPaid=${isPaid}`);
+    console.log(`[Storage Debug] Current stored statuses:`, statuses);
+    
     // Find if we already have a status for this key
     const existingIndex = statuses.findIndex(s => s.key === key);
     
@@ -158,6 +167,7 @@ export function saveOccurrencePaidStatus(title: string, date: Date | string, isP
         isPaid,
         lastUpdated: new Date().toISOString()
       };
+      console.log(`[Storage Debug] Updated existing entry at index ${existingIndex}`);
     } else {
       // Add new status
       statuses.push({
@@ -165,11 +175,19 @@ export function saveOccurrencePaidStatus(title: string, date: Date | string, isP
         isPaid,
         lastUpdated: new Date().toISOString()
       });
+      console.log(`[Storage Debug] Added new entry to statuses array`);
     }
     
     // Save to localStorage
     localStorage.setItem(PAID_STATUS_KEY, JSON.stringify(statuses));
-    console.log(`Saved paid status for ${title} on ${date}: ${isPaid}`);
+    console.log(`[Storage Confirm] Saved paid status for ${title} on ${date}: ${isPaid}`);
+    console.log(`[Storage Confirm] Updated status array:`, statuses);
+    
+    // Verify the data was saved correctly
+    const savedData = localStorage.getItem(PAID_STATUS_KEY);
+    const parsedData = savedData ? JSON.parse(savedData) : [];
+    console.log(`[Storage Verify] Data after save:`, parsedData);
+    
   } catch (error) {
     console.error('Error saving paid status for occurrence:', error);
   }

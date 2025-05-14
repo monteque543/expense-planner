@@ -259,6 +259,18 @@ export default function EditTransactionModal({
     // Special handling for recurring transactions
     // Use type assertion to handle dynamic properties
     const transactionAny = transaction as any;
+    
+    // For debugging which properties are present on the transaction
+    console.log(`[EditModal] Transaction properties check:`, {
+      id: transaction.id,
+      title: transaction.title,
+      isRecurring: transaction.isRecurring,
+      isRecurringInstance: transactionAny.isRecurringInstance,
+      displayDate: transactionAny.displayDate,
+      hasDisplayDateProp: 'displayDate' in transactionAny
+    });
+    
+    // Check if this is a recurring transaction instance
     if (transaction.isRecurring && transactionAny.isRecurringInstance && transactionAny.displayDate) {
       console.log(`[EditModal] This is a recurring transaction instance. Handling differently.`);
       
@@ -267,8 +279,16 @@ export default function EditTransactionModal({
       if (data.isPaid !== transaction.isPaid) {
         console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${transactionAny.displayDate}: ${data.isPaid}`);
         
+        // Ensure we format the displayDate correctly when passing to the storage function
+        let formattedDisplayDate = transactionAny.displayDate;
+        if (transactionAny.displayDate instanceof Date) {
+          formattedDisplayDate = transactionAny.displayDate.toISOString().split('T')[0];
+        }
+        
+        console.log(`[EditModal Debug] Saving paid status for occurrence. Title: ${transaction.title}, Date: ${formattedDisplayDate}, IsPaid: ${data.isPaid}`);
+        
         // Save the paid status for this specific occurrence
-        saveOccurrencePaidStatus(transaction.title, transactionAny.displayDate, data.isPaid);
+        saveOccurrencePaidStatus(transaction.title, formattedDisplayDate, data.isPaid);
         
         // No need to update the backend for recurring instances
         onClose();
