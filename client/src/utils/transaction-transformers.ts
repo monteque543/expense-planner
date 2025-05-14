@@ -7,13 +7,15 @@ import { getPreferredAmount } from "./transaction-preferences";
  */
 export function applyTransactionPreferences(transactions: TransactionWithCategory[]): TransactionWithCategory[] {
   return transactions.map(transaction => {
-    // Special handling for Replit transaction
-    if (transaction.title === "Replit") {
+    // Check for transactions with saved amount preferences
+    const specialTransactions = ["Replit", "trw"];
+    
+    if (specialTransactions.includes(transaction.title)) {
       // Get user's preferred amount from localStorage
-      const preferredAmount = getPreferredAmount("Replit");
+      const preferredAmount = getPreferredAmount(transaction.title);
       
       if (preferredAmount !== null) {
-        console.log(`[Client Override] Using preferred amount for Replit: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
+        console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
         return {
           ...transaction,
           amount: preferredAmount
@@ -32,13 +34,15 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
  * Apply preferences to a single transaction
  */
 export function applyTransactionPreference(transaction: TransactionWithCategory): TransactionWithCategory {
-  // Special handling for Replit transaction
-  if (transaction.title === "Replit") {
+  // Check for transactions with saved amount preferences
+  const specialTransactions = ["Replit", "trw"];
+  
+  if (specialTransactions.includes(transaction.title)) {
     // Get user's preferred amount from localStorage
-    const preferredAmount = getPreferredAmount("Replit");
+    const preferredAmount = getPreferredAmount(transaction.title);
     
     if (preferredAmount !== null) {
-      console.log(`[Client Override] Using preferred amount for Replit: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
+      console.log(`[Client Override] Using preferred amount for ${transaction.title}: ${preferredAmount} PLN (instead of ${transaction.amount} PLN)`);
       return {
         ...transaction,
         amount: preferredAmount

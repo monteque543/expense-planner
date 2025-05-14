@@ -535,6 +535,18 @@ export default function ExpensePlanner() {
       const transactionDate = typeof transaction.date === 'string' 
         ? parseISO(transaction.date) 
         : transaction.date;
+      
+      // Special filter for RP training app - exclude it from all months before June 2025
+      if ((transaction.title === "RP training app" || transaction.title === "Rp training app")) {
+        const month = transactionDate.getMonth();
+        const year = transactionDate.getFullYear();
+        
+        // If we're viewing May 2025 or earlier, don't show RP training app
+        if (year === 2025 && month <= 4) {
+          console.log(`[View filter] Hiding RP training app in ${format(transactionDate, 'MMMM yyyy')} view`);
+          return false;
+        }
+      }
         
       return transactionDate >= monthStart && transactionDate <= monthEnd;
     });

@@ -210,16 +210,16 @@ export default function EditTransactionModal({
     
     console.log(`[EditModal] Final amount to save: ${finalAmount} (${typeof finalAmount})`);
     
-    // Special handling for specific transactions
-    if (transaction.title === "Replit") {
-      // Save the preferred amount for Replit transactions in localStorage
+    // Special handling for specific transactions - for both Replit and trw
+    if (transaction.title === "Replit" || transaction.title === "trw") {
+      // Save the preferred amount for these transactions in localStorage
       // This ensures the preference is remembered between sessions
-      console.log(`[EditModal] Saving preferred amount for Replit: ${finalAmount} PLN`);
-      saveTransactionAmountPreference('Replit', finalAmount);
+      console.log(`[EditModal] Saving preferred amount for ${transaction.title}: ${finalAmount} PLN`);
+      saveTransactionAmountPreference(transaction.title, finalAmount);
       
-      // Show a message about refreshing
+      // Show a message about the update
       toast({
-        title: "Replit transaction updated",
+        title: `${transaction.title} transaction updated`,
         description: "The preferred amount has been saved. Changes will be visible on this page immediately.",
         duration: 5000,
       });
@@ -228,7 +228,7 @@ export default function EditTransactionModal({
       const currentData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
       if (currentData) {
         const updatedData = currentData.map((t: TransactionWithCategory) => {
-          if (t.title === "Replit") {
+          if (t.title === transaction.title) {
             return { ...t, amount: finalAmount };
           }
           return t;
