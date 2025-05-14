@@ -625,8 +625,8 @@ const originalDate = typeof transaction.date === 'string'
   }
 
   return (
-    <div className="flex-1 overflow-auto p-2 md:p-6 min-h-[500px]">
-      <div className="bg-card rounded-lg shadow overflow-auto">
+    <div className="flex-1 overflow-auto p-2 md:p-6 min-h-[700px]">
+      <div className="bg-card rounded-lg shadow overflow-auto h-full">
         {/* Calendar Header */}
         <div className="bg-muted px-4 py-3 border-b border-border flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -698,7 +698,7 @@ const originalDate = typeof transaction.date === 'string'
         </div>
         
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-px bg-muted text-center min-h-[750px] auto-rows-fr">
+        <div className="grid grid-cols-7 gap-px bg-muted text-center min-h-[800px] auto-rows-fr">
           {/* Weekday Headers */}
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
             <div key={idx} className="bg-muted/50 py-2 font-medium text-muted-foreground">{day}</div>
