@@ -24,6 +24,7 @@ export interface IStorage {
   getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined>;
+  updateTransactionDirect(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined>;
   deleteTransaction(id: number): Promise<boolean>;
   getRecurringTransactions(): Promise<Transaction[]>;
   
@@ -257,6 +258,46 @@ export class DatabaseStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
+  }
+  
+  // Direct SQL update function for special cases
+  async updateTransactionDirect(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
+    try {
+      // This is a special method that bypasses the normal validation and directly updates
+      // the transaction with the exact values provided, used for special problematic transactions
+      console.log(`[DIRECT] Performing direct update for transaction ${id} with data:`, transaction);
+      
+      // Extract the fields we want to update
+      const updateData: Partial<Transaction> = {};
+      
+      // Only copy the fields we want to update
+      if (transaction.amount !== undefined) updateData.amount = transaction.amount;
+      if (transaction.title !== undefined) updateData.title = transaction.title;
+      if (transaction.date !== undefined) updateData.date = transaction.date;
+      if (transaction.notes !== undefined) updateData.notes = transaction.notes;
+      if (transaction.categoryId !== undefined) updateData.categoryId = transaction.categoryId;
+      if (transaction.personLabel !== undefined) updateData.personLabel = transaction.personLabel;
+      if (transaction.isExpense !== undefined) updateData.isExpense = transaction.isExpense;
+      if (transaction.isRecurring !== undefined) updateData.isRecurring = transaction.isRecurring;
+      if (transaction.recurringInterval !== undefined) updateData.recurringInterval = transaction.recurringInterval;
+      if (transaction.recurringEndDate !== undefined) updateData.recurringEndDate = transaction.recurringEndDate;
+      if (transaction.isPaid !== undefined) updateData.isPaid = transaction.isPaid;
+      
+      console.log(`[DIRECT] Final update data:`, updateData);
+      
+      // Perform the update
+      const [updatedTransaction] = await db.update(transactions)
+        .set(updateData)
+        .where(eq(transactions.id, id))
+        .returning();
+      
+      console.log(`[DIRECT] Update result:`, updatedTransaction);
+      
+      return updatedTransaction;
+    } catch (error) {
+      console.error(`[DIRECT] Error in direct update:`, error);
+      throw error;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
