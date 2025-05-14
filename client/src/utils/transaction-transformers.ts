@@ -104,6 +104,12 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
   } else {
     try {
       dateObj = new Date(transaction.date);
+      
+      // Handle invalid date
+      if (isNaN(dateObj.getTime())) {
+        console.error(`[DIRECT FIX] Invalid date for ${transaction.title}: ${transaction.date}`);
+        return null;
+      }
     } catch (e) {
       console.error(`[DIRECT FIX] Error parsing date for ${transaction.title}:`, e);
       return null;
@@ -113,10 +119,32 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
   // Format the date as YYYY-MM-DD for storing/retrieving
   const dateStr = format(dateObj, 'yyyy-MM-dd');
   
-  // Construct a month-year specific key for localStorage
-  // This key format ensures we have one record per transaction per month
-  const monthYearKey = format(dateObj, 'yyyy-MM');
-  const storageKey = `fixed_status_${transaction.title}_${monthYearKey}`;
+  // Use the exact date from the transaction (year-month-day) to check status
+  // This is the proper way to handle recurring transactions that occur in multiple months
+  const transactionAny = transaction as any;
+  
+  // Get the specific month-year for the occurrence
+  // This ensures we only get the status for this exact occurrence month/year
+  let fullDateStr: string;
+  
+  if (transactionAny.displayDateStr) {
+    fullDateStr = transactionAny.displayDateStr;
+  } else if (dateObj) {
+    fullDateStr = format(dateObj, 'yyyy-MM-dd');
+  } else {
+    console.log(`[DIRECT FIX] No valid date for ${transaction.title}`);
+    return null;
+  }
+  
+  // Extract just the year and month from the full date
+  const dateParts = fullDateStr.split('-');
+  if (dateParts.length < 2) {
+    console.error(`[DIRECT FIX] Invalid date format: ${fullDateStr}`);
+    return null;
+  }
+  
+  const yearMonth = `${dateParts[0]}-${dateParts[1]}`;
+  const storageKey = `fixed_status_${transaction.title}_${yearMonth}`;
   
   // Check if we have a stored value for this month-year
   const storedValue = localStorage.getItem(storageKey);
@@ -124,10 +152,11 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
   if (storedValue !== null) {
     // We found a directly stored value for this month
     const isPaid = storedValue === 'true';
-    console.log(`[DIRECT FIX] Found fixed status for ${transaction.title} in ${monthYearKey}: ${isPaid}`);
+    console.log(`[DIRECT FIX] Found fixed status for ${transaction.title} in ${yearMonth}: ${isPaid} (date: ${fullDateStr})`);
     return isPaid;
   }
   
+  console.log(`[DIRECT FIX] No stored value found for ${transaction.title} in ${yearMonth}`);
   // No direct fix found
   return null;
 }
@@ -161,18 +190,32 @@ export function saveDirectFixForTransaction(title: string, date: Date | string, 
     }
   }
   
-  // Construct a month-year specific key for localStorage
-  // This is the crucial part - using only year-month ensures one status per month
-  const monthYearKey = format(dateObj, 'yyyy-MM');
-  const storageKey = `fixed_status_${title}_${monthYearKey}`;
+  // Get just the year and month parts from the date
+  // This is the crucial part - we store one status per transaction per month
+  const dateParts = format(dateObj, 'yyyy-MM-dd').split('-');
+  if (dateParts.length < 2) {
+    console.error(`[DIRECT FIX] Cannot extract year-month from date: ${date}`);
+    return;
+  }
+  
+  const yearMonth = `${dateParts[0]}-${dateParts[1]}`;
+  const storageKey = `fixed_status_${title}_${yearMonth}`;
   
   // Store the value with some additional debugging info
   localStorage.setItem(storageKey, isPaid.toString());
   
-  // Also store a timestamp to help with debugging
-  localStorage.setItem(`${storageKey}_timestamp`, new Date().toISOString());
+  // Store additional information for debugging/auditing
+  const debugInfo = {
+    originalDate: date instanceof Date ? format(date, 'yyyy-MM-dd') : date,
+    normalizedDate: format(dateObj, 'yyyy-MM-dd'),
+    isPaid: isPaid,
+    timestamp: new Date().toISOString()
+  };
   
-  console.log(`[DIRECT FIX] Saved fixed status for ${title} in ${monthYearKey}: ${isPaid}`);
+  // Store the debug info as JSON for troubleshooting
+  localStorage.setItem(`${storageKey}_debug`, JSON.stringify(debugInfo));
+  
+  console.log(`[DIRECT FIX] Saved fixed status for ${title} in ${yearMonth}: ${isPaid}`);
   
   // Extra validation for mission-critical transactions
   if (['Netflix', 'Orange'].includes(title)) {
