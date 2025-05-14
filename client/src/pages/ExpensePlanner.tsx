@@ -21,7 +21,7 @@ import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
 import UpcomingExpenses from "@/components/UpcomingExpenses";
 import { Plus } from "lucide-react";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
 import { 
@@ -368,7 +368,7 @@ export default function ExpensePlanner() {
   // Get unique transaction titles for autocomplete
   const uniqueTitles = useMemo(() => {
     const titles = allTransactions.map(t => t.title);
-    return [...new Set(titles)];
+    return Array.from(new Set(titles));
   }, [allTransactions]);
   
   // Handle editing a transaction
@@ -485,9 +485,6 @@ export default function ExpensePlanner() {
           <div className="md:col-span-1">
             <FinancialSummary 
               transactions={filteredTransactions}
-              savings={savings}
-              isLoading={isLoadingTransactions || isLoadingSavings}
-              timeframe={timeframe}
               currentDate={selectedDate}
             />
           </div>
@@ -512,9 +509,15 @@ export default function ExpensePlanner() {
               <ExpenseSidebar
                 transactions={filteredTransactions}
                 categories={categories}
+                currentMonthYear={format(selectedDate || new Date(), 'MMMM yyyy')}
+                activeFilter={null}
+                onFilterChange={() => {}}
+                activePersonFilter={null}
+                onPersonFilterChange={() => {}}
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
                 isLoading={isLoadingTransactions}
+                currentDate={selectedDate || new Date()}
               />
             )}
           </div>
@@ -546,8 +549,6 @@ export default function ExpensePlanner() {
         <div className="space-y-6">
           <RecurringExpensesSummary 
             transactions={allTransactions.filter(t => t.isRecurring)} 
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
             isLoading={isLoadingTransactions}
           />
         </div>
