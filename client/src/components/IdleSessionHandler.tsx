@@ -7,7 +7,7 @@ const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
 interface IdleSessionHandlerProps {
   timeoutMs?: number;
-  onTimeout?: () => void;
+  onTimeout?: (isIdle?: boolean) => void;
 }
 
 /**
@@ -41,9 +41,10 @@ export default function IdleSessionHandler({
     // Focus back on the app
     window.focus();
     
-    // Also inform parent components
+    // Also inform parent component that user is active again
     if (onTimeout) {
-      onTimeout(); // Call the same callback to toggle state in parent
+      // Pass false to indicate the user is no longer idle
+      onTimeout(false);
     }
   }, [resetIdleTimer, onTimeout]);
 
@@ -87,7 +88,7 @@ export default function IdleSessionHandler({
       // Check if idle timeout has been reached
       if (elapsed >= timeoutMs) {
         setIsIdle(true);
-        if (onTimeout) onTimeout();
+        if (onTimeout) onTimeout(true); // Pass true to indicate user is idle
         clearInterval(interval);
       }
     }, 1000); // Check every second

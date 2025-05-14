@@ -62,9 +62,10 @@ export default function ExpensePlanner() {
   const { toast } = useToast();
   
   // Handle when user becomes idle or returns
-  const handleUserIdle = useCallback(() => {
+  const handleUserIdle = useCallback((isUserIdle?: boolean) => {
+    // If isUserIdle is provided, use it directly, otherwise toggle
     setIsIdle(prevState => {
-      const newState = !prevState;
+      const newState = isUserIdle !== undefined ? isUserIdle : !prevState;
       console.log(`User is ${newState ? 'idle - activating' : 'active - deactivating'} security overlay`);
       return newState;
     });
