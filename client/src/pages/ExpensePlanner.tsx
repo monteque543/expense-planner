@@ -786,8 +786,34 @@ export default function ExpensePlanner() {
               
               <button 
                 onClick={() => {
-                  // Full reset of localStorage paid statuses
+                  // Remove all transaction-related statuses from localStorage
+                  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+                  
+                  // Get all localStorage keys
+                  const allKeys = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                      allKeys.push(key);
+                    }
+                  }
+                  
+                  console.log("[FACTORY RESET] Current localStorage keys:", allKeys);
+                  
+                  // Standard statuses
                   localStorage.removeItem('recurring-transaction-paid-status');
+                  
+                  // Direct fix format for problematic transactions
+                  let found = 0;
+                  allKeys.forEach(key => {
+                    if (key.startsWith('fixed_status_')) {
+                      localStorage.removeItem(key);
+                      found++;
+                      console.log(`[FACTORY RESET] Removed direct fix key: ${key}`);
+                    }
+                  });
+                  
+                  console.log(`[FACTORY RESET] Removed ${found} direct fix status records`);
                   
                   // Force refresh of transactions
                   queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -795,7 +821,7 @@ export default function ExpensePlanner() {
                   // Display toast to confirm
                   toast({
                     title: "Factory Reset Complete",
-                    description: "All recurring transaction paid statuses have been completely cleared.",
+                    description: `Reset all transaction statuses: removed ${found} fixed status records and all regular records.`,
                     variant: "destructive",
                   });
                   

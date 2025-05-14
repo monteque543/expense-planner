@@ -320,8 +320,23 @@ export default function EditTransactionModal({
         
         console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
-        // Save the paid status for this specific occurrence
-        saveOccurrencePaidStatus(transaction.title, formattedDate, data.isPaid);
+        // Check if this is one of our problematic transactions
+        if (isProblematicTransaction(transaction.title)) {
+          console.log(`[DIRECT FIX] Using direct fix approach for problematic transaction: ${transaction.title}`);
+          
+          // Use our specialized direct fix storage format for problematic transactions 
+          saveDirectFixForTransaction(transaction.title, formattedDate, data.isPaid);
+          
+          // Show special toast for problematic transactions
+          toast({
+            title: "Month-Specific Fix Applied",
+            description: `Special handling enabled for ${transaction.title} to ensure proper month-to-month tracking.`,
+            variant: "default",
+          });
+        } else {
+          // Use regular approach for non-problematic transactions
+          saveOccurrencePaidStatus(transaction.title, formattedDate, data.isPaid);
+        }
         
         // No need to update the backend for recurring instances
         onClose();
