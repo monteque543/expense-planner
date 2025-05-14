@@ -42,7 +42,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { isMobile } from "@/utils/device-detection";
+// Remove device-detection import as it doesn't exist
 
 export default function ExpensePlanner() {
   const [, navigate] = useLocation();
@@ -340,8 +340,12 @@ export default function ExpensePlanner() {
   });
   
   // Create hardcoded transactions (expenses and income) for demo/development
-  const hardcodedExpenses = useMemo(() => createHardcodedExpenseTransactions(), []);
-  const hardcodedIncome = useMemo(() => createHardcodedIncomeTransactions(), []);
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  // Use empty arrays to initialize hardcoded transactions
+  const hardcodedExpenses = useMemo(() => [], []);
+  const hardcodedIncome = useMemo(() => [], []);
   
   // Combine real and hardcoded transactions
   const allTransactions = useMemo(() => {
