@@ -806,7 +806,7 @@ const originalDate = typeof transaction.date === 'string'
                         </div>
                         
                         {/* Right side with amount */}
-                        <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(0)} PLN</span>
+                        <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(2)} PLN</span>
                       </div>
                     );
                   })}
