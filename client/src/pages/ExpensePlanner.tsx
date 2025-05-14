@@ -405,32 +405,7 @@ export default function ExpensePlanner() {
     setShowEditModal(true);
   };
   
-  // Handle moving a transaction to a new date
-  const handleMoveTransaction = (id: number, newDate: Date) => {
-    console.log(`Moving transaction ${id} to new date: ${format(newDate, 'yyyy-MM-dd')}`);
-    
-    // Find the transaction to move
-    const transaction = transactions.find(t => t.id === id);
-    
-    if (!transaction) {
-      console.error(`Transaction with ID ${id} not found`);
-      return;
-    }
-    
-    // Update the transaction with the new date
-    updateTransaction.mutate({
-      id,
-      data: {
-        date: newDate
-      }
-    });
-    
-    // Show success toast
-    toast({
-      title: "Transaction Moved",
-      description: `"${transaction.title}" moved to ${format(newDate, 'MMMM d, yyyy')}`,
-    });
-  };
+  // Date changes now handled through the edit modal
 
   // Date manipulation for current view
   const currentMonthYear = format(selectedDate, 'MMMM yyyy');
