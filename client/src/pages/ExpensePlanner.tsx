@@ -648,15 +648,6 @@ export default function ExpensePlanner() {
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             
-            {/* Special debug button to fix RP training app */}
-            <button 
-              onClick={createRPTrainingApp}
-              className="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
-              title="Remove old RP training app and create new one from June"
-            >
-              🔄 Fix RP App
-            </button>
-            
             <div className="hidden sm:flex rounded-md overflow-hidden border border-border shadow-sm mr-2">
               <button 
                 onClick={() => setActiveView('week')}

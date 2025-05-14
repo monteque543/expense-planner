@@ -94,13 +94,29 @@ export function filterTransactions(transactions: TransactionWithCategory[]): Tra
       }
     }
     
-    // Approach 3: Filter by known transaction ID if we can identify it
-    // We KNOW the ID is 58 based on console logs
-    const knownRpTrainingAppIds: number[] = [58]; // ID 58 is the RP training app from logs
-    if (transaction.id && knownRpTrainingAppIds.includes(transaction.id)) {
-      // Remove RP training app completely regardless of date
-      console.log(`[COMPLETE REMOVAL] Removing RP training app transaction ID ${transaction.id} completely`);
-      return false;
+    // General rule: For recurring transactions, only show instances after or on the original start date
+    if (transaction.isRecurring && transaction.date) {
+      const transactionDate = new Date(transaction.date);
+      
+      // Special case ID for "RP training app" - we know it starts in June 2025
+      if (transaction.id === 58) {
+        const rpStartDate = new Date(2025, 5, 12); // June 12, 2025
+        
+        if (transactionDate < rpStartDate) {
+          console.log(`[FILTER] Removing RP training app ID ${transaction.id} from ${transactionDate.toISOString()} because it's before start date ${rpStartDate.toISOString()}`);
+          return false;
+        }
+      }
+      
+      // For any recurring transaction, check if we have a modified start date
+      const originalDate = localStorage.getItem(`recurring_start_date_${transaction.id}`);
+      if (originalDate) {
+        const startDate = new Date(originalDate);
+        if (transactionDate < startDate) {
+          console.log(`[FILTER] Removing recurring transaction ID ${transaction.id} from ${transactionDate.toISOString()} because it's before user-defined start date ${startDate.toISOString()}`);
+          return false;
+        }
+      }
     }
     
     // Return true to keep all other transactions
