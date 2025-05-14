@@ -169,14 +169,28 @@ export function getDeletedTransactionIds(): number[] {
 
 /**
  * Mark a transaction as deleted
+ * @param transactionId ID of the transaction to mark as deleted
+ * @param transaction Optional full transaction object for handling recurring deletion patterns
  */
-export function markTransactionAsDeleted(transactionId: number): void {
+export function markTransactionAsDeleted(transactionId: number, transaction?: Transaction): void {
   try {
+    // Standard deletion tracking
     const deletedIds = getDeletedTransactionIds();
     if (!deletedIds.includes(transactionId)) {
       deletedIds.push(transactionId);
       localStorage.setItem(DELETED_TRANSACTIONS_KEY, JSON.stringify(deletedIds));
       console.log(`Marked transaction #${transactionId} as deleted`);
+    }
+    
+    // Special handling for recurring transactions - create a pattern deletion marker
+    if (transaction?.isRecurring && transaction.title) {
+      const recurringDeleteKey = `deleted_recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
+      localStorage.setItem(recurringDeleteKey, JSON.stringify({
+        title: transaction.title,
+        isExpense: transaction.isExpense,
+        deletedAt: Date.now()
+      }));
+      console.log(`Marked recurring pattern "${transaction.title}" as deleted`);
     }
   } catch (error) {
     console.error('Error marking transaction as deleted:', error);
@@ -185,16 +199,38 @@ export function markTransactionAsDeleted(transactionId: number): void {
 
 /**
  * Check if a transaction has been deleted by the user
+ * @param transactionId The ID of the transaction to check
+ * @param transaction Optional transaction object for pattern checking
  */
-export function isTransactionDeleted(transactionId: number): boolean {
+export function isTransactionDeleted(transactionId: number, transaction?: Transaction): boolean {
+  // First check direct ID match
   const deletedIds = getDeletedTransactionIds();
-  return deletedIds.includes(transactionId);
+  if (deletedIds.includes(transactionId)) {
+    return true;
+  }
+  
+  // Then check for recurring pattern deletion
+  if (transaction?.isRecurring && transaction.title) {
+    try {
+      const recurringDeleteKey = `deleted_recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
+      const storedPattern = localStorage.getItem(recurringDeleteKey);
+      
+      if (storedPattern) {
+        // Found pattern deletion marker
+        console.log(`Found recurring pattern deletion for "${transaction.title}"`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error checking recurring deletion pattern:', error);
+    }
+  }
+  
+  return false;
 }
 
 /**
  * Filter out deleted transactions from an array
  */
 export function filterDeletedTransactions<T extends Transaction>(transactions: T[]): T[] {
-  const deletedIds = getDeletedTransactionIds();
-  return transactions.filter(transaction => !deletedIds.includes(transaction.id));
+  return transactions.filter(transaction => !isTransactionDeleted(transaction.id, transaction));
 }

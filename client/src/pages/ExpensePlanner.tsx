@@ -824,117 +824,156 @@ export default function ExpensePlanner() {
           setSelectedTransaction(null);
         }}
         onUpdateTransaction={(id, data) => {
-          // Get the current transaction we're editing to check if it's part of our data model
-          const transactionToUpdate = transactions.find(t => t.id === id);
-          const transactionInHardcodedIncome = hardcodedIncome.find(t => t.id === id);  
-          const transactionInHardcodedExpenses = hardcodedExpenses.find(t => t.id === id);
+          // Extract relevant characteristics of the transaction
+          const transactionTitle = selectedTransaction?.title || data.title || '';
+          const isVirtualTransaction = id >= 970000;
+          const isRecurringTransaction = data.isRecurring === true;
+          const isRecurringChanged = selectedTransaction?.isRecurring !== data.isRecurring;
+          const isAmountChanged = selectedTransaction?.amount !== data.amount;
           
-          // Get the title of the transaction being edited
-          const transactionTitle = selectedTransaction?.title || '';
+          console.log(`Transaction update - ID: ${id}, Title: ${transactionTitle}, IsRecurring: ${isRecurringTransaction}, IsVirtual: ${isVirtualTransaction}`);
           
-          // Special hardcoded transactions we know need client-side handling
-          // NOTE: We've removed special transaction detection by title to allow all transactions with large amounts
-          // to be properly stored in the database
-          const specialTransactionTitles: string[] = [];
-          const isSpecialTransaction = false;
-          
-          // Specifically exclude certain real database transactions from being treated as hardcoded
-          // even if they appear in hardcoded arrays due to being recurring
-          const excludeFromHardcoded = ["Grocerries", "Sukienka Fabi", "Coffee Machine"];
-          const shouldForceAPI = id < 970000 && excludeFromHardcoded.includes(transactionTitle);
-          
-          // Check if it's a hardcoded transaction (either by ID range, presence in hardcoded arrays, or special title)
-          // If it's in our exclude list, always use the API
-          const isHardcoded = shouldForceAPI ? false : 
-                            (id >= 970000 || 
-                            transactionInHardcodedIncome !== undefined || 
-                            transactionInHardcodedExpenses !== undefined ||
-                            isSpecialTransaction);
-          
-          console.log(`Transaction ID to update: ${id} - Is it hardcoded?`, {
-            title: transactionTitle,
-            byIdRange: id >= 970000,
-            inHardcodedIncome: transactionInHardcodedIncome !== undefined,
-            inHardcodedExpenses: transactionInHardcodedExpenses !== undefined,
-            isSpecialTransaction,
-            isExcluded: excludeFromHardcoded.includes(transactionTitle),
-            shouldForceAPI,
-            finalDecision: isHardcoded
-          });
-          
-          if (isHardcoded) {
-            console.log(`Client-side handling for hardcoded transaction edit: ${id}`);
+          // First, always save edits to localStorage for any recurring transaction (virtual or real)
+          if (isRecurringTransaction || isVirtualTransaction) {
+            console.log(`Handling recurring/virtual transaction update for ${id}`);
             
-            // Show success toast
-            toast({
-              title: "Success",
-              description: "Transaction updated (client-side only)",
-            });
-            
-            // 1. Get the current data from cache
+            // Get current data cache for working with transactions
             const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
-            
-            // 2. Save the updated transaction to localStorage for persistence
-            const transaction = currentQueryData?.find(t => t.id === id);
-            if (transaction) {
-              // Create updated transaction
-              const updatedTransaction = { ...transaction, ...data };
-              
-              // Save to localStorage for persistence across sessions
-              saveEditedTransaction(updatedTransaction);
-              console.log(`Saved transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
+            if (!currentQueryData) {
+              console.error("No transaction data in cache!");
+              return;
             }
             
-            // 3. Update react-query cache to immediately reflect the change in UI
-            if (currentQueryData) {
-              // Find and update the transaction in cache
-              const updatedQueryData = currentQueryData.map(t => {
-                if (t.id === id) {
-                  // Return updated transaction 
-                  return { ...t, ...data };
-                }
-                return t;
-              });
+            // Find the transaction being edited
+            const currentTransaction = currentQueryData.find(t => t.id === id);
+            if (!currentTransaction) {
+              console.error(`Couldn't find transaction ${id} in cache!`);
+              return;
+            }
+            
+            // Create the updated transaction with new values
+            const updatedTransaction = { ...currentTransaction, ...data };
+            
+            // Special handling for recurring transactions
+            if (isRecurringTransaction) {
+              // Check if we're dealing with a recurring pattern that affects multiple transactions
+              const isCoreRecurringChange = isAmountChanged || isRecurringChanged;
               
-              // Update cache
+              if (isCoreRecurringChange) {
+                console.log(`Making core change to recurring transaction pattern: ${updatedTransaction.title}`);
+                
+                // For a recurring pattern, find all related transactions with same title pattern
+                const relatedTransactions = currentQueryData.filter(t => 
+                  t.title === updatedTransaction.title && 
+                  t.isExpense === updatedTransaction.isExpense
+                );
+                
+                console.log(`Found ${relatedTransactions.length} related transactions to update`);
+                
+                // Update all instances matching the pattern in localStorage
+                relatedTransactions.forEach(relatedTx => {
+                  const relatedUpdate = { 
+                    ...relatedTx, 
+                    amount: data.amount ?? relatedTx.amount,
+                    isRecurring: data.isRecurring ?? relatedTx.isRecurring,
+                    recurringInterval: data.recurringInterval ?? relatedTx.recurringInterval
+                  };
+                  
+                  // Save each related transaction to local storage
+                  saveEditedTransaction(relatedUpdate);
+                  console.log(`Saved related transaction #${relatedUpdate.id} with new amount: ${relatedUpdate.amount}`);
+                });
+                
+                // Also update all instances in the cache
+                const updatedQueryData = currentQueryData.map(t => {
+                  // If this is the exact transaction being edited
+                  if (t.id === id) {
+                    return updatedTransaction;
+                  }
+                  
+                  // If this is a related transaction with same title pattern
+                  if (t.title === updatedTransaction.title && t.isExpense === updatedTransaction.isExpense) {
+                    return { 
+                      ...t, 
+                      amount: data.amount ?? t.amount,
+                      isRecurring: data.isRecurring ?? t.isRecurring,
+                      recurringInterval: data.recurringInterval ?? t.recurringInterval
+                    };
+                  }
+                  
+                  return t;
+                });
+                
+                // Update cache with all changes
+                queryClient.setQueryData<TransactionWithCategory[]>(
+                  ['/api/transactions'],
+                  updatedQueryData
+                );
+                console.log(`Updated QueryClient cache for all related transactions`);
+              } else {
+                // Simple update for just this one recurring instance
+                saveEditedTransaction(updatedTransaction);
+                
+                // Update just this transaction in cache
+                const updatedQueryData = currentQueryData.map(t => 
+                  t.id === id ? updatedTransaction : t
+                );
+                
+                queryClient.setQueryData<TransactionWithCategory[]>(
+                  ['/api/transactions'],
+                  updatedQueryData
+                );
+              }
+            } else {
+              // Non-recurring virtual transaction
+              saveEditedTransaction(updatedTransaction);
+              
+              // Update the cache with just this transaction
+              const updatedQueryData = currentQueryData.map(t => 
+                t.id === id ? updatedTransaction : t
+              );
+              
               queryClient.setQueryData<TransactionWithCategory[]>(
                 ['/api/transactions'],
                 updatedQueryData
               );
-              console.log(`Updated QueryClient cache for transaction ${id}`);
             }
             
-            // 2. Force complete cache invalidation to rebuild all derived data
+            // Force refresh of the UI
             queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-            console.log(`Invalidated transaction queries to force refresh`);
             
-            // 3. Force refresh by temporarily changing month and coming back
+            // Show success message
+            toast({
+              title: "Success",
+              description: isRecurringTransaction 
+                ? "Recurring transaction updated" 
+                : "Transaction updated"
+            });
+            
+            // Force a refresh by switching months temporarily (helps with calendar display)
             const currentDate = new Date(selectedDate);
-            const nextMonth = new Date(selectedDate);
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            const refreshDate = new Date(currentDate);
+            refreshDate.setDate(refreshDate.getDate() + 1); // Just one day forward is enough
             
-            // Immediate update to current month view
-            setSelectedDate(new Date(currentDate));
-            
-            // Schedule the month changes with delay (helps trigger full rerender)
             setTimeout(() => {
-              console.log('Step 1: Moving to next month temporarily...');
-              setSelectedDate(nextMonth);
-              
-              // Then back to current month
+              setSelectedDate(refreshDate);
               setTimeout(() => {
-                console.log('Step 2: Returning to original month...');
                 setSelectedDate(currentDate);
               }, 200);
             }, 100);
+            
+            // If it's a real database transaction (not virtual), also send to API
+            if (!isVirtualTransaction) {
+              console.log(`Also sending real transaction ${id} update to API`);
+              updateTransaction.mutate({ id, data });
+            }
             
             // Close the modal
             setShowEditModal(false);
             setSelectedTransaction(null);
           } else {
-            // Regular transaction update via API
-            console.log("Sending API update for transaction:", id);
-            console.log("Update data:", data);
+            // Regular non-recurring transaction update - just use the API
+            console.log(`Regular transaction update for ${id}, sending to API`);
             updateTransaction.mutate({ id, data });
           }
         }}
