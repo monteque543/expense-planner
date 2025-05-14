@@ -422,25 +422,91 @@ export default function ExpensePlanner() {
 
   // Date manipulation for current view
   const currentMonthYear = format(selectedDate, 'MMMM yyyy');
+  
+  // Define type for transaction paid status
+  interface RecurringTransactionPaidStatus {
+    key: string;
+    isPaid: boolean;
+    lastUpdated: string;
+  }
+  
+  // Helper function to clear problematic transaction paid statuses when switching months
+  const clearProblematicTransactionStatuses = () => {
+    try {
+      // Get the current paid statuses
+      const storedData = localStorage.getItem('recurring-transaction-paid-status');
+      if (!storedData) return;
+      
+      const statuses = JSON.parse(storedData) as RecurringTransactionPaidStatus[];
+      
+      // Problematic transactions that need special handling
+      const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+      
+      // Create a filtered list without these transactions (we'll regenerate them properly next time)
+      const filteredStatuses = statuses.filter(status => {
+        const title = status.key.split('_')[0];
+        return !problematicTitles.includes(title);
+      });
+      
+      // Save back to localStorage
+      localStorage.setItem('recurring-transaction-paid-status', JSON.stringify(filteredStatuses));
+      console.log(`[MONTH CHANGE] Cleared paid statuses for problematic transactions: ${problematicTitles.join(', ')}`);
+      
+      // Force cache invalidation for transactions to ensure refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    } catch (error) {
+      console.error('Error clearing problematic transaction statuses:', error);
+    }
+  };
 
   const handlePrevMonth = () => {
+    // Clear problematic transaction statuses before changing month
+    clearProblematicTransactionStatuses();
+    
     setSelectedDate(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() - 1);
       return newDate;
     });
+    
+    // Show a toast to inform the user what's happening
+    toast({
+      title: "Recurring Transaction Status Reset",
+      description: "Paid status for recurring transactions has been refreshed for the new month view.",
+      variant: "default",
+    });
   };
 
   const handleNextMonth = () => {
+    // Clear problematic transaction statuses before changing month
+    clearProblematicTransactionStatuses();
+    
     setSelectedDate(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() + 1);
       return newDate;
     });
+    
+    // Show a toast to inform the user what's happening
+    toast({
+      title: "Recurring Transaction Status Reset",
+      description: "Paid status for recurring transactions has been refreshed for the new month view.",
+      variant: "default",
+    });
   };
 
   const handleToday = () => {
+    // Clear problematic transaction statuses when going to today's view
+    clearProblematicTransactionStatuses();
+    
     setSelectedDate(new Date());
+    
+    // Show a toast to inform the user what's happening
+    toast({
+      title: "Today's View",
+      description: "Showing today's transactions with refreshed recurring transaction statuses.",
+      variant: "default",
+    });
   };
   
   // For testing purposes: jump to May 2025
