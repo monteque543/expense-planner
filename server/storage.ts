@@ -167,6 +167,13 @@ export class MemStorage implements IStorage {
     return updatedTransaction;
   }
   
+  // Direct update method for special transactions
+  async updateTransactionDirect(id: number, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
+    // For MemStorage, this is the same as regular update since we're just dealing with in-memory objects
+    console.log(`[DIRECT] Direct update called for transaction ${id}`, transaction);
+    return this.updateTransaction(id, transaction);
+  }
+  
   async deleteTransaction(id: number): Promise<boolean> {
     return this.transactions.delete(id);
   }
