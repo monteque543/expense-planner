@@ -94,19 +94,25 @@ export function filterTransactions(transactions: TransactionWithCategory[]): Tra
       }
     }
     
+    // PERMANENT REMOVAL: Remove any RP Training App transactions completely
+    // We know these are the IDs of RP training app transactions
+    const rpTrainingAppIds = [58, 74];
+    if (transaction.id && rpTrainingAppIds.includes(transaction.id)) {
+      console.log(`[CLIENT PERMANENT REMOVAL] Completely removing RP training app with ID ${transaction.id} by user request`);
+      return false;
+    }
+    
+    // Also check title for any "training app" text to remove all variants
+    if (transaction.title && 
+        transaction.title.toLowerCase().includes("training") && 
+        transaction.title.toLowerCase().includes("app")) {
+      console.log(`[CLIENT TITLE MATCH] Removing transaction with title "${transaction.title}" that matches RP training app pattern`);
+      return false;
+    }
+    
     // General rule: For recurring transactions, only show instances after or on the original start date
     if (transaction.isRecurring && transaction.date) {
       const transactionDate = new Date(transaction.date);
-      
-      // Special case ID for "RP training app" - we know it starts in June 2025
-      if (transaction.id === 58) {
-        const rpStartDate = new Date(2025, 5, 12); // June 12, 2025
-        
-        if (transactionDate < rpStartDate) {
-          console.log(`[FILTER] Removing RP training app ID ${transaction.id} from ${transactionDate.toISOString()} because it's before start date ${rpStartDate.toISOString()}`);
-          return false;
-        }
-      }
       
       // For any recurring transaction, check if we have a modified start date
       const originalDate = localStorage.getItem(`recurring_start_date_${transaction.id}`);

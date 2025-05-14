@@ -5,6 +5,14 @@ import { Transaction } from "../shared/schema";
  */
 export function filterProblematicTransactions(transactions: Transaction[]): Transaction[] {
   return transactions.filter(transaction => {
+    // 0. ALWAYS remove RP training app by ID (both the original one and the new one we created)
+    // These are hardcoded IDs that we know are problematic
+    const rpTrainingAppIds = [58, 74];
+    if (transaction.id && rpTrainingAppIds.includes(transaction.id)) {
+      console.log(`[PERMANENT REMOVAL] Completely removing RP training app with ID ${transaction.id} by admin request`);
+      return false;
+    }
+    
     // 1. Always remove any "Grocerries" transactions
     if (transaction.title === "Grocerries") {
       console.log(`Filtering out problematic "Grocerries" transaction`);
@@ -12,7 +20,7 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
     }
     
     // 2. DIRECT FILTERING of any training app transactions - specifically target all possible variations
-    // Hard-coded complete removal of all known RP training app transactions from May
+    // Hard-coded complete removal of all known RP training app transactions
     const trainingAppVariations = [
       "RP training app", 
       "Rp training app", 
@@ -24,28 +32,18 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
     
     // Direct match by exact title (exact match approach)
     if (trainingAppVariations.includes(transaction.title)) {
-      const transactionDate = new Date(transaction.date);
-      
       // Debug log
-      console.log(`[FOUND] "${transaction.title}" (ID: ${transaction.id}) on ${transactionDate.toISOString()}`);
-      
-      // Extremely aggressive filtering - remove from May or earlier months in 2025
-      if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() <= 4) {
-        console.log(`[FILTERING] Removing "${transaction.title}" from ${transactionDate.toISOString()}`);
-        return false;
-      }
+      console.log(`[FOUND] "${transaction.title}" (ID: ${transaction.id}) on ${new Date(transaction.date).toISOString()}`);
+      // EXTREME PERMANENT SOLUTION: Remove ALL "RP training app" transactions regardless of date
+      console.log(`[PERMANENT FILTERING] Removing ALL "${transaction.title}" instances per user request`);
+      return false;
     }
     
     // Secondary filter using substring check (for any variation we missed)
     if (transaction.title.toLowerCase().includes("training") && 
         transaction.title.toLowerCase().includes("app")) {
-      const transactionDate = new Date(transaction.date);
-      
-      // Extremely aggressive filtering - remove from May or earlier months
-      if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() <= 4) {
-        console.log(`[SUBSTRING FILTERING] Removing "${transaction.title}" from ${transactionDate.toISOString()}`);
-        return false;
-      }
+      console.log(`[SUBSTRING FILTERING] Removing ALL "${transaction.title}" instances per user request`);
+      return false;
     }
     
     // 3. Filter out "Fabi Phone Play" with amount 25 PLN (user deleted it)

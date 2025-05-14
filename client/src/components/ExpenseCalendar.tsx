@@ -786,7 +786,7 @@ const originalDate = typeof transaction.date === 'string'
                       <div 
                         key={transIdx}
                         className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
-                          text-white rounded-sm px-1 py-0.5 mb-0.5 text-[9px] flex items-center justify-between
+                          text-white rounded-sm px-1 py-0.5 mb-0.5 text-xs flex items-center justify-between
                           cursor-pointer hover:opacity-90 
                           ${isRecurringInstance ? 'border-l-2 border-white' : ''}
                           ${transaction.isPaid ? 'opacity-75' : ''}`}
@@ -806,7 +806,7 @@ const originalDate = typeof transaction.date === 'string'
                         </div>
                         
                         {/* Right side with amount */}
-                        <span className="flex-shrink-0 font-medium whitespace-nowrap">{transaction.amount.toFixed(0)} PLN</span>
+                        <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(0)} PLN</span>
                       </div>
                     );
                   })}
