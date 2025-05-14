@@ -212,7 +212,7 @@ export default function ExpensePlanner() {
             if (isRecurringTransaction && t.title === titleToRemove && t.isExpense === transaction?.isExpense) {
               console.log(`Also removing recurring instance: ${t.id} - ${t.title}`);
               // Mark all related transactions as deleted in localStorage
-              markTransactionAsDeleted(t.id);
+              markTransactionAsDeleted(t.id, t);
               return false;
             }
             
@@ -254,8 +254,11 @@ export default function ExpensePlanner() {
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
     onSuccess: (_, id) => {
-      // Also save to localStorage for consistent handling
-      markTransactionAsDeleted(id);
+      // Find the transaction in the dataset before it's gone
+      const transaction = transactions.find(t => t.id === id);
+      
+      // Also save to localStorage for consistent handling with pattern awareness
+      markTransactionAsDeleted(id, transaction);
       console.log(`Regular transaction ${id} deletion saved to localStorage`);
       
       // Show success message
