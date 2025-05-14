@@ -279,6 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isRecurring: z.boolean().nullable().optional(),
         recurringInterval: z.enum(recurringIntervals).nullable().optional(),
         recurringEndDate: z.date().nullable().optional(),
+        isPaid: z.boolean().optional(),
       })
       .refine(data => {
         // If isRecurring is true, recurringInterval must be provided

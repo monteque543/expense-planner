@@ -811,7 +811,7 @@ const originalDate = typeof transaction.date === 'string'
                           {/* Icons */}
                           <div className="flex-shrink-0 mr-0.5">
                             {(transaction.isRecurring || isRecurringInstance) && <span title="Recurring">⟳</span>}
-                            {transaction.isPaid && <span title="Paid">✓</span>}
+                            {transaction.isPaid && <span title="Paid" className="text-green-500">✓</span>}
                           </div>
                           
                           {/* Title */}
