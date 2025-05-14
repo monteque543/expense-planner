@@ -417,14 +417,11 @@ export default function ExpensePlanner() {
       return;
     }
     
-    // Create the date string in the format expected by the API
-    const dateString = format(newDate, 'yyyy-MM-dd');
-    
     // Update the transaction with the new date
     updateTransaction.mutate({
       id,
       data: {
-        date: dateString
+        date: newDate
       }
     });
     
