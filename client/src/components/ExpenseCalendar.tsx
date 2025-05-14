@@ -823,15 +823,16 @@ const originalDate = typeof transaction.date === 'string'
                             // Create and append the new menu
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = menuHtml;
-                            const menuElement = tempDiv.firstElementChild;
-                            document.body.appendChild(menuElement);
-                            
-                            // Position the menu at the mouse position
-                            menuElement.style.left = `${e.clientX}px`;
-                            menuElement.style.top = `${e.clientY}px`;
-                            
-                            // Add event listeners to menu items
-                            menuElement.querySelectorAll('.menu-item').forEach(item => {
+                            const menuElement = tempDiv.firstElementChild as HTMLElement;
+                            if (menuElement) {
+                              document.body.appendChild(menuElement);
+                              
+                              // Position the menu at the mouse position
+                              menuElement.style.left = `${e.clientX}px`;
+                              menuElement.style.top = `${e.clientY}px`;
+                              
+                              // Add event listeners to menu items
+                              menuElement.querySelectorAll('.menu-item').forEach(item => {
                               item.addEventListener('click', () => {
                                 const action = item.getAttribute('data-action');
                                 
@@ -871,7 +872,8 @@ const originalDate = typeof transaction.date === 'string'
                               document.removeEventListener('click', closeMenu);
                             });
                           }
-                        }}
+                        }
+                      }}
                       >
                         {/* Left side with title */}
                         <div className="flex items-center truncate mr-1">
