@@ -3,29 +3,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import ExpenseSidebar from "@/components/ExpenseSidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExpenseList from "@/components/ExpenseList";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
 import FinancialSummary from "@/components/FinancialSummary";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
 import AddSavingsModal from "@/components/AddSavingsModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
-import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
 import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
 import UpcomingExpenses from "@/components/UpcomingExpenses";
+import RecurringTransactions from "@/components/RecurringTransactions";
 import { Plus } from "lucide-react";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
 import { 
-  hardcodedExpenses,
   createHardcodedExpenseTransactions,
   isTransactionDeleted as isHardcodedTransactionDeleted,
   deletedHardcodedTransactionIds
@@ -212,7 +206,7 @@ export default function ExpensePlanner() {
             if (isRecurringTransaction && t.title === titleToRemove && t.isExpense === transaction?.isExpense) {
               console.log(`Also removing recurring instance: ${t.id} - ${t.title}`);
               // Mark all related transactions as deleted in localStorage
-              markTransactionAsDeleted(t.id);
+              markTransactionAsDeleted(t.id, t);
               return false;
             }
             
@@ -494,7 +488,7 @@ export default function ExpensePlanner() {
                 isLoading={isLoadingTransactions}
               />
             ) : (
-              <ExpenseSidebar
+              <ExpenseList 
                 transactions={filteredTransactions}
                 categories={categories}
                 onEditTransaction={handleEditTransaction}
@@ -529,7 +523,7 @@ export default function ExpensePlanner() {
       {/* Main Content */}
       <div className="mt-6">
         <div className="space-y-6">
-          <RecurringExpensesSummary 
+          <RecurringTransactions 
             transactions={allTransactions.filter(t => t.isRecurring)} 
             onEditTransaction={handleEditTransaction}
             onDeleteTransaction={handleDeleteTransaction}
