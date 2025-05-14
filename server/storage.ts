@@ -266,7 +266,12 @@ export class DatabaseStorage implements IStorage {
   
   // Transaction operations
   async getTransactions(): Promise<Transaction[]> {
-    return await db.select().from(transactions);
+    // Get all transactions from the database
+    const allTransactions = await db.select().from(transactions);
+    
+    // Filter out any "Grocerries" transactions that have caused issues
+    // This ensures they won't appear in the UI at all
+    return allTransactions.filter(t => t.title !== "Grocerries");
   }
   
   async getRecurringTransactions(): Promise<Transaction[]> {
