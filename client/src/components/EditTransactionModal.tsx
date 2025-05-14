@@ -257,16 +257,18 @@ export default function EditTransactionModal({
     console.log(`[EditModal] Sending update to backend for transaction ${transaction.id}:`, updateData);
     
     // Special handling for recurring transactions
-    if (transaction.isRecurring && transaction.isRecurringInstance && transaction.displayDate) {
+    // Use type assertion to handle dynamic properties
+    const transactionAny = transaction as any;
+    if (transaction.isRecurring && transactionAny.isRecurringInstance && transactionAny.displayDate) {
       console.log(`[EditModal] This is a recurring transaction instance. Handling differently.`);
       
       // For recurring transaction instances, we don't update the base transaction,
       // instead we save the paid status locally for this specific occurrence
       if (data.isPaid !== transaction.isPaid) {
-        console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${transaction.displayDate}: ${data.isPaid}`);
+        console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${transactionAny.displayDate}: ${data.isPaid}`);
         
         // Save the paid status for this specific occurrence
-        saveOccurrencePaidStatus(transaction.title, transaction.displayDate, data.isPaid);
+        saveOccurrencePaidStatus(transaction.title, transactionAny.displayDate, data.isPaid);
         
         // No need to update the backend for recurring instances
         onClose();
