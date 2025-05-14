@@ -1,40 +1,35 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import ExpenseSidebar from "@/components/ExpenseSidebar";
 import ExpenseCalendar from "@/components/ExpenseCalendar";
-import FinancialSummary from "@/components/FinancialSummary";
+import ExpenseSidebar from "@/components/ExpenseSidebar";
+import SubscriptionSummary from "@/components/SubscriptionSummary";
+import UpcomingExpenses from "@/components/UpcomingExpenses";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import AddIncomeModal from "@/components/AddIncomeModal";
 import AddSavingsModal from "@/components/AddSavingsModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
+import ThemeToggle from "@/components/ThemeToggle";
 import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
+import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
+import SavingsSummary from "@/components/SavingsSummary";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
-import UpcomingExpenses from "@/components/UpcomingExpenses";
-import { Plus } from "lucide-react";
+import ExpensesPieChart from "@/components/ExpensesPieChart";
+import ExpensesByCategoryChart from "@/components/ExpensesByCategoryChart";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, addMonths } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
 import { 
   createHardcodedExpenseTransactions,
-  isTransactionDeleted as isHardcodedTransactionDeleted,
+  isTransactionDeleted,
+  markTransactionAsDeleted,
   deletedHardcodedTransactionIds
 } from "@/utils/expense-hardcoder";
 import {
   saveEditedTransaction,
-  applyUserEditsToTransactions,
-  filterDeletedTransactions,
-  markTransactionAsDeleted,
-  isTransactionDeleted
+  markTransactionAsDeleted as persistDeletedTransaction
 } from "@/utils/user-preferences";
 import { 
   Tooltip, 
@@ -42,59 +37,86 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-// Remove device-detection import as it doesn't exist
+import { Keyboard } from "lucide-react";
+import { getUniqueTitles } from "@/utils/titleUtils";
 
 export default function ExpensePlanner() {
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithCategory | null>(null);
-  const [view, setView] = useState<"list" | "calendar">("calendar");
-  const [timeframe, setTimeframe] = useState<"month" | "week" | "year">("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activePersonFilter, setActivePersonFilter] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'month' | 'week' | 'year'>('month');
+  const { toast } = useToast();
   
-  // Calculate date range based on timeframe
-  const dateRange = useMemo(() => {
-    if (timeframe === "week") {
-      return { 
-        startDate: startOfWeek(selectedDate, { weekStartsOn: 1 }), 
-        endDate: endOfWeek(selectedDate, { weekStartsOn: 1 }) 
-      };
-    } else if (timeframe === "month") {
-      return { 
-        startDate: startOfMonth(selectedDate), 
-        endDate: endOfMonth(selectedDate) 
-      };
-    } else {
-      return { 
-        startDate: startOfYear(selectedDate), 
-        endDate: endOfYear(selectedDate) 
-      };
-    }
-  }, [selectedDate, timeframe]);
-  
-  // Format the date range for display
-  const dateRangeText = useMemo(() => {
-    if (timeframe === "week") {
-      return `${format(dateRange.startDate, "d MMM")} - ${format(dateRange.endDate, "d MMM yyyy")}`;
-    } else if (timeframe === "month") {
-      return format(selectedDate, "MMMM yyyy");
-    } else {
-      return format(selectedDate, "yyyy");
-    }
-  }, [dateRange, selectedDate, timeframe]);
-  
-  // Fetch transactions 
-  const { 
-    data: transactions = [], 
-    isLoading: isLoadingTransactions 
-  } = useQuery<TransactionWithCategory[]>({
+  // Setup keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only respond to keypress without modifier keys (except shift)
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      
+      // If a modal is open or user is typing in an input, don't trigger shortcuts
+      const activeElement = document.activeElement;
+      if (
+        showExpenseModal || 
+        showIncomeModal || 
+        showSavingsModal ||
+        activeElement?.tagName === 'INPUT' || 
+        activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+      
+      switch (e.key.toUpperCase()) {
+        case 'E': // Add Expense
+          e.preventDefault(); // Prevent the 'e' from being added to input fields
+          setShowExpenseModal(true);
+          break;
+        case 'I': // Add Income
+          e.preventDefault(); // Prevent the 'i' from being added to input fields
+          setShowIncomeModal(true);
+          break;
+        case 'S': // Add Savings
+          e.preventDefault(); // Prevent the 's' from being added to input fields
+          setShowSavingsModal(true);
+          break;
+        case 'T': // Today view
+          e.preventDefault(); // Prevent the 't' from being added to input fields
+          handleToday();
+          break;
+        case 'W': // Week view
+          setActiveView('week');
+          break;
+        case 'M': // Month view
+          setActiveView('month');
+          break;
+        case 'Y': // Year view
+          setActiveView('year');
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showExpenseModal, showIncomeModal, showSavingsModal]);
+
+  // Fetch transactions
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionWithCategory[]>({
     queryKey: ['/api/transactions'],
+    staleTime: 0, // Always refetch to ensure fresh data
+  });
+
+  // Fetch categories
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+  
+  // Fetch savings
+  const { data: savings = [], isLoading: isLoadingSavings } = useQuery<Savings[]>({
+    queryKey: ['/api/savings'],
     staleTime: 0, // Always refetch to ensure fresh data
   });
 
@@ -171,23 +193,21 @@ export default function ExpensePlanner() {
       return; // Skip the rest of the function
     }
     
-    // Handle virtual transactions or recurring transactions specially
-    const isVirtualTransaction = id >= 970000;
-    const isRecurringTransaction = transaction?.isRecurring;
-    
-    if (isVirtualTransaction || isRecurringTransaction) {
-      // For virtual or recurring transactions, implement enhanced client-side deletion
-      console.log(`[ENHANCED DELETE] Removing transaction with ID: ${id}, isVirtual: ${isVirtualTransaction}, isRecurring: ${isRecurringTransaction}`);
+    // If it's a hardcoded transaction (ID in the 970000+ range)
+    if (id >= 970000) {
+      // For hardcoded transactions, implement pure client-side deletion using our tracker
+      console.log(`[CLIENT-SIDE DELETE] Removing hardcoded transaction with ID: ${id}`);
       
-      // Pass the full transaction object for pattern deletion if it's recurring
-      markTransactionAsDeleted(id, transaction);
+      // Mark this transaction as deleted in our global tracker
+      markTransactionAsDeleted(id);
+      // Also save to localStorage for persistence
+      persistDeletedTransaction(id);
+      console.log(`Transaction ${id} marked as deleted in global tracker and saved to localStorage`);
       
-      // Show appropriate success message
+      // Show success message immediately
       toast({
         title: "Success",
-        description: isRecurringTransaction 
-          ? "Recurring transaction pattern deleted" 
-          : "Transaction deleted successfully",
+        description: "Transaction deleted successfully",
       });
       
       try {
@@ -199,53 +219,96 @@ export default function ExpensePlanner() {
         const titleToRemove = transactionToDelete?.title;
         console.log(`Removing transaction: "${titleToRemove}" from UI`);
         
-        // Update react-query cache to immediately reflect deletion
+        // 1. Update react-query cache to immediately reflect the change in UI
         const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
         if (currentQueryData) {
-          // Find and remove the transaction from cache
-          const updatedQueryData = currentQueryData.filter(t => {
-            // If this exact transaction, remove it
-            if (t.id === id) return false;
-            
-            // If this is a recurring pattern transaction, also remove those
-            if (isRecurringTransaction && t.title === titleToRemove && t.isExpense === transaction?.isExpense) {
-              console.log(`Also removing recurring instance: ${t.id} - ${t.title}`);
-              // Mark all related transactions as deleted in localStorage
-              markTransactionAsDeleted(t.id, t);
-              return false;
-            }
-            
-            return true;
-          });
-          
-          // Update cache
+          // Filter out the deleted transaction from cache
+          const updatedQueryData = currentQueryData.filter(t => t.id !== id);
           queryClient.setQueryData<TransactionWithCategory[]>(
             ['/api/transactions'],
             updatedQueryData
           );
-          console.log(`Updated QueryClient cache - removed transaction ${id} and related instances`);
+          console.log(`Updated QueryClient cache to filter out transaction ${id}`);
         }
         
-        // Force view refresh by temporarily changing dates
+        // 2. Force complete cache invalidation to rebuild all derived data
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        console.log(`Invalidated transaction queries to force refresh`);
+        
+        // 3. Force refresh by temporarily changing month and coming back
+        // This ensures all components re-render completely
+        const nextMonth = new Date(selectedDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        
+        // Immediate update to current month view
+        setSelectedDate(new Date(currentDate));
+        
+        // Schedule the month change with delay (helps trigger full rerender)
         setTimeout(() => {
-          const tempDate = new Date(currentDate);
-          tempDate.setDate(tempDate.getDate() + 1);
-          setSelectedDate(tempDate);
+          console.log('Step 1: Moving to next month temporarily...');
+          setSelectedDate(nextMonth);
           
+          // Then immediately back to current month
           setTimeout(() => {
+            console.log('Step 2: Returning to original month...');
             setSelectedDate(currentDate);
-          }, 100);
+          }, 200);
         }, 100);
       } catch (error) {
         console.error('Error during client-side transaction deletion:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete transaction, please try again",
+          variant: "destructive",
+        });
       }
-    } else {
-      // For regular (non-hardcoded) transactions, use the mutation
-      console.log(`Deleting regular transaction with ID: ${id}`);
-      deleteTransaction.mutate(id);
+      
+      return; // Important: Don't continue to the API call
     }
+    
+    // For regular transactions, call the API
+    console.log(`[API DELETE] Calling API to delete transaction: ${id}`);
+    deleteTransaction.mutate(id);
   };
-
+  
+  // Update transaction mutation
+  const updateTransaction = useMutation({
+    mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
+      console.log(`[API REQUEST] PATCH /api/transactions/${id} with data:`, data);
+      return apiRequest('PATCH', `/api/transactions/${id}`, data);
+    },
+    onSuccess: (_, variables) => {
+      // Save the updated transaction to localStorage for persistence
+      const { id, data } = variables;
+      const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
+      const transaction = currentQueryData?.find(t => t.id === id);
+      
+      if (transaction) {
+        // Create updated transaction
+        const updatedTransaction = { ...transaction, ...data };
+        
+        // Save to localStorage for persistence across sessions
+        saveEditedTransaction(updatedTransaction);
+        console.log(`Saved regular transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      setShowEditModal(false);
+      setSelectedTransaction(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update transaction: ${error}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Delete transaction mutation
   const deleteTransaction = useMutation({
     mutationFn: (id: number) => {
@@ -253,11 +316,8 @@ export default function ExpensePlanner() {
       return apiRequest('DELETE', `/api/transactions/${id}`);
     },
     onSuccess: (_, id) => {
-      // Find the transaction in the dataset before it's gone
-      const transaction = transactions.find(t => t.id === id);
-      
-      // Also save to localStorage for consistent handling with pattern awareness
-      markTransactionAsDeleted(id, transaction);
+      // Also save to localStorage for consistent handling
+      persistDeletedTransaction(id);
       console.log(`Regular transaction ${id} deletion saved to localStorage`);
       
       // Show success message
@@ -266,7 +326,7 @@ export default function ExpensePlanner() {
         description: "Transaction deleted successfully",
       });
       
-      // Refresh data
+      // Force a data refresh
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
     onError: (error) => {
@@ -278,41 +338,15 @@ export default function ExpensePlanner() {
     }
   });
   
-  // Update transaction mutation
-  const updateTransaction = useMutation({
-    mutationFn: ({ id, data }: { id: number, data: Partial<Transaction> }) => {
-      return apiRequest('PATCH', `/api/transactions/${id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      setShowEditModal(false);
-      setSelectedTransaction(null);
-      toast({
-        title: "Success",
-        description: "Transaction updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error", 
-        description: `Failed to update transaction: ${error}`,
-        variant: "destructive",
-      });
-    }
-  });
-
   // Add savings mutation
   const addSavings = useMutation({
     mutationFn: (savingsData: Omit<Savings, "id">) => {
       return apiRequest('POST', '/api/savings', savingsData);
     },
     onSuccess: () => {
+      // No success toast as per user preference
       queryClient.invalidateQueries({ queryKey: ['/api/savings'] });
       setShowSavingsModal(false);
-      toast({
-        title: "Success",
-        description: "Savings added successfully",
-      });
     },
     onError: (error) => {
       toast({
@@ -323,203 +357,347 @@ export default function ExpensePlanner() {
     }
   });
   
-  // Fetch categories
-  const { 
-    data: categories = [], 
-    isLoading: isLoadingCategories 
-  } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
+  // Delete savings mutation
+  const deleteSavings = useMutation({
+    mutationFn: (id: number) => {
+      return apiRequest('DELETE', `/api/savings/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Savings entry deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/savings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete savings: ${error}`,
+        variant: "destructive",
+      });
+    }
   });
   
-  // Fetch savings
-  const { 
-    data: savings = [], 
-    isLoading: isLoadingSavings 
-  } = useQuery<Savings[]>({
-    queryKey: ['/api/savings'],
-  });
-  
-  // Create hardcoded transactions (expenses and income) for demo/development
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  // Use empty arrays to initialize hardcoded transactions
-  const hardcodedExpenses = useMemo(() => [], []);
-  const hardcodedIncome = useMemo(() => [], []);
-  
-  // Combine real and hardcoded transactions
-  const allTransactions = useMemo(() => {
-    const combined = [...transactions, ...hardcodedExpenses, ...hardcodedIncome];
-    const transactionsWithEdits = applyUserEditsToTransactions(combined);
-    return filterDeletedTransactions(transactionsWithEdits);
-  }, [transactions, hardcodedExpenses, hardcodedIncome]);
-  
-  // Filter transactions based on date range
-  const filteredTransactions = useMemo(() => {
-    return allTransactions.filter(transaction => {
-      if (!transaction.date) return false;
-      const transactionDate = typeof transaction.date === 'string' 
-        ? parseISO(transaction.date) 
-        : transaction.date;
-      return transactionDate >= dateRange.startDate && transactionDate <= dateRange.endDate;
-    });
-  }, [allTransactions, dateRange]);
-  
-  // Get unique transaction titles for autocomplete
-  const uniqueTitles = useMemo(() => {
-    const titles = allTransactions.map(t => t.title);
-    return Array.from(new Set(titles));
-  }, [allTransactions]);
-  
-  // Handle editing a transaction
+  // Handler for editing a transaction
   const handleEditTransaction = (transaction: TransactionWithCategory) => {
     setSelectedTransaction(transaction);
     setShowEditModal(true);
   };
+
+  // Date manipulation for current view
+  const currentMonthYear = format(selectedDate, 'MMMM yyyy');
+
+  const handlePrevMonth = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  const handleToday = () => {
+    setSelectedDate(new Date());
+  };
+  
+  // For testing purposes: jump to May 2025
+  const jumpToMay2025 = () => {
+    const may2025 = new Date(2025, 4, 15); // May 15, 2025
+    setSelectedDate(may2025);
+  };
+  
+  // For testing purposes: jump to June 2025
+  const jumpToJune2025 = () => {
+    const june2025 = new Date(2025, 5, 15); // June 15, 2025
+    setSelectedDate(june2025);
+  };
+
+  // Get date range based on active view
+  const getDateRange = () => {
+    const today = new Date();
+    switch (activeView) {
+      case 'week':
+        return {
+          start: startOfWeek(today),
+          end: endOfWeek(today)
+        };
+      case 'year':
+        return {
+          start: startOfYear(today),
+          end: endOfYear(today)
+        };
+      case 'month':
+      default:
+        return {
+          start: startOfMonth(today),
+          end: endOfMonth(today)
+        };
+    }
+  };
+
+  // Get hardcoded income transactions for critical months (May 2025-Mar 2026)
+  // Filter out any transactions that have been marked as deleted
+  const hardcodedIncome = useMemo(() => {
+    // Get month and year for current view
+    const viewMonth = selectedDate.getMonth();
+    const viewYear = selectedDate.getFullYear();
     
+    // Check if we're viewing May 2025 through March 2026
+    if ((viewYear === 2025 && viewMonth >= 4) || (viewYear === 2026 && viewMonth <= 2)) {
+      // Create hardcoded transactions for this view
+      const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
+      
+      // Convert the hardcoded map into an array of transactions
+      const allTransactions = Object.values(hardcodedMap).flat();
+      
+      // Filter out any transactions that have been marked as deleted
+      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
+      
+      // Log for debugging
+      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
+      if (allTransactions.length !== result.length) {
+        console.log(`[Income] Filtered out ${allTransactions.length - result.length} deleted transactions`);
+      }
+      
+      return result;
+    }
+    
+    // For normal months, return empty array
+    return [];
+  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
+  
+  // Get hardcoded recurring expenses/subscriptions for all months
+  // Filter out any transactions that have been marked as deleted
+  const hardcodedExpenses = useMemo(() => {
+    // Get month and year for current view
+    const viewMonth = selectedDate.getMonth();
+    const viewYear = selectedDate.getFullYear();
+    
+    // Apply for all view months, focusing on 2025 and early 2026
+    if ((viewYear === 2025) || (viewYear === 2026 && viewMonth <= 2)) {
+      // Create hardcoded expense transactions for this view
+      const hardcodedMap = createHardcodedExpenseTransactions(viewMonth, viewYear, transactions);
+      
+      // Convert the map into an array of transactions
+      const allTransactions = Object.values(hardcodedMap).flat();
+      
+      // Filter out any transactions that have been marked as deleted
+      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
+      
+      if (result.length > 0) {
+        console.log(`🔄 Added ${result.length} hardcoded recurring expenses/subscriptions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
+        if (allTransactions.length !== result.length) {
+          console.log(`[Expenses] Filtered out ${allTransactions.length - result.length} deleted transactions`);
+        }
+      }
+      
+      return result;
+    }
+    
+    // For other months, return empty array
+    return [];
+  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
+  
+  // Filter transactions to only show ones from the current month in the sidebar
+  const currentMonthTransactions = useMemo(() => {
+    // Get the start and end of the current month
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(selectedDate);
+    
+    // Only include transactions that occur within the current month
+    const regularTransactions = transactions.filter(transaction => {
+      const transactionDate = typeof transaction.date === 'string' 
+        ? parseISO(transaction.date) 
+        : transaction.date;
+        
+      return transactionDate >= monthStart && transactionDate <= monthEnd;
+    });
+    
+    // Start with regular transactions
+    let result = regularTransactions;
+    
+    // If we have hardcoded income, add it (and filter out duplicates)
+    if (hardcodedIncome.length > 0) {
+      result = [
+        ...hardcodedIncome,
+        ...regularTransactions.filter(t => 
+          // Keep all expenses
+          t.isExpense || 
+          // For income, filter out ones that would be duplicates of our hardcoded income
+          !hardcodedIncome.some(ht => ht.title === t.title)
+        )
+      ];
+    }
+    
+    // If we have hardcoded expenses, add them (and filter out duplicates) 
+    if (hardcodedExpenses.length > 0) {
+      // Filter out any transactions that would be duplicates of hardcoded expenses
+      const filteredTransactions = result.filter(t => 
+        // Keep all income
+        !t.isExpense || 
+        // For expenses, filter out ones that would be duplicates of our hardcoded expenses
+        !hardcodedExpenses.some(he => 
+          he.title === t.title && 
+          he.isRecurring === t.isRecurring &&
+          format(new Date(he.date), 'yyyy-MM-dd') === format(new Date(t.date), 'yyyy-MM-dd')
+        )
+      );
+      
+      // Return combined array with hardcoded expenses
+      return [...filteredTransactions, ...hardcodedExpenses];
+    }
+    
+    return result;
+  }, [transactions, hardcodedIncome, hardcodedExpenses, selectedDate]);
+  
+  // Extract unique transaction titles for autocomplete
+  const uniqueTitles = useMemo(() => {
+    return getUniqueTitles(transactions);
+  }, [transactions]);
+
+  // Filter transactions based on active category and person
+  const filteredTransactions = currentMonthTransactions.filter((t) => {
+    // Apply category filter
+    if (activeFilter !== null && t.category?.name !== activeFilter) {
+      return false;
+    }
+    
+    // Apply person filter
+    if (activePersonFilter !== null && t.personLabel !== activePersonFilter) {
+      return false;
+    }
+    
+    return true;
+  });
+
   return (
-    <div className="mx-auto px-2 sm:px-4 md:px-6 max-w-7xl py-4 md:py-8">
-      <div className="flex flex-col w-full gap-4">
-        {/* Header with time controls */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Expense Planner</h1>
-          
-          <div className="flex gap-2 flex-wrap">
-            <Tabs defaultValue={timeframe}>
-              <TabsList className="grid grid-cols-3">
-                <TabsTrigger 
-                  value="week" 
-                  onClick={() => setTimeframe("week")}
-                  data-state={timeframe === "week" ? "active" : "inactive"}
-                >
-                  Week
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="month" 
-                  onClick={() => setTimeframe("month")}
-                  data-state={timeframe === "month" ? "active" : "inactive"}
-                >
-                  Month
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="year" 
-                  onClick={() => setTimeframe("year")}
-                  data-state={timeframe === "year" ? "active" : "inactive"}
-                >
-                  Year
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
+      {/* Header */}
+      <header className="bg-card shadow-sm border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold text-foreground">Expense Planner</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
             
-            <Tabs defaultValue={view}>
-              <TabsList className="grid grid-cols-2">
-                <TabsTrigger 
-                  value="calendar" 
-                  onClick={() => setView("calendar")}
-                  data-state={view === "calendar" ? "active" : "inactive"}
-                >
-                  Calendar
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="list" 
-                  onClick={() => setView("list")}
-                  data-state={view === "list" ? "active" : "inactive"}
-                >
-                  List
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setShowExpenseModal(true)}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Expense
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add a new expense</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setShowIncomeModal(true)}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Income
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add new income</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setShowSavingsModal(true)}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Savings
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to savings</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="hidden sm:flex rounded-md overflow-hidden border border-border shadow-sm mr-2">
+              <button 
+                onClick={() => setActiveView('week')}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'week' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
+              >
+                Week
+              </button>
+              <button 
+                onClick={() => setActiveView('month')}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'month' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
+              >
+                Month
+              </button>
+              <button 
+                onClick={() => setActiveView('year')}
+                className={`px-3 py-1 text-xs font-medium ${activeView === 'year' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted/50'}`}
+              >
+                Year
+              </button>
             </div>
+            
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setShowExpenseModal(true)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition font-medium text-sm"
+                  >
+                    Add Expense
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Press 'E' to quickly add expense</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setShowIncomeModal(true)}
+                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition font-medium text-sm"
+                  >
+                    Add Income
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Press 'I' to quickly add income</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setShowSavingsModal(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition font-medium text-sm"
+                  >
+                    Add Savings
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Press 'S' to quickly add savings</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <KeyboardShortcuts />
           </div>
         </div>
-        
-        {/* Date range display */}
-        <div className="text-lg font-semibold text-center">{dateRangeText}</div>
-        
-        {/* Main grid layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left Column - Financial Summary */}
-          <div className="md:col-span-1">
-            <FinancialSummary 
-              transactions={filteredTransactions}
+      </header>
+      
+      {/* Monthly Savings (Always Visible) */}
+      <div className="bg-background pt-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <MonthlySavingsSummary 
+          transactions={transactions}
+          currentDate={selectedDate}
+          isLoading={isLoadingTransactions}
+        />
+      </div>
+
+      {/* Summary Cards */}
+      <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Left Column */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Subscription Summary */}
+            <SubscriptionSummary 
+              transactions={transactions}
+              isLoading={isLoadingTransactions || isLoadingCategories}
+            />
+            
+            {/* Recurring Expenses Summary */}
+            <RecurringExpensesSummary 
+              transactions={transactions}
+              isLoading={isLoadingTransactions || isLoadingCategories}
+            />
+            
+            {/* Savings Summary */}
+            <SavingsSummary
+              savings={savings}
+              transactions={transactions}
+              isLoading={isLoadingSavings || isLoadingTransactions}
+              onDeleteSavings={(id) => deleteSavings.mutate(id)}
+              isPending={deleteSavings.isPending}
               currentDate={selectedDate}
             />
-          </div>
-          
-          {/* Center Column - Calendar or List View */}
-          <div className="md:col-span-1">
-            {view === "calendar" ? (
-              <ExpenseCalendar
-                transactions={filteredTransactions}
-                currentDate={selectedDate || new Date()} 
-                currentMonthYear={format(selectedDate || new Date(), 'MMMM yyyy')}
-                onPrevMonth={() => setSelectedDate(prev => addMonths(prev || new Date(), -1))}
-                onNextMonth={() => setSelectedDate(prev => addMonths(prev || new Date(), 1))}
-                onSelectToday={() => setSelectedDate(new Date())}
-                onEditTransaction={handleEditTransaction}
-                onDeleteTransaction={handleDeleteTransaction}
-                onDayClick={setSelectedDate}
-                isLoading={isLoadingTransactions}
-                activeView={timeframe}
-              />
-            ) : (
-              <ExpenseSidebar
-                transactions={filteredTransactions}
-                categories={categories}
-                currentMonthYear={format(selectedDate || new Date(), 'MMMM yyyy')}
-                activeFilter={null}
-                onFilterChange={() => {}}
-                activePersonFilter={null}
-                onPersonFilterChange={() => {}}
-                onEditTransaction={handleEditTransaction}
-                onDeleteTransaction={handleDeleteTransaction}
-                isLoading={isLoadingTransactions}
-                currentDate={selectedDate || new Date()}
-              />
-            )}
           </div>
           
           {/* Right Column */}
@@ -545,12 +723,78 @@ export default function ExpensePlanner() {
       </div>
 
       {/* Main Content */}
-      <div className="mt-6">
-        <div className="space-y-6">
-          <RecurringExpensesSummary 
-            transactions={allTransactions.filter(t => t.isRecurring)} 
+      <div className="flex-1 overflow-auto flex flex-col">
+        {/* Calendar and Sidebar */}
+        <main className="flex-1 overflow-auto flex flex-col md:flex-row">
+          {/* Calendar View */}
+          <ExpenseCalendar 
+            transactions={filteredTransactions}
+            currentDate={selectedDate}
+            currentMonthYear={currentMonthYear}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            onSelectToday={handleToday}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            onDayClick={(date) => {
+              // Create a new date object at noon to ensure timezone consistency
+              const year = date.getFullYear();
+              const month = date.getMonth();
+              const day = date.getDate();
+              const clickedDate = new Date(year, month, day, 12, 0, 0);
+              
+              console.log('Day clicked:', 
+                          `${year}-${month+1}-${day}`, 
+                          'ISO:', clickedDate.toISOString());
+              
+              // First update the date, then show the modal
+              setSelectedDate(clickedDate);
+              // Use setTimeout to ensure state is updated before showing the modal
+              setTimeout(() => {
+                setShowExpenseModal(true);
+              }, 50);
+            }}
             isLoading={isLoadingTransactions}
+            activeView={activeView}
           />
+
+          {/* Sidebar View */}
+          <ExpenseSidebar 
+            transactions={currentMonthTransactions}
+            categories={categories}
+            currentMonthYear={currentMonthYear}
+            currentDate={selectedDate}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            activePersonFilter={activePersonFilter}
+            onPersonFilterChange={setActivePersonFilter}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            isLoading={isLoadingTransactions || isLoadingCategories}
+          />
+        </main>
+        
+        {/* Expense Analysis Charts */}
+        <div className="bg-background py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+          <h2 className="text-xl font-semibold mb-4">Expense Analysis</h2>
+          
+          {/* Use a current month key to force remounting of charts when month changes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" 
+               key={`charts-${selectedDate.getFullYear()}-${selectedDate.getMonth()}`}>
+            {/* Person Distribution Chart */}
+            <ExpensesPieChart 
+              transactions={currentMonthTransactions}
+              currentDate={selectedDate}
+              isLoading={isLoadingTransactions}
+            />
+            
+            {/* Category Distribution Chart */}
+            <ExpensesByCategoryChart
+              transactions={currentMonthTransactions}
+              currentDate={selectedDate}
+              isLoading={isLoadingTransactions}
+            />
+          </div>
         </div>
       </div>
 
@@ -558,43 +802,19 @@ export default function ExpensePlanner() {
       <AddExpenseModal
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
-        onAddExpense={(data) => {
-          // Ensure notes is never undefined
-          const sanitizedData = {
-            ...data,
-            notes: data.notes || null,
-            isExpense: true
-          };
-          addTransaction.mutate(sanitizedData);
-        }}
+        onAddExpense={(data) => addTransaction.mutate({ ...data, isExpense: true })}
         categories={categories.filter((c: Category) => c.isExpense)}
         isPending={addTransaction.isPending}
-        titleSuggestions={uniqueTitles.filter(title => {
-          // Find a transaction with this title to check if it's an expense
-          const matchingTransaction = allTransactions.find(t => t.title === title);
-          return matchingTransaction?.isExpense === true;
-        })}
+        titleSuggestions={uniqueTitles}
         defaultDate={selectedDate}
       />
-      
+
       <AddIncomeModal
         isOpen={showIncomeModal}
         onClose={() => setShowIncomeModal(false)}
-        onAddIncome={(data) => {
-          // Ensure notes is never undefined
-          const sanitizedData = {
-            ...data,
-            notes: data.notes || null,
-            isExpense: false
-          };
-          addTransaction.mutate(sanitizedData);
-        }}
+        onAddIncome={(data) => addTransaction.mutate({ ...data, isExpense: false })}
         isPending={addTransaction.isPending}
-        titleSuggestions={uniqueTitles.filter(title => {
-          // Find a transaction with this title to check if it's income
-          const matchingTransaction = allTransactions.find(t => t.title === title);
-          return matchingTransaction?.isExpense === false;
-        })}
+        titleSuggestions={uniqueTitles}
       />
       
       <EditTransactionModal
@@ -604,156 +824,117 @@ export default function ExpensePlanner() {
           setSelectedTransaction(null);
         }}
         onUpdateTransaction={(id, data) => {
-          // Extract relevant characteristics of the transaction
-          const transactionTitle = selectedTransaction?.title || data.title || '';
-          const isVirtualTransaction = id >= 970000;
-          const isRecurringTransaction = data.isRecurring === true;
-          const isRecurringChanged = selectedTransaction?.isRecurring !== data.isRecurring;
-          const isAmountChanged = selectedTransaction?.amount !== data.amount;
+          // Get the current transaction we're editing to check if it's part of our data model
+          const transactionToUpdate = transactions.find(t => t.id === id);
+          const transactionInHardcodedIncome = hardcodedIncome.find(t => t.id === id);  
+          const transactionInHardcodedExpenses = hardcodedExpenses.find(t => t.id === id);
           
-          console.log(`Transaction update - ID: ${id}, Title: ${transactionTitle}, IsRecurring: ${isRecurringTransaction}, IsVirtual: ${isVirtualTransaction}`);
+          // Get the title of the transaction being edited
+          const transactionTitle = selectedTransaction?.title || '';
           
-          // First, always save edits to localStorage for any recurring transaction (virtual or real)
-          if (isRecurringTransaction || isVirtualTransaction) {
-            console.log(`Handling recurring/virtual transaction update for ${id}`);
+          // Special hardcoded transactions we know need client-side handling
+          // NOTE: We've removed special transaction detection by title to allow all transactions with large amounts
+          // to be properly stored in the database
+          const specialTransactionTitles: string[] = [];
+          const isSpecialTransaction = false;
+          
+          // Specifically exclude certain real database transactions from being treated as hardcoded
+          // even if they appear in hardcoded arrays due to being recurring
+          const excludeFromHardcoded = ["Grocerries", "Sukienka Fabi", "Coffee Machine"];
+          const shouldForceAPI = id < 970000 && excludeFromHardcoded.includes(transactionTitle);
+          
+          // Check if it's a hardcoded transaction (either by ID range, presence in hardcoded arrays, or special title)
+          // If it's in our exclude list, always use the API
+          const isHardcoded = shouldForceAPI ? false : 
+                            (id >= 970000 || 
+                            transactionInHardcodedIncome !== undefined || 
+                            transactionInHardcodedExpenses !== undefined ||
+                            isSpecialTransaction);
+          
+          console.log(`Transaction ID to update: ${id} - Is it hardcoded?`, {
+            title: transactionTitle,
+            byIdRange: id >= 970000,
+            inHardcodedIncome: transactionInHardcodedIncome !== undefined,
+            inHardcodedExpenses: transactionInHardcodedExpenses !== undefined,
+            isSpecialTransaction,
+            isExcluded: excludeFromHardcoded.includes(transactionTitle),
+            shouldForceAPI,
+            finalDecision: isHardcoded
+          });
+          
+          if (isHardcoded) {
+            console.log(`Client-side handling for hardcoded transaction edit: ${id}`);
             
-            // Get current data cache for working with transactions
+            // Show success toast
+            toast({
+              title: "Success",
+              description: "Transaction updated (client-side only)",
+            });
+            
+            // 1. Get the current data from cache
             const currentQueryData = queryClient.getQueryData<TransactionWithCategory[]>(['/api/transactions']);
-            if (!currentQueryData) {
-              console.error("No transaction data in cache!");
-              return;
-            }
             
-            // Find the transaction being edited
-            const currentTransaction = currentQueryData.find(t => t.id === id);
-            if (!currentTransaction) {
-              console.error(`Couldn't find transaction ${id} in cache!`);
-              return;
-            }
-            
-            // Create the updated transaction with new values
-            const updatedTransaction = { ...currentTransaction, ...data };
-            
-            // Special handling for recurring transactions
-            if (isRecurringTransaction) {
-              // Check if we're dealing with a recurring pattern that affects multiple transactions
-              const isCoreRecurringChange = isAmountChanged || isRecurringChanged;
+            // 2. Save the updated transaction to localStorage for persistence
+            const transaction = currentQueryData?.find(t => t.id === id);
+            if (transaction) {
+              // Create updated transaction
+              const updatedTransaction = { ...transaction, ...data };
               
-              if (isCoreRecurringChange) {
-                console.log(`Making core change to recurring transaction pattern: ${updatedTransaction.title}`);
-                
-                // For a recurring pattern, find all related transactions with same title pattern
-                const relatedTransactions = currentQueryData.filter(t => 
-                  t.title === updatedTransaction.title && 
-                  t.isExpense === updatedTransaction.isExpense
-                );
-                
-                console.log(`Found ${relatedTransactions.length} related transactions to update`);
-                
-                // Update all instances matching the pattern in localStorage
-                relatedTransactions.forEach(relatedTx => {
-                  const relatedUpdate = { 
-                    ...relatedTx, 
-                    amount: data.amount ?? relatedTx.amount,
-                    isRecurring: data.isRecurring ?? relatedTx.isRecurring,
-                    recurringInterval: data.recurringInterval ?? relatedTx.recurringInterval
-                  };
-                  
-                  // Save each related transaction to local storage
-                  saveEditedTransaction(relatedUpdate);
-                  console.log(`Saved related transaction #${relatedUpdate.id} with new amount: ${relatedUpdate.amount}`);
-                });
-                
-                // Also update all instances in the cache
-                const updatedQueryData = currentQueryData.map(t => {
-                  // If this is the exact transaction being edited
-                  if (t.id === id) {
-                    return updatedTransaction;
-                  }
-                  
-                  // If this is a related transaction with same title pattern
-                  if (t.title === updatedTransaction.title && t.isExpense === updatedTransaction.isExpense) {
-                    return { 
-                      ...t, 
-                      amount: data.amount ?? t.amount,
-                      isRecurring: data.isRecurring ?? t.isRecurring,
-                      recurringInterval: data.recurringInterval ?? t.recurringInterval
-                    };
-                  }
-                  
-                  return t;
-                });
-                
-                // Update cache with all changes
-                queryClient.setQueryData<TransactionWithCategory[]>(
-                  ['/api/transactions'],
-                  updatedQueryData
-                );
-                console.log(`Updated QueryClient cache for all related transactions`);
-              } else {
-                // Simple update for just this one recurring instance
-                saveEditedTransaction(updatedTransaction);
-                
-                // Update just this transaction in cache
-                const updatedQueryData = currentQueryData.map(t => 
-                  t.id === id ? updatedTransaction : t
-                );
-                
-                queryClient.setQueryData<TransactionWithCategory[]>(
-                  ['/api/transactions'],
-                  updatedQueryData
-                );
-              }
-            } else {
-              // Non-recurring virtual transaction
+              // Save to localStorage for persistence across sessions
               saveEditedTransaction(updatedTransaction);
+              console.log(`Saved transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
+            }
+            
+            // 3. Update react-query cache to immediately reflect the change in UI
+            if (currentQueryData) {
+              // Find and update the transaction in cache
+              const updatedQueryData = currentQueryData.map(t => {
+                if (t.id === id) {
+                  // Return updated transaction 
+                  return { ...t, ...data };
+                }
+                return t;
+              });
               
-              // Update the cache with just this transaction
-              const updatedQueryData = currentQueryData.map(t => 
-                t.id === id ? updatedTransaction : t
-              );
-              
+              // Update cache
               queryClient.setQueryData<TransactionWithCategory[]>(
                 ['/api/transactions'],
                 updatedQueryData
               );
+              console.log(`Updated QueryClient cache for transaction ${id}`);
             }
             
-            // Force refresh of the UI
+            // 2. Force complete cache invalidation to rebuild all derived data
             queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+            console.log(`Invalidated transaction queries to force refresh`);
             
-            // Show success message
-            toast({
-              title: "Success",
-              description: isRecurringTransaction 
-                ? "Recurring transaction updated" 
-                : "Transaction updated"
-            });
-            
-            // Force a refresh by switching months temporarily (helps with calendar display)
+            // 3. Force refresh by temporarily changing month and coming back
             const currentDate = new Date(selectedDate);
-            const refreshDate = new Date(currentDate);
-            refreshDate.setDate(refreshDate.getDate() + 1); // Just one day forward is enough
+            const nextMonth = new Date(selectedDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
             
+            // Immediate update to current month view
+            setSelectedDate(new Date(currentDate));
+            
+            // Schedule the month changes with delay (helps trigger full rerender)
             setTimeout(() => {
-              setSelectedDate(refreshDate);
+              console.log('Step 1: Moving to next month temporarily...');
+              setSelectedDate(nextMonth);
+              
+              // Then back to current month
               setTimeout(() => {
+                console.log('Step 2: Returning to original month...');
                 setSelectedDate(currentDate);
               }, 200);
             }, 100);
-            
-            // If it's a real database transaction (not virtual), also send to API
-            if (!isVirtualTransaction) {
-              console.log(`Also sending real transaction ${id} update to API`);
-              updateTransaction.mutate({ id, data });
-            }
             
             // Close the modal
             setShowEditModal(false);
             setSelectedTransaction(null);
           } else {
-            // Regular non-recurring transaction update - just use the API
-            console.log(`Regular transaction update for ${id}, sending to API`);
+            // Regular transaction update via API
+            console.log("Sending API update for transaction:", id);
+            console.log("Update data:", data);
             updateTransaction.mutate({ id, data });
           }
         }}

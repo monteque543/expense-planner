@@ -18,11 +18,8 @@ interface EditedTransaction {
   amount: number;
   personLabel: string;
   isExpense: boolean;
-  isRecurring?: boolean;
-  recurringInterval?: string;
   date?: string | null; // Store as ISO string or null
   lastEdited: number; // timestamp
-  originalId?: number; // Store original ID for recurring transactions
 }
 
 /**
@@ -42,49 +39,30 @@ export function getEditedTransactions(): Record<number, EditedTransaction> {
 
 /**
  * Save an edited transaction to localStorage
- * @param transaction The transaction with updated values
- * @param originalId Optional original ID for recurring transactions
  */
-export function saveEditedTransaction(transaction: Transaction, originalId?: number): void {
+export function saveEditedTransaction(transaction: Transaction): void {
   try {
     const editedTransactions = getEditedTransactions();
     
-    // Store complete recurring transaction information to ensure it's applied consistently
+    // Store only the essential data we need to remember
     editedTransactions[transaction.id] = {
       id: transaction.id,
       title: transaction.title,
       amount: transaction.amount,
       personLabel: transaction.personLabel || 'Michał', // Default value to avoid type errors
       isExpense: transaction.isExpense,
-      isRecurring: transaction.isRecurring === true ? true : undefined,
-      recurringInterval: transaction.recurringInterval || undefined,
       date: transaction.date instanceof Date ? 
         transaction.date.toISOString() : 
         (typeof transaction.date === 'string' ? transaction.date : null),
-      lastEdited: Date.now(),
-      originalId: originalId || undefined
+      lastEdited: Date.now()
     };
-    
-    // For recurring transactions, store info by pattern too
-    if (transaction.isRecurring && transaction.title) {
-      // Store same edit for any future instances with same title
-      const recurringKey = `recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
-      localStorage.setItem(recurringKey, JSON.stringify({
-        title: transaction.title,
-        amount: transaction.amount,
-        isRecurring: transaction.isRecurring,
-        recurringInterval: transaction.recurringInterval,
-        lastEdited: Date.now()
-      }));
-      console.log(`Saved recurring pattern for "${transaction.title}" with amount: ${transaction.amount}`);
-    }
     
     localStorage.setItem(
       EDITED_TRANSACTIONS_KEY, 
       JSON.stringify(editedTransactions)
     );
     
-    console.log(`Saved user edit for transaction #${transaction.id}: ${transaction.title} amount: ${transaction.amount}, isRecurring: ${transaction.isRecurring}`);
+    console.log(`Saved user edit for transaction #${transaction.id}: ${transaction.title} amount: ${transaction.amount}`);
   } catch (error) {
     console.error('Error saving edited transaction:', error);
   }
@@ -104,7 +82,6 @@ export function hasUserEditForTransaction(transactionId: number): boolean {
 export function applyUserEditsIfExists<T extends Transaction>(transaction: T): T {
   const editedTransactions = getEditedTransactions();
   
-  // Check for direct edits first by ID
   if (editedTransactions[transaction.id]) {
     const userEdit = editedTransactions[transaction.id];
     
@@ -114,32 +91,7 @@ export function applyUserEditsIfExists<T extends Transaction>(transaction: T): T
       amount: userEdit.amount,
       title: userEdit.title,
       personLabel: userEdit.personLabel,
-      isRecurring: userEdit.isRecurring !== undefined ? userEdit.isRecurring : transaction.isRecurring,
-      recurringInterval: userEdit.recurringInterval || transaction.recurringInterval,
     };
-  }
-  
-  // If no direct edit, but it's a recurring transaction, check for pattern edits
-  if (transaction.isRecurring && transaction.title) {
-    try {
-      const recurringKey = `recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
-      const storedPattern = localStorage.getItem(recurringKey);
-      
-      if (storedPattern) {
-        const patternEdit = JSON.parse(storedPattern);
-        console.log(`Found recurring pattern edit for "${transaction.title}": ${patternEdit.amount}`);
-        
-        // Apply the pattern edit
-        return {
-          ...transaction,
-          amount: patternEdit.amount,
-          isRecurring: patternEdit.isRecurring !== undefined ? patternEdit.isRecurring : transaction.isRecurring,
-          recurringInterval: patternEdit.recurringInterval || transaction.recurringInterval,
-        };
-      }
-    } catch (error) {
-      console.error('Error checking recurring pattern:', error);
-    }
   }
   
   return transaction;
@@ -169,28 +121,14 @@ export function getDeletedTransactionIds(): number[] {
 
 /**
  * Mark a transaction as deleted
- * @param transactionId ID of the transaction to mark as deleted
- * @param transaction Optional full transaction object for handling recurring deletion patterns
  */
-export function markTransactionAsDeleted(transactionId: number, transaction?: Transaction): void {
+export function markTransactionAsDeleted(transactionId: number): void {
   try {
-    // Standard deletion tracking
     const deletedIds = getDeletedTransactionIds();
     if (!deletedIds.includes(transactionId)) {
       deletedIds.push(transactionId);
       localStorage.setItem(DELETED_TRANSACTIONS_KEY, JSON.stringify(deletedIds));
       console.log(`Marked transaction #${transactionId} as deleted`);
-    }
-    
-    // Special handling for recurring transactions - create a pattern deletion marker
-    if (transaction?.isRecurring && transaction.title) {
-      const recurringDeleteKey = `deleted_recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
-      localStorage.setItem(recurringDeleteKey, JSON.stringify({
-        title: transaction.title,
-        isExpense: transaction.isExpense,
-        deletedAt: Date.now()
-      }));
-      console.log(`Marked recurring pattern "${transaction.title}" as deleted`);
     }
   } catch (error) {
     console.error('Error marking transaction as deleted:', error);
@@ -199,38 +137,16 @@ export function markTransactionAsDeleted(transactionId: number, transaction?: Tr
 
 /**
  * Check if a transaction has been deleted by the user
- * @param transactionId The ID of the transaction to check
- * @param transaction Optional transaction object for pattern checking
  */
-export function isTransactionDeleted(transactionId: number, transaction?: Transaction): boolean {
-  // First check direct ID match
+export function isTransactionDeleted(transactionId: number): boolean {
   const deletedIds = getDeletedTransactionIds();
-  if (deletedIds.includes(transactionId)) {
-    return true;
-  }
-  
-  // Then check for recurring pattern deletion
-  if (transaction?.isRecurring && transaction.title) {
-    try {
-      const recurringDeleteKey = `deleted_recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
-      const storedPattern = localStorage.getItem(recurringDeleteKey);
-      
-      if (storedPattern) {
-        // Found pattern deletion marker
-        console.log(`Found recurring pattern deletion for "${transaction.title}"`);
-        return true;
-      }
-    } catch (error) {
-      console.error('Error checking recurring deletion pattern:', error);
-    }
-  }
-  
-  return false;
+  return deletedIds.includes(transactionId);
 }
 
 /**
  * Filter out deleted transactions from an array
  */
 export function filterDeletedTransactions<T extends Transaction>(transactions: T[]): T[] {
-  return transactions.filter(transaction => !isTransactionDeleted(transaction.id, transaction));
+  const deletedIds = getDeletedTransactionIds();
+  return transactions.filter(transaction => !deletedIds.includes(transaction.id));
 }
