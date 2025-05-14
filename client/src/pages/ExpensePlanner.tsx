@@ -385,46 +385,50 @@ export default function ExpensePlanner() {
           <h1 className="text-3xl font-bold tracking-tight">Expense Planner</h1>
           
           <div className="flex gap-2 flex-wrap">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger 
-                value="week" 
-                onClick={() => setTimeframe("week")}
-                data-state={timeframe === "week" ? "active" : "inactive"}
-              >
-                Week
-              </TabsTrigger>
-              <TabsTrigger 
-                value="month" 
-                onClick={() => setTimeframe("month")}
-                data-state={timeframe === "month" ? "active" : "inactive"}
-              >
-                Month
-              </TabsTrigger>
-              <TabsTrigger 
-                value="year" 
-                onClick={() => setTimeframe("year")}
-                data-state={timeframe === "year" ? "active" : "inactive"}
-              >
-                Year
-              </TabsTrigger>
-            </TabsList>
+            <Tabs defaultValue={timeframe}>
+              <TabsList className="grid grid-cols-3">
+                <TabsTrigger 
+                  value="week" 
+                  onClick={() => setTimeframe("week")}
+                  data-state={timeframe === "week" ? "active" : "inactive"}
+                >
+                  Week
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="month" 
+                  onClick={() => setTimeframe("month")}
+                  data-state={timeframe === "month" ? "active" : "inactive"}
+                >
+                  Month
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="year" 
+                  onClick={() => setTimeframe("year")}
+                  data-state={timeframe === "year" ? "active" : "inactive"}
+                >
+                  Year
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger 
-                value="calendar" 
-                onClick={() => setView("calendar")}
-                data-state={view === "calendar" ? "active" : "inactive"}
-              >
-                Calendar
-              </TabsTrigger>
-              <TabsTrigger 
-                value="list" 
-                onClick={() => setView("list")}
-                data-state={view === "list" ? "active" : "inactive"}
-              >
-                List
-              </TabsTrigger>
-            </TabsList>
+            <Tabs defaultValue={view}>
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger 
+                  value="calendar" 
+                  onClick={() => setView("calendar")}
+                  data-state={view === "calendar" ? "active" : "inactive"}
+                >
+                  Calendar
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="list" 
+                  onClick={() => setView("list")}
+                  data-state={view === "list" ? "active" : "inactive"}
+                >
+                  List
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             
             <div className="flex gap-2">
               <TooltipProvider>
@@ -493,11 +497,16 @@ export default function ExpensePlanner() {
             {view === "calendar" ? (
               <ExpenseCalendar
                 transactions={filteredTransactions}
-                onDateChange={setSelectedDate}
-                selectedDate={selectedDate}
+                currentDate={selectedDate || new Date()} 
+                currentMonthYear={format(selectedDate || new Date(), 'MMMM yyyy')}
+                onPrevMonth={() => setSelectedDate(prev => addMonths(prev || new Date(), -1))}
+                onNextMonth={() => setSelectedDate(prev => addMonths(prev || new Date(), 1))}
+                onSelectToday={() => setSelectedDate(new Date())}
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
+                onDayClick={setSelectedDate}
                 isLoading={isLoadingTransactions}
+                activeView={timeframe}
               />
             ) : (
               <ExpenseSidebar
