@@ -2,6 +2,14 @@ import { Transaction, TransactionWithCategory } from "@shared/schema";
 import { getPreferredAmount, getOccurrencePaidStatus } from "./transaction-preferences";
 import { format } from "date-fns";
 
+// Define local copy of the problematic transaction check
+// for improved reliability and error prevention
+function isProblematicTransaction(title: string): boolean {
+  // List of transaction titles known to have issues with paid status across months
+  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+  return problematicTitles.includes(title);
+}
+
 /**
  * Apply user preferences to transactions coming from the server
  * This allows for client-side overrides of transaction data
@@ -21,12 +29,25 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
     }
     
     // First check for direct fixes for problematic transactions
-    const directFix = applyDirectFixForProblematicTransactions(transaction);
-    if (directFix !== null) {
-      // We have a direct fix to apply
-      console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
-      modifiedTransaction.isPaid = directFix;
-      return modifiedTransaction;
+    // This is a specialized mechanism that overrides the normal paid status behavior
+    // for specific transactions known to have issues with monthly transitions
+    if (isProblematicTransaction(transaction.title)) {
+      const directFix = applyDirectFixForProblematicTransactions(transaction);
+      if (directFix !== null) {
+        // We have a direct fix to apply
+        console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
+        modifiedTransaction.isPaid = directFix;
+        
+        // For critical transactions, make it visually more obvious they're using the direct fix
+        if (['Netflix', 'Orange'].includes(transaction.title)) {
+          console.log(`[DIRECT FIX] Applied direct month fix for critical transaction: ${transaction.title}`);
+        }
+        
+        // Return early since we have applied the direct fix
+        return modifiedTransaction;
+      } else {
+        console.log(`[DIRECT FIX] No fixed status found for problematic transaction: ${transaction.title}`);
+      }
     }
     
     // Apply paid status for recurring transaction occurrences
@@ -71,10 +92,8 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
  * This bypasses the normal status lookup mechanism for known problem transactions
  */
 function applyDirectFixForProblematicTransactions(transaction: TransactionWithCategory): boolean | null {
-  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
-  
-  // Only apply to known problematic transactions
-  if (!problematicTitles.includes(transaction.title)) {
+  // Use the isProblematicTransaction function for consistency
+  if (!isProblematicTransaction(transaction.title)) {
     return null;
   }
   
@@ -117,9 +136,10 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
  * Save a direct fix for a problematic transaction
  */
 export function saveDirectFixForTransaction(title: string, date: Date | string, isPaid: boolean): void {
+  // Known problematic transaction titles that need special handling
   const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
   
-  // Only apply to known problematic transactions
+  // Only apply direct fix to known problematic transactions
   if (!problematicTitles.includes(title)) {
     console.log(`[DIRECT FIX] Ignoring save request for non-problematic transaction: ${title}`);
     return;
@@ -132,19 +152,40 @@ export function saveDirectFixForTransaction(title: string, date: Date | string, 
   } else {
     try {
       dateObj = new Date(date);
+      
+      // Handle invalid date
+      if (isNaN(dateObj.getTime())) {
+        console.error(`[DIRECT FIX] Invalid date for ${title}: ${date}`);
+        dateObj = new Date(); // Use current date as fallback
+      }
     } catch (e) {
-      console.error(`[DIRECT FIX] Error parsing date for ${title}:`, e);
-      return;
+      console.error(`[DIRECT FIX] Error parsing date for ${title}: ${date}`, e);
+      dateObj = new Date(); // Use current date as fallback
     }
   }
   
   // Construct a month-year specific key for localStorage
+  // This is the crucial part - using only year-month ensures one status per month
   const monthYearKey = format(dateObj, 'yyyy-MM');
   const storageKey = `fixed_status_${title}_${monthYearKey}`;
   
-  // Store the value
+  // Store the value with some additional debugging info
   localStorage.setItem(storageKey, isPaid.toString());
+  
+  // Also store a timestamp to help with debugging
+  localStorage.setItem(`${storageKey}_timestamp`, new Date().toISOString());
+  
   console.log(`[DIRECT FIX] Saved fixed status for ${title} in ${monthYearKey}: ${isPaid}`);
+  
+  // Extra validation for mission-critical transactions
+  if (['Netflix', 'Orange'].includes(title)) {
+    // Double-check that we stored the value correctly
+    const storedValue = localStorage.getItem(storageKey);
+    console.log(`[DIRECT FIX VALIDATION] Re-checking stored value for ${title}: 
+      - Expected: ${isPaid.toString()}
+      - Actually stored: ${storedValue}
+      - Storage key: ${storageKey}`);
+  }
 }
 
 /**
@@ -162,12 +203,16 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   }
   
   // First check for direct fixes for problematic transactions
-  const directFix = applyDirectFixForProblematicTransactions(transaction);
-  if (directFix !== null) {
-    // We have a direct fix to apply
-    console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
-    modifiedTransaction.isPaid = directFix;
-    return modifiedTransaction;
+  if (isProblematicTransaction(transaction.title)) {
+    const directFix = applyDirectFixForProblematicTransactions(transaction);
+    if (directFix !== null) {
+      // We have a direct fix to apply
+      console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
+      modifiedTransaction.isPaid = directFix;
+      return modifiedTransaction;
+    } else {
+      console.log(`[DIRECT FIX] No fixed status found for problematic transaction: ${transaction.title}`);
+    }
   }
   
   // Continue with normal logic for non-problematic transactions
