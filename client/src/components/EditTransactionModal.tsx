@@ -23,7 +23,7 @@ import {
   formatCurrency, 
   getExchangeRate 
 } from "@/utils/currency-converter";
-import { saveTransactionAmountPreference } from "@/utils/transaction-preferences";
+import { saveTransactionAmountPreference, saveOccurrencePaidStatus } from "@/utils/transaction-preferences";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -256,7 +256,28 @@ export default function EditTransactionModal({
     
     console.log(`[EditModal] Sending update to backend for transaction ${transaction.id}:`, updateData);
     
-    // Submit the update
+    // Special handling for recurring transactions
+    if (transaction.isRecurring && transaction.isRecurringInstance && transaction.displayDate) {
+      console.log(`[EditModal] This is a recurring transaction instance. Handling differently.`);
+      
+      // For recurring transaction instances, we don't update the base transaction,
+      // instead we save the paid status locally for this specific occurrence
+      if (data.isPaid !== transaction.isPaid) {
+        console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${transaction.displayDate}: ${data.isPaid}`);
+        
+        // Save the paid status for this specific occurrence
+        saveOccurrencePaidStatus(transaction.title, transaction.displayDate, data.isPaid);
+        
+        // No need to update the backend for recurring instances
+        onClose();
+        
+        // Force refetch to update UI with the new paid status
+        queryClient.invalidateQueries({queryKey: ['/api/transactions']});
+        return;
+      }
+    }
+    
+    // For regular transactions or base recurring transactions, update normally
     onUpdateTransaction(transaction.id, updateData);
     
     // Reset currency after submission
