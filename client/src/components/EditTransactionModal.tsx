@@ -353,6 +353,14 @@ export default function EditTransactionModal({
   const filteredCategories = categories.filter(
     (category) => category.isExpense === watchIsExpense
   );
+  
+  // Check if this is a recurring instance (a generated occurrence of a recurring transaction)
+  // We can check this by looking for properties specific to generated occurrences
+  const transactionAny = transaction as any;
+  const isRecurringInstance = transaction && 
+    ('isRecurringInstance' in transactionAny || 
+    'displayDate' in transactionAny || 
+    'displayDateStr' in transactionAny);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -604,7 +612,7 @@ export default function EditTransactionModal({
                     </FormLabel>
                     <div className="text-sm text-muted-foreground">
                       Mark this transaction as paid
-                      {(transaction?.isRecurring || transactionAny?.isRecurringInstance) && (
+                      {(transaction?.isRecurring || isRecurringInstance) && (
                         <div className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Only this specific occurrence ({transactionAny?.displayDateStr || format(new Date(transaction?.date || new Date()), 'yyyy-MM-dd')}) will be marked as paid
@@ -617,7 +625,7 @@ export default function EditTransactionModal({
                       checked={field.value}
                       onCheckedChange={(newValue) => {
                         field.onChange(newValue);
-                        if (transaction?.isRecurring || transactionAny?.isRecurringInstance) {
+                        if (transaction?.isRecurring || isRecurringInstance) {
                           // Show a toast explaining what's happening
                           if (newValue) {
                             toast({

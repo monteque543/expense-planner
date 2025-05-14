@@ -677,10 +677,10 @@ export default function ExpensePlanner() {
                 console.log('[DEBUG] Current paid statuses in localStorage:', paidStatuses);
                 
                 // Check for duplicates or issues
-                const titles = new Set();
-                const potentialDuplicates = [];
+                const titles: Set<string> = new Set();
+                const potentialDuplicates: string[] = [];
                 
-                paidStatuses.forEach(status => {
+                paidStatuses.forEach((status: { key: string }) => {
                   const [title, date] = status.key.split('_');
                   const simplifiedKey = `${title}_${date.substring(0, 10)}`;  // Only keep YYYY-MM-DD part
                   
