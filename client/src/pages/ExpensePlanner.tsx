@@ -25,7 +25,6 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, 
 import { useToast } from "@/hooks/use-toast";
 import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
 import { 
-  hardcodedExpenses,
   createHardcodedExpenseTransactions,
   isTransactionDeleted as isHardcodedTransactionDeleted,
   deletedHardcodedTransactionIds
