@@ -26,17 +26,19 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
     // Debug logging to see what's happening with each transaction
     console.log(`[Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${transactionAny.isRecurringInstance ? true : false}, displayDate: ${transactionAny.displayDate || 'none'}`);
     
-    if (transactionAny.isRecurringInstance && transactionAny.displayDate) {
-      // Check if we have a saved paid status for this specific occurrence
-      const paidStatus = getOccurrencePaidStatus(transaction.title, transactionAny.displayDate);
+    // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
+    if ((transactionAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
+      // Use displayDate if available, otherwise use transaction.date
+      let occurrenceDate = transactionAny.displayDate || transaction.date;
       
-      // Debug the occurrence key being checked
-      const occurrenceKey = `${transaction.title}_${transactionAny.displayDate instanceof Date ? transactionAny.displayDate.toISOString().split('T')[0] : (typeof transactionAny.displayDate === 'string' ? transactionAny.displayDate.split('T')[0] : '')}`;
-      console.log(`[Transformer Debug] Checking paid status for key: ${occurrenceKey}, result: ${paidStatus}`);
+      console.log(`[Transformer Debug] Checking recurring transaction: ${transaction.title}, using date: ${occurrenceDate}`);
+      
+      // Check if we have a saved paid status for this specific occurrence
+      const paidStatus = getOccurrencePaidStatus(transaction.title, occurrenceDate);
       
       // Only override if we have a stored value
       if (paidStatus !== null) {
-        console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${transactionAny.displayDate}: ${paidStatus}`);
+        console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${occurrenceDate}: ${paidStatus}`);
         modifiedTransaction.isPaid = paidStatus;
       }
     }
@@ -68,18 +70,21 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   // Debug logging to see what's happening with individual transaction
   console.log(`[Single Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${transactionAny.isRecurringInstance ? true : false}, displayDate: ${transactionAny.displayDate || 'none'}`);
   
-  if (transaction.isRecurring && transactionAny.isRecurringInstance && transactionAny.displayDate) {
+  // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
+  if ((transactionAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
+    // Use displayDate if available, otherwise use transaction.date
+    let occurrenceDate = transactionAny.displayDate || transaction.date;
+    
+    console.log(`[Single Transformer Debug] Checking recurring transaction: ${transaction.title}, using date: ${occurrenceDate}`);
+    
     // Check if we have a saved paid status for this specific occurrence
-    const paidStatus = getOccurrencePaidStatus(transaction.title, transactionAny.displayDate);
+    const paidStatus = getOccurrencePaidStatus(transaction.title, occurrenceDate);
     
-    // Debug the occurrence key being checked
-    const occurrenceKey = `${transaction.title}_${transactionAny.displayDate instanceof Date ? transactionAny.displayDate.toISOString().split('T')[0] : (typeof transactionAny.displayDate === 'string' ? transactionAny.displayDate.split('T')[0] : '')}`;
-    console.log(`[Single Transformer Debug] Checking paid status for key: ${occurrenceKey}, result: ${paidStatus}`);
-    
-    // Only override if we have a stored value
     if (paidStatus !== null) {
-      console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${transactionAny.displayDate}: ${paidStatus}`);
+      console.log(`[Client Override] Using stored paid status for ${transaction.title} on ${occurrenceDate}: ${paidStatus}`);
       modifiedTransaction.isPaid = paidStatus;
+    } else {
+      console.log(`[Client Default] No stored status for ${transaction.title} on ${occurrenceDate}, using original: ${modifiedTransaction.isPaid}`);
     }
   }
   

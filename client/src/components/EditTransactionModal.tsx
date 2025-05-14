@@ -277,18 +277,40 @@ export default function EditTransactionModal({
       // For recurring transaction instances, we don't update the base transaction,
       // instead we save the paid status locally for this specific occurrence
       if (data.isPaid !== transaction.isPaid) {
-        console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${transactionAny.displayDate}: ${data.isPaid}`);
+        // Determine which date to use for the occurrence key
+        let occurrenceDate = transactionAny.displayDate || transaction.date;
         
-        // Ensure we format the displayDate correctly when passing to the storage function
-        let formattedDisplayDate = transactionAny.displayDate;
-        if (transactionAny.displayDate instanceof Date) {
-          formattedDisplayDate = transactionAny.displayDate.toISOString().split('T')[0];
+        console.log(`[EditModal] Saving paid status for recurring occurrence "${transaction.title}" on ${occurrenceDate}: ${data.isPaid}`);
+        
+        // Ensure we format the date correctly when passing to the storage function
+        let formattedDate: string;
+        
+        if (occurrenceDate instanceof Date) {
+          formattedDate = occurrenceDate.toISOString().split('T')[0];
+        } else if (typeof occurrenceDate === 'string') {
+          // Handle different string formats
+          if (occurrenceDate.includes('T')) {
+            formattedDate = occurrenceDate.split('T')[0];
+          } else if (occurrenceDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            formattedDate = occurrenceDate;
+          } else {
+            // Try to parse the date
+            try {
+              formattedDate = new Date(occurrenceDate).toISOString().split('T')[0];
+            } catch (e) {
+              console.error(`[EditModal] Invalid date string: ${occurrenceDate}`, e);
+              formattedDate = new Date().toISOString().split('T')[0];
+            }
+          }
+        } else {
+          console.warn(`[EditModal] No valid date found for occurrence, using current date`);
+          formattedDate = new Date().toISOString().split('T')[0];
         }
         
-        console.log(`[EditModal Debug] Saving paid status for occurrence. Title: ${transaction.title}, Date: ${formattedDisplayDate}, IsPaid: ${data.isPaid}`);
+        console.log(`[EditModal Debug] Saving paid status for occurrence. Title: ${transaction.title}, Date: ${formattedDate}, IsPaid: ${data.isPaid}`);
         
         // Save the paid status for this specific occurrence
-        saveOccurrencePaidStatus(transaction.title, formattedDisplayDate, data.isPaid);
+        saveOccurrencePaidStatus(transaction.title, formattedDate, data.isPaid);
         
         // No need to update the backend for recurring instances
         onClose();

@@ -112,12 +112,36 @@ export function getRecurringTransactionPaidStatuses(): RecurringTransactionPaidS
  * Generate a unique key for a recurring transaction occurrence
  */
 export function generateOccurrenceKey(title: string, date: Date | string): string {
-  // Convert date to string format YYYY-MM-DD if it's a Date object
-  const dateStr = date instanceof Date 
-    ? date.toISOString().split('T')[0] 
-    : (typeof date === 'string' ? date.split('T')[0] : '');
+  // Format date to YYYY-MM-DD
+  let dateStr: string;
   
-  return `${title}_${dateStr}`;
+  if (date instanceof Date) {
+    dateStr = date.toISOString().split('T')[0];
+  } else if (typeof date === 'string') {
+    // Handle different string formats to ensure we get YYYY-MM-DD
+    if (date.includes('T')) {
+      // Handle ISO format with time
+      dateStr = date.split('T')[0];
+    } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Already in YYYY-MM-DD format
+      dateStr = date;
+    } else {
+      // Try to parse the date
+      try {
+        dateStr = new Date(date).toISOString().split('T')[0];
+      } catch (e) {
+        console.error(`[Key Generate] Invalid date string: ${date}`, e);
+        dateStr = new Date().toISOString().split('T')[0];
+      }
+    }
+  } else {
+    console.warn(`[Key Generate] Unexpected date type: ${typeof date}, using current date`);
+    dateStr = new Date().toISOString().split('T')[0];
+  }
+  
+  const key = `${title}_${dateStr}`;
+  console.log(`[Key Generate] Created key: "${key}" for title="${title}", date=${String(date)}`);
+  return key;
 }
 
 /**
