@@ -136,11 +136,8 @@ function applyDirectFixForProblematicTransactions(transaction: TransactionWithCa
  * Save a direct fix for a problematic transaction
  */
 export function saveDirectFixForTransaction(title: string, date: Date | string, isPaid: boolean): void {
-  // Known problematic transaction titles that need special handling
-  const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
-  
-  // Only apply direct fix to known problematic transactions
-  if (!problematicTitles.includes(title)) {
+  // Use our consistent function for checking problematic transactions
+  if (!isProblematicTransaction(title)) {
     console.log(`[DIRECT FIX] Ignoring save request for non-problematic transaction: ${title}`);
     return;
   }
