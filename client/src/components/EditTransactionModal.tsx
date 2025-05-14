@@ -360,7 +360,23 @@ export default function EditTransactionModal({
         <DialogHeader>
           <DialogTitle>
             Edit {watchIsExpense ? "Expense" : "Income"}
+            {transaction?.title ? `: ${transaction.title}` : ""}
           </DialogTitle>
+          {(isRecurringInstance || transaction?.isRecurring) && (
+            <div className="mt-2 px-3 py-2 text-sm bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+              <div className="flex items-start">
+                <AlertCircle className="h-4 w-4 mr-2 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-400">Recurring Transaction Notice</p>
+                  <p className="text-amber-700 dark:text-amber-500 mt-1 text-xs">
+                    {isRecurringInstance 
+                      ? "This is a single occurrence of a recurring transaction. Changes to paid status will only affect this specific date."
+                      : "This is a recurring transaction. Marking it as paid will only affect this specific occurrence, not future ones."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogHeader>
         
         <Form {...form}>
@@ -578,12 +594,20 @@ export default function EditTransactionModal({
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Paid Status</FormLabel>
+                    <FormLabel>
+                      Paid Status
+                      {field.value && (
+                        <span className="ml-2 text-xs inline-flex items-center text-green-600 dark:text-green-400">
+                          <Check className="h-3 w-3 mr-1" /> Marked as paid
+                        </span>
+                      )}
+                    </FormLabel>
                     <div className="text-sm text-muted-foreground">
                       Mark this transaction as paid
-                      {transaction?.isRecurring && (
-                        <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
-                          <span>✓ This will only affect this occurrence, not future ones</span>
+                      {(transaction?.isRecurring || transactionAny?.isRecurringInstance) && (
+                        <div className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Only this specific occurrence ({transactionAny?.displayDateStr || format(new Date(transaction?.date || new Date()), 'yyyy-MM-dd')}) will be marked as paid
                         </div>
                       )}
                     </div>
@@ -591,7 +615,19 @@ export default function EditTransactionModal({
                   <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(newValue) => {
+                        field.onChange(newValue);
+                        if (transaction?.isRecurring || transactionAny?.isRecurringInstance) {
+                          // Show a toast explaining what's happening
+                          if (newValue) {
+                            toast({
+                              title: "Only this occurrence affected",
+                              description: "Only this specific date will be marked as paid, not future occurrences.",
+                              variant: "default",
+                            });
+                          }
+                        }
+                      }}
                     />
                   </FormControl>
                 </FormItem>

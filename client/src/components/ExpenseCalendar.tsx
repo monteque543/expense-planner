@@ -787,11 +787,11 @@ const originalDate = typeof transaction.date === 'string'
                     return (
                       <div 
                         key={transIdx}
-                        className={`expense-pill ${transaction.isExpense ? 'bg-red-500' : 'bg-green-500'} 
+                        className={`expense-pill ${transaction.isExpense ? transaction.isPaid ? 'bg-red-700/70' : 'bg-red-500' : transaction.isPaid ? 'bg-green-700/70' : 'bg-green-500'} 
                           text-white rounded-sm px-1 py-0.5 mb-0.5 text-xs flex items-center justify-between
                           cursor-pointer hover:opacity-90 group relative
                           ${isRecurringInstance ? 'border-l-2 border-white' : ''}
-                          ${transaction.isPaid ? 'border-2 border-green-300' : ''}`}
+                          ${transaction.isPaid ? 'border border-green-300 shadow-sm' : ''}`}
                         title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
                         onClick={() => onEditTransaction(transaction)}
                         onContextMenu={(e) => {
