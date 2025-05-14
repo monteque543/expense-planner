@@ -571,6 +571,11 @@ export default function EditTransactionModal({
                     <FormLabel>Paid Status</FormLabel>
                     <div className="text-sm text-muted-foreground">
                       Mark this transaction as paid
+                      {transaction?.isRecurring && (
+                        <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                          <span>✓ This will only affect this occurrence, not future ones</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <FormControl>
