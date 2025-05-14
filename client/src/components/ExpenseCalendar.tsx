@@ -19,7 +19,7 @@ import {
   addYears,
   lastDayOfMonth
 } from 'date-fns';
-import { useDrag, useDrop } from 'react-dnd';
+
 import { TransactionWithCategory } from '@shared/schema';
 import { createHardcodedIncomeTransactions } from '@/utils/income-hardcoder';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -106,6 +106,7 @@ interface ExpenseCalendarProps {
   onSelectToday: () => void;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   onDeleteTransaction: (id: number) => void;
+  onMoveTransaction?: (id: number, newDate: Date) => void; // Add this prop for moving transactions between days
   onDayClick?: (date: Date) => void;
   isLoading: boolean;
   activeView: 'week' | 'month' | 'year';
@@ -120,6 +121,7 @@ export default function ExpenseCalendar({
   onSelectToday,
   onEditTransaction,
   onDeleteTransaction,
+  onMoveTransaction,
   onDayClick,
   isLoading,
   activeView
@@ -798,12 +800,76 @@ const originalDate = typeof transaction.date === 'string'
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // Only allow deletion for actual transactions that have an ID
+                          // Only allow operations for actual transactions that have an ID
                           if (transaction.id) {
-                            // Show confirmation and delete if confirmed
-                            if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
-                              onDeleteTransaction(transaction.id);
+                            // Create a custom context menu with options
+                            const menuItems = [
+                              { label: 'Delete', action: 'delete' },
+                              { label: 'Move to another day', action: 'move' }
+                            ];
+                            
+                            const menuHtml = `
+                              <div id="custom-context-menu" style="position: fixed; z-index: 9999; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); padding: 5px 0;">
+                                ${menuItems.map(item => `<div class="menu-item" data-action="${item.action}" style="padding: 8px 15px; cursor: pointer; font-size: 14px; hover:background-color: #f5f5f5;">${item.label}</div>`).join('')}
+                              </div>
+                            `;
+                            
+                            // Remove any existing menu
+                            const existingMenu = document.getElementById('custom-context-menu');
+                            if (existingMenu) {
+                              existingMenu.remove();
                             }
+                            
+                            // Create and append the new menu
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = menuHtml;
+                            const menuElement = tempDiv.firstElementChild;
+                            document.body.appendChild(menuElement);
+                            
+                            // Position the menu at the mouse position
+                            menuElement.style.left = `${e.clientX}px`;
+                            menuElement.style.top = `${e.clientY}px`;
+                            
+                            // Add event listeners to menu items
+                            menuElement.querySelectorAll('.menu-item').forEach(item => {
+                              item.addEventListener('click', () => {
+                                const action = item.getAttribute('data-action');
+                                
+                                if (action === 'delete') {
+                                  if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
+                                    onDeleteTransaction(transaction.id);
+                                  }
+                                } else if (action === 'move' && onMoveTransaction) {
+                                  // Ask the user to select a new date
+                                  const newDateStr = prompt('Enter a new date (YYYY-MM-DD):', 
+                                                           format(new Date(transaction.date), 'yyyy-MM-dd'));
+                                  
+                                  if (newDateStr) {
+                                    try {
+                                      // Parse the date string
+                                      const [year, month, day] = newDateStr.split('-').map(Number);
+                                      
+                                      // Date values: month is 0-indexed in JavaScript
+                                      const newDate = new Date(year, month - 1, day, 12, 0, 0);
+                                      
+                                      // Call the callback to move the transaction
+                                      onMoveTransaction(transaction.id, newDate);
+                                    } catch (error) {
+                                      alert('Invalid date format. Please use YYYY-MM-DD');
+                                    }
+                                  }
+                                }
+                                
+                                // Remove the menu after an action is taken
+                                menuElement.remove();
+                              });
+                            });
+                            
+                            // Close the menu when clicking outside
+                            document.addEventListener('click', function closeMenu() {
+                              menuElement.remove();
+                              document.removeEventListener('click', closeMenu);
+                            });
                           }
                         }}
                       >
@@ -822,9 +888,9 @@ const originalDate = typeof transaction.date === 'string'
                         {/* Right side with amount */}
                         <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(2)} PLN</span>
                         
-                        {/* Deletion hint on hover */}
+                        {/* Context menu hint on hover */}
                         <div className="absolute right-0 bottom-0 opacity-0 group-hover:opacity-50 text-[9px] text-white">
-                          Right-click to delete
+                          Right-click for menu
                         </div>
                       </div>
                     );

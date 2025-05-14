@@ -44,8 +44,7 @@ import {
 import { Keyboard } from "lucide-react";
 import { getUniqueTitles } from "@/utils/titleUtils";
 
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+
 
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -641,7 +640,6 @@ export default function ExpensePlanner() {
   });
 
   return (
-    <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen flex flex-col bg-background text-foreground overflow-auto">
         {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
@@ -1022,6 +1020,5 @@ export default function ExpensePlanner() {
         isPending={addSavings.isPending}
       />
     </div>
-    </DndProvider>
   );
 }
