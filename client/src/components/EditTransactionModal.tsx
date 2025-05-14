@@ -21,6 +21,7 @@ import {
   formatCurrency, 
   getExchangeRate 
 } from "@/utils/currency-converter";
+import { saveTransactionAmountPreference } from "@/utils/transaction-preferences";
 
 interface EditTransactionModalProps {
   isOpen: boolean;

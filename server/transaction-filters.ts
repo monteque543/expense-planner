@@ -11,12 +11,17 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
       return false;
     }
     
-    // 2. Filter out "Rp training app" transactions in May (only show from June onwards)
-    if (transaction.title === "Rp training app" || transaction.title === "RP training app") {
+    // 2. Filter out all variations of "RP training app" transactions in May (only show from June onwards)
+    // Use case-insensitive matching to catch all variations of capitalization
+    if (transaction.title.toLowerCase().includes("training app")) {
       const transactionDate = new Date(transaction.date);
-      // If we're looking at May 2025 (month index 4) or earlier, filter it out
+      
+      // Debug log to see what variations we're finding
+      console.log(`Found training app transaction: "${transaction.title}" on ${transactionDate.toISOString()}`);
+      
+      // If month is May (index 4) or earlier in 2025, filter it out completely
       if (transactionDate.getFullYear() === 2025 && transactionDate.getMonth() <= 4) {
-        console.log(`Filtering out RP training app from ${transactionDate.toISOString()}`);
+        console.log(`Filtering out "${transaction.title}" from ${transactionDate.toISOString()}`);
         return false;
       }
     }
