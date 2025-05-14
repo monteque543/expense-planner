@@ -800,57 +800,16 @@ const originalDate = typeof transaction.date === 'string'
                           e.stopPropagation();
                           
                           if (transaction.id) {
-                            // Remove any existing context menu
-                            const existingMenu = document.getElementById('custom-context-menu');
-                            if (existingMenu) {
-                              existingMenu.remove();
-                            }
+                            // Show a simple confirmation dialog for delete
+                            const action = window.confirm(`What would you like to do with "${transaction.title}"?\n\n- OK to delete \n- Cancel to move to another date`);
                             
-                            // Create menu element
-                            const menu = document.createElement('div');
-                            menu.id = 'custom-context-menu';
-                            menu.style.position = 'fixed';
-                            menu.style.zIndex = '9999';
-                            menu.style.left = `${e.clientX}px`;
-                            menu.style.top = `${e.clientY}px`;
-                            menu.style.backgroundColor = 'white';
-                            menu.style.border = '1px solid #ccc';
-                            menu.style.borderRadius = '4px';
-                            menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-                            menu.style.padding = '5px 0';
-                            
-                            // Delete option
-                            const deleteOption = document.createElement('div');
-                            deleteOption.textContent = 'Delete';
-                            deleteOption.style.padding = '8px 15px';
-                            deleteOption.style.cursor = 'pointer';
-                            deleteOption.style.fontSize = '14px';
-                            deleteOption.addEventListener('mouseenter', () => {
-                              deleteOption.style.backgroundColor = '#f5f5f5';
-                            });
-                            deleteOption.addEventListener('mouseleave', () => {
-                              deleteOption.style.backgroundColor = 'transparent';
-                            });
-                            deleteOption.addEventListener('click', () => {
-                              if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
+                            if (action) {
+                              // User clicked OK - Delete
+                              if (window.confirm(`Are you sure you want to delete "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
                                 onDeleteTransaction(transaction.id);
                               }
-                              menu.remove();
-                            });
-                            
-                            // Move option
-                            const moveOption = document.createElement('div');
-                            moveOption.textContent = 'Move to another day';
-                            moveOption.style.padding = '8px 15px';
-                            moveOption.style.cursor = 'pointer';
-                            moveOption.style.fontSize = '14px';
-                            moveOption.addEventListener('mouseenter', () => {
-                              moveOption.style.backgroundColor = '#f5f5f5';
-                            });
-                            moveOption.addEventListener('mouseleave', () => {
-                              moveOption.style.backgroundColor = 'transparent';
-                            });
-                            moveOption.addEventListener('click', () => {
+                            } else {
+                              // User clicked Cancel - Move to another date
                               if (onMoveTransaction) {
                                 const newDateStr = prompt('Enter a new date (YYYY-MM-DD):', 
                                   format(new Date(transaction.date), 'yyyy-MM-dd'));
@@ -865,21 +824,7 @@ const originalDate = typeof transaction.date === 'string'
                                   }
                                 }
                               }
-                              menu.remove();
-                            });
-                            
-                            // Add options to menu
-                            menu.appendChild(deleteOption);
-                            menu.appendChild(moveOption);
-                            
-                            // Add menu to document
-                            document.body.appendChild(menu);
-                            
-                            // Close menu when clicking outside
-                            document.addEventListener('click', function closeMenu() {
-                              menu.remove();
-                              document.removeEventListener('click', closeMenu);
-                            });
+                            }
                           }
                         }}
                       >
