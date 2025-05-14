@@ -18,8 +18,11 @@ interface EditedTransaction {
   amount: number;
   personLabel: string;
   isExpense: boolean;
+  isRecurring?: boolean;
+  recurringInterval?: string;
   date?: string | null; // Store as ISO string or null
   lastEdited: number; // timestamp
+  originalId?: number; // Store original ID for recurring transactions
 }
 
 /**
@@ -39,30 +42,49 @@ export function getEditedTransactions(): Record<number, EditedTransaction> {
 
 /**
  * Save an edited transaction to localStorage
+ * @param transaction The transaction with updated values
+ * @param originalId Optional original ID for recurring transactions
  */
-export function saveEditedTransaction(transaction: Transaction): void {
+export function saveEditedTransaction(transaction: Transaction, originalId?: number): void {
   try {
     const editedTransactions = getEditedTransactions();
     
-    // Store only the essential data we need to remember
+    // Store complete recurring transaction information to ensure it's applied consistently
     editedTransactions[transaction.id] = {
       id: transaction.id,
       title: transaction.title,
       amount: transaction.amount,
       personLabel: transaction.personLabel || 'Michał', // Default value to avoid type errors
       isExpense: transaction.isExpense,
+      isRecurring: transaction.isRecurring === true ? true : undefined,
+      recurringInterval: transaction.recurringInterval || undefined,
       date: transaction.date instanceof Date ? 
         transaction.date.toISOString() : 
         (typeof transaction.date === 'string' ? transaction.date : null),
-      lastEdited: Date.now()
+      lastEdited: Date.now(),
+      originalId: originalId || undefined
     };
+    
+    // For recurring transactions, store info by pattern too
+    if (transaction.isRecurring && transaction.title) {
+      // Store same edit for any future instances with same title
+      const recurringKey = `recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
+      localStorage.setItem(recurringKey, JSON.stringify({
+        title: transaction.title,
+        amount: transaction.amount,
+        isRecurring: transaction.isRecurring,
+        recurringInterval: transaction.recurringInterval,
+        lastEdited: Date.now()
+      }));
+      console.log(`Saved recurring pattern for "${transaction.title}" with amount: ${transaction.amount}`);
+    }
     
     localStorage.setItem(
       EDITED_TRANSACTIONS_KEY, 
       JSON.stringify(editedTransactions)
     );
     
-    console.log(`Saved user edit for transaction #${transaction.id}: ${transaction.title} amount: ${transaction.amount}`);
+    console.log(`Saved user edit for transaction #${transaction.id}: ${transaction.title} amount: ${transaction.amount}, isRecurring: ${transaction.isRecurring}`);
   } catch (error) {
     console.error('Error saving edited transaction:', error);
   }
@@ -82,6 +104,7 @@ export function hasUserEditForTransaction(transactionId: number): boolean {
 export function applyUserEditsIfExists<T extends Transaction>(transaction: T): T {
   const editedTransactions = getEditedTransactions();
   
+  // Check for direct edits first by ID
   if (editedTransactions[transaction.id]) {
     const userEdit = editedTransactions[transaction.id];
     
@@ -91,7 +114,32 @@ export function applyUserEditsIfExists<T extends Transaction>(transaction: T): T
       amount: userEdit.amount,
       title: userEdit.title,
       personLabel: userEdit.personLabel,
+      isRecurring: userEdit.isRecurring !== undefined ? userEdit.isRecurring : transaction.isRecurring,
+      recurringInterval: userEdit.recurringInterval || transaction.recurringInterval,
     };
+  }
+  
+  // If no direct edit, but it's a recurring transaction, check for pattern edits
+  if (transaction.isRecurring && transaction.title) {
+    try {
+      const recurringKey = `recurring_${transaction.title}_${transaction.isExpense ? 'expense' : 'income'}`;
+      const storedPattern = localStorage.getItem(recurringKey);
+      
+      if (storedPattern) {
+        const patternEdit = JSON.parse(storedPattern);
+        console.log(`Found recurring pattern edit for "${transaction.title}": ${patternEdit.amount}`);
+        
+        // Apply the pattern edit
+        return {
+          ...transaction,
+          amount: patternEdit.amount,
+          isRecurring: patternEdit.isRecurring !== undefined ? patternEdit.isRecurring : transaction.isRecurring,
+          recurringInterval: patternEdit.recurringInterval || transaction.recurringInterval,
+        };
+      }
+    } catch (error) {
+      console.error('Error checking recurring pattern:', error);
+    }
   }
   
   return transaction;
