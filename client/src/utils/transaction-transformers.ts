@@ -33,21 +33,38 @@ export function applyTransactionPreferences(transactions: TransactionWithCategor
       modifiedTransaction.amount = preferredAmount;
     }
     
-    // First check for direct fixes for problematic transactions
-    // This is a specialized mechanism that overrides the normal paid status behavior
-    // for specific transactions known to have issues with monthly transitions
+    // First check if this transaction requires strict monthly isolation
+    if (requiresStrictIsolation(transaction)) {
+      // Use the display date if available for recurring instances
+      const dateToUse = (transaction as any).displayDate || transaction.date;
+      
+      // Get the month-specific status for this transaction
+      const monthlyStatus = getMonthlyPaidStatus(transaction, dateToUse);
+      
+      if (monthlyStatus !== null) {
+        // Apply the month-specific status
+        console.log(`[STRICT ISOLATION] Applying isolated status for ${transaction.title} on ${format(new Date(dateToUse), 'yyyy-MM-dd')}: ${monthlyStatus}`);
+        modifiedTransaction.isPaid = monthlyStatus;
+        
+        // For critical transactions, make it visually more obvious they're using the strict isolation
+        if (['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit'].includes(transaction.title)) {
+          console.log(`[STRICT ISOLATION] Applied strict isolation for critical transaction: ${transaction.title}`);
+        }
+        
+        // Return early since we have applied the strict isolation status
+        return modifiedTransaction;
+      } else {
+        console.log(`[STRICT ISOLATION] No month-specific status found for: ${transaction.title}`);
+      }
+    }
+    
+    // Fallback to direct fix for backward compatibility
     if (isProblematicTransaction(transaction.title)) {
       const directFix = applyDirectFixForProblematicTransactions(transaction);
       if (directFix !== null) {
         // We have a direct fix to apply
         console.log(`[DIRECT FIX] Applying fixed status for ${transaction.title}: ${directFix}`);
         modifiedTransaction.isPaid = directFix;
-        
-        // For critical transactions, make it visually more obvious they're using the direct fix
-        if (['Netflix', 'Orange'].includes(transaction.title)) {
-          console.log(`[DIRECT FIX] Applied direct month fix for critical transaction: ${transaction.title}`);
-        }
-        
         // Return early since we have applied the direct fix
         return modifiedTransaction;
       } else {
