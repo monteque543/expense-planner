@@ -312,29 +312,29 @@ export default function ExpenseCalendar({
             futureDate = addMonths(originalDate, i + 1);
           }
           
-          // Store the future instance
-          const futureDateStr = format(futureDate, 'yyyy-MM-dd');
-          if (!grouped[futureDateStr]) {
-            grouped[futureDateStr] = [];
+          // Format the date for the key
+          const formattedDate = format(futureDate, 'yyyy-MM-dd');
+          if (!grouped[formattedDate]) {
+            grouped[formattedDate] = [];
           }
           
-          // Create a copy of the transaction with the future date
-          const futureMonth = futureDateStr.substring(0, 7); // Extract YYYY-MM part for isolation
+          // Extract the month-year for isolation
+          const monthYear = formattedDate.substring(0, 7); // Extract YYYY-MM part for isolation
           
           // Create unique ID for this specific month's instance
-          const instanceId = `${transaction.id}_${futureMonth}`;
+          const instanceId = `${transaction.id}_${monthYear}`;
           
           const futureCopy = {
             ...transaction,
             displayDate: futureDate,
-            displayDateStr: futureDateStr, // Add formatted string date for consistent key generation
+            displayDateStr: formattedDate, // Use our formatted date string
             isRecurringInstance: true, // Flag to indicate this is a recurring instance
             strictInstanceId: instanceId, // Add this month-specific identifier for isolation
-            strictMonth: futureMonth // Store the month this instance belongs to
+            strictMonth: monthYear // Store the month this instance belongs to
           };
           
-          grouped[futureDateStr].push(futureCopy);
-          console.log(`PRE-GENERATED future instance of ${transaction.title} on ${futureDateStr}`);
+          grouped[formattedDate].push(futureCopy);
+          console.log(`PRE-GENERATED future instance of ${transaction.title} on ${formattedDate}`);
         }
       }
     });

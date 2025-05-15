@@ -887,7 +887,7 @@ export default function ExpensePlanner() {
                   });
                   
                   // Force refresh transactions
-                  refetchTransactions();
+                  queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
                 }}
                 className="text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-800 dark:hover:bg-amber-700 px-2 py-1 rounded-md ml-2"
               >
