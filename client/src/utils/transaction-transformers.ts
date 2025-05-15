@@ -319,17 +319,17 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   // Apply paid status for recurring transaction occurrences
   
   // Debug logging to see what's happening with individual transaction
-  console.log(`[Single Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${transaction.isRecurringInstance || false}, displayDate: ${transaction.displayDate || 'none'}`);
+  const txnAny = transaction as any; // Type assertion for runtime properties
+  console.log(`[Single Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${txnAny.isRecurringInstance || false}, displayDate: ${txnAny.displayDate || 'none'}`);
   
   // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
-  if (((transaction as any).isRecurringInstance || transaction.isRecurring) && transaction.date) {
+  if ((txnAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
     // Use displayDateStr if available (for consistent formatting), then displayDate, then transaction.date
-    const txn = transaction as any; // Local type assertion
-    let occurrenceDate = txn.displayDateStr || 
-                        (txn.displayDate ? 
-                          (txn.displayDate instanceof Date ? 
-                            format(txn.displayDate, 'yyyy-MM-dd') : 
-                            txn.displayDate) : 
+    let occurrenceDate = txnAny.displayDateStr || 
+                        (txnAny.displayDate ? 
+                          (txnAny.displayDate instanceof Date ? 
+                            format(txnAny.displayDate, 'yyyy-MM-dd') : 
+                            txnAny.displayDate) : 
                           (transaction.date instanceof Date ? 
                             format(transaction.date, 'yyyy-MM-dd') : 
                             transaction.date));

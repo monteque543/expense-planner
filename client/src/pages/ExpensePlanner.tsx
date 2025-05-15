@@ -864,6 +864,35 @@ export default function ExpensePlanner() {
               >
                 Factory Reset
               </button>
+              
+              <button 
+                onClick={() => {
+                  // This tests our strict monthly isolation for Netflix across different months
+                  const title = "Netflix";
+                  
+                  // Create a unique key for May
+                  const mayKey = `strict_paid_${title.replace(/\s+/g, '_')}_2025-05`;
+                  localStorage.setItem(mayKey, "true");
+                  console.log(`[TEST] Set ${title} May status to TRUE (${mayKey})`);
+                  
+                  // Create a unique key for June
+                  const juneKey = `strict_paid_${title.replace(/\s+/g, '_')}_2025-06`;
+                  localStorage.setItem(juneKey, "false");
+                  console.log(`[TEST] Set ${title} June status to FALSE (${juneKey})`);
+                  
+                  // Show notification
+                  toast({
+                    title: "Monthly Isolation Test Created",
+                    description: "Netflix now has different status in May (paid) and June (unpaid). Switch months to verify isolation.",
+                  });
+                  
+                  // Force refresh transactions
+                  refetchTransactions();
+                }}
+                className="text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-800 dark:hover:bg-amber-700 px-2 py-1 rounded-md ml-2"
+              >
+                Test Isolation
+              </button>
             </div>
             <ThemeToggle />
             
