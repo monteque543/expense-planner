@@ -319,11 +319,18 @@ export default function ExpenseCalendar({
           }
           
           // Create a copy of the transaction with the future date
+          const futureMonth = futureDateStr.substring(0, 7); // Extract YYYY-MM part for isolation
+          
+          // Create unique ID for this specific month's instance
+          const instanceId = `${transaction.id}_${futureMonth}`;
+          
           const futureCopy = {
             ...transaction,
             displayDate: futureDate,
-            displayDateStr: format(futureDate, 'yyyy-MM-dd'), // Add formatted string date for consistent key generation
-            isRecurringInstance: true // Flag to indicate this is a recurring instance
+            displayDateStr: futureDateStr, // Add formatted string date for consistent key generation
+            isRecurringInstance: true, // Flag to indicate this is a recurring instance
+            strictInstanceId: instanceId, // Add this month-specific identifier for isolation
+            strictMonth: futureMonth // Store the month this instance belongs to
           };
           
           grouped[futureDateStr].push(futureCopy);
