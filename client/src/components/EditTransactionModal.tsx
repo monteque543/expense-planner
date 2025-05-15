@@ -23,8 +23,9 @@ import {
   formatCurrency, 
   getExchangeRate 
 } from "@/utils/currency-converter";
-import { saveTransactionAmountPreference, saveOccurrencePaidStatus, isProblematicTransaction } from "@/utils/transaction-preferences";
+import { saveTransactionAmountPreference, saveOccurrencePaidStatus, isProblematicTransaction as isLegacyProblematicTransaction } from "@/utils/transaction-preferences";
 import { saveDirectFixForTransaction } from "@/utils/transaction-transformers";
+import { isCriticalTransaction, setMonthSpecificPaidStatus } from "@/utils/month-specific-paid-status";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -320,8 +321,22 @@ export default function EditTransactionModal({
         
         console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
-        // Check if this is one of our problematic transactions
-        if (isProblematicTransaction(transaction.title)) {
+        // First check if this is one of our critical transactions that need special handling
+        if (isCriticalTransaction(transaction)) {
+          console.log(`[MONTH-SPECIFIC] Using improved month-specific handling for critical transaction: ${transaction.title}`);
+          
+          // Use our new implementation for critical transactions
+          setMonthSpecificPaidStatus(transaction, data.isPaid);
+          
+          // Show special toast for critical transactions
+          toast({
+            title: "Enhanced Month-Specific Status Saved",
+            description: `Applied monthly isolation for ${transaction.title} to prevent cross-month status issues.`,
+            variant: "default",
+          });
+        } 
+        // Fallback to older methods if not a critical transaction
+        else if (isLegacyProblematicTransaction(transaction.title)) {
           console.log(`[DIRECT FIX] Using direct fix approach for problematic transaction: ${transaction.title}`);
           
           // Use our specialized direct fix storage format for problematic transactions 
