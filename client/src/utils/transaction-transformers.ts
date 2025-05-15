@@ -1,6 +1,11 @@
 import { Transaction, TransactionWithCategory } from "@shared/schema";
 import { getPreferredAmount, getOccurrencePaidStatus } from "./transaction-preferences";
 import { format } from "date-fns";
+import { 
+  requiresStrictIsolation, 
+  getMonthlyPaidStatus, 
+  saveMonthlyPaidStatus 
+} from "./strict-monthly-paid-status";
 
 // Define local copy of the problematic transaction check
 // for improved reliability and error prevention

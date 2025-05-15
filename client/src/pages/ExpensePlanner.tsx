@@ -35,6 +35,7 @@ import {
   applyTransactionPreferences,
   filterTransactions
 } from "@/utils/transaction-transformers";
+import { clearAllMonthlyStatuses } from "@/utils/strict-monthly-paid-status";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -817,7 +818,11 @@ export default function ExpensePlanner() {
                     }
                   });
                   
-                  // 3. Also clear any other transaction-related storage that might be causing issues
+                  // 3. Also clear our new strict monthly paid status system
+                  const strictCleared = clearAllMonthlyStatuses();
+                  console.log(`[FACTORY RESET] Cleared ${strictCleared} strict monthly status records`);
+                  
+                  // 4. Also clear any other transaction-related storage that might be causing issues
                   const additionalKeys = [
                     'transaction-amount-preferences',
                     'recurring-transaction-paid-status',
