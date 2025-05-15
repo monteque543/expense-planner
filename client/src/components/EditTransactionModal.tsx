@@ -26,6 +26,11 @@ import {
 import { saveTransactionAmountPreference, saveOccurrencePaidStatus, isProblematicTransaction as isLegacyProblematicTransaction } from "@/utils/transaction-preferences";
 import { saveDirectFixForTransaction } from "@/utils/transaction-transformers";
 import { isCriticalTransaction, setMonthSpecificPaidStatus } from "@/utils/month-specific-paid-status";
+import { 
+  requiresStrictIsolation, 
+  saveMonthlyPaidStatus, 
+  extractYearMonth 
+} from "@/utils/strict-monthly-paid-status";
 
 interface EditTransactionModalProps {
   isOpen: boolean;

@@ -35,7 +35,11 @@ import {
   applyTransactionPreferences,
   filterTransactions
 } from "@/utils/transaction-transformers";
-import { clearAllMonthlyStatuses } from "@/utils/strict-monthly-paid-status";
+import { 
+  requiresStrictIsolation,
+  saveMonthlyPaidStatus, 
+  clearAllMonthlyStatuses 
+} from "@/utils/strict-monthly-paid-status";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -1188,7 +1192,21 @@ export default function ExpensePlanner() {
               // Create updated transaction
               const updatedTransaction = { ...transaction, ...data };
               
-              // Save to localStorage for persistence across sessions
+              // Check if this is a strict isolation transaction (like Netflix, Orange, etc.)
+              if (requiresStrictIsolation(updatedTransaction) && 'isPaid' in data) {
+                // Get the date to use (either displayDate for recurring instances or regular date)
+                const dateToUse = (updatedTransaction as any).displayDate || updatedTransaction.date;
+                
+                // Save the paid status with month-specific isolation
+                saveMonthlyPaidStatus(
+                  updatedTransaction.title, 
+                  dateToUse, 
+                  Boolean(data.isPaid)
+                );
+                console.log(`[STRICT ISOLATION] Saved month-specific paid status for ${updatedTransaction.title} on ${format(new Date(dateToUse), 'yyyy-MM-dd')}: ${data.isPaid}`);
+              }
+              
+              // Save to localStorage for persistence across sessions (as a backup)
               saveEditedTransaction(updatedTransaction);
               console.log(`Saved transaction edit to localStorage: ${updatedTransaction.id} - ${updatedTransaction.amount}`);
             }
