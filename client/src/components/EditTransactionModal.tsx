@@ -326,17 +326,21 @@ export default function EditTransactionModal({
         
         console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
-        // IMPORTANT FIX: Use a completely isolated storage approach for problematic recurring transactions
-        // This isolates each transaction's paid status by month and prevents cross-month contamination
+        // Check if this transaction requires strict monthly isolation
+        if (requiresStrictIsolation(transaction.title)) {
+          // Use the new strict monthly isolation system
+          saveMonthlyPaidStatus(transaction.title, formattedDate, data.isPaid);
+          console.log(`[STRICT ISOLATION] Saved month-specific paid status for ${transaction.title} on ${formattedDate}: ${data.isPaid}`);
+        }
         
+        // For backward compatibility, also use the old approach
         // Extract date parts for month-specific key
-        const dateParts = formattedDate.split('-'); 
-        const yearMonth = `${dateParts[0]}-${dateParts[1]}`; // e.g., "2025-05"
+        const yearMonth = extractYearMonth(formattedDate);
         
-        // Create a unique key for THIS specific transaction on THIS specific month
+        // Create a unique key for THIS specific transaction on THIS specific month (legacy format)
         const storageKey = `strict_paid_${transaction.title.replace(/\s+/g, '_')}_${yearMonth}`;
         
-        // Store the paid status with month-specific isolation
+        // Store the paid status with month-specific isolation (legacy format)
         localStorage.setItem(storageKey, data.isPaid.toString());
         
         // Store metadata to help with debugging
@@ -351,14 +355,16 @@ export default function EditTransactionModal({
         // Save debug info
         localStorage.setItem(`${storageKey}_debug`, JSON.stringify(debugInfo));
         
-        console.log(`[ISOLATED STORAGE] Saved strict isolated status for "${transaction.title}" in ${yearMonth}: ${data.isPaid} (key: ${storageKey})`);
+        console.log(`[LEGACY STORAGE] Saved strict isolated status for "${transaction.title}" in ${yearMonth}: ${data.isPaid} (key: ${storageKey})`);
         
-        // Show a toast notification that we're using the strict month isolation
-        toast({
-          title: "Strict Month Isolation Applied",
-          description: `Monthly isolation for ${transaction.title} will prevent status affecting other months.`,
-          variant: "default",
-        });
+        // Show a toast notification only if we're using the strict month isolation
+        if (requiresStrictIsolation(transaction.title)) {
+          toast({
+            title: "Enhanced Monthly Isolation Applied",
+            description: `Paid status for ${transaction.title} is now locked to this specific month (${yearMonth}).`,
+            variant: "default",
+          });
+        }
         
         // No need to update the backend for recurring instances
         onClose();
