@@ -805,13 +805,16 @@ export default function ExpensePlanner() {
                   localStorage.removeItem('recurring-transaction-paid-status');
                   console.log("[FACTORY RESET] Removed recurring-transaction-paid-status");
                   
-                  // 2. Clear direct fix formats for problematic transactions
+                  // 2. Clear ALL transaction status-related storage
                   let found = 0;
                   allKeys.forEach(key => {
-                    // Delete the main status keys and any debug info
+                    // Delete ALL status keys and debug info from all storage techniques
                     if (key.startsWith('fixed_status_') || 
                         key.includes('_debug') || 
-                        key.includes('_timestamp')) {
+                        key.includes('_timestamp') ||
+                        key.startsWith('strict_paid_') ||
+                        key.startsWith('txn_status_') ||
+                        key.startsWith('monthly_strict_')) {
                       localStorage.removeItem(key);
                       found++;
                       console.log(`[FACTORY RESET] Removed key: ${key}`);

@@ -321,37 +321,39 @@ export default function EditTransactionModal({
         
         console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
-        // First check if this is one of our critical transactions that need special handling
-        if (isCriticalTransaction(transaction)) {
-          console.log(`[MONTH-SPECIFIC] Using improved month-specific handling for critical transaction: ${transaction.title}`);
-          
-          // Use our new implementation for critical transactions
-          setMonthSpecificPaidStatus(transaction, data.isPaid);
-          
-          // Show special toast for critical transactions
-          toast({
-            title: "Enhanced Month-Specific Status Saved",
-            description: `Applied monthly isolation for ${transaction.title} to prevent cross-month status issues.`,
-            variant: "default",
-          });
-        } 
-        // Fallback to older methods if not a critical transaction
-        else if (isLegacyProblematicTransaction(transaction.title)) {
-          console.log(`[DIRECT FIX] Using direct fix approach for problematic transaction: ${transaction.title}`);
-          
-          // Use our specialized direct fix storage format for problematic transactions 
-          saveDirectFixForTransaction(transaction.title, formattedDate, data.isPaid);
-          
-          // Show special toast for problematic transactions
-          toast({
-            title: "Month-Specific Fix Applied",
-            description: `Special handling enabled for ${transaction.title} to ensure proper month-to-month tracking.`,
-            variant: "default",
-          });
-        } else {
-          // Use regular approach for non-problematic transactions
-          saveOccurrencePaidStatus(transaction.title, formattedDate, data.isPaid);
-        }
+        // IMPORTANT FIX: Use a completely isolated storage approach for problematic recurring transactions
+        // This isolates each transaction's paid status by month and prevents cross-month contamination
+        
+        // Extract date parts for month-specific key
+        const dateParts = formattedDate.split('-'); 
+        const yearMonth = `${dateParts[0]}-${dateParts[1]}`; // e.g., "2025-05"
+        
+        // Create a unique key for THIS specific transaction on THIS specific month
+        const storageKey = `strict_paid_${transaction.title.replace(/\s+/g, '_')}_${yearMonth}`;
+        
+        // Store the paid status with month-specific isolation
+        localStorage.setItem(storageKey, data.isPaid.toString());
+        
+        // Store metadata to help with debugging
+        const debugInfo = {
+          txTitle: transaction.title,
+          date: formattedDate,
+          yearMonth: yearMonth,
+          isPaid: data.isPaid,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Save debug info
+        localStorage.setItem(`${storageKey}_debug`, JSON.stringify(debugInfo));
+        
+        console.log(`[ISOLATED STORAGE] Saved strict isolated status for "${transaction.title}" in ${yearMonth}: ${data.isPaid} (key: ${storageKey})`);
+        
+        // Show a toast notification that we're using the strict month isolation
+        toast({
+          title: "Strict Month Isolation Applied",
+          description: `Monthly isolation for ${transaction.title} will prevent status affecting other months.`,
+          variant: "default",
+        });
         
         // No need to update the backend for recurring instances
         onClose();

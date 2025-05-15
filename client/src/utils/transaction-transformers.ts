@@ -268,20 +268,40 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
     modifiedTransaction.amount = preferredAmount;
   }
   
-  // First check for direct fixes for problematic transactions
-  if (isProblematicTransaction(transaction.title)) {
-    // Extract transaction date for detailed logging
-    const transactionAny = transaction as any;
-    let dateStr = '';
-    
-    if (transactionAny.displayDateStr) {
-      dateStr = transactionAny.displayDateStr;
-    } else if (transaction.date) {
-      dateStr = transaction.date instanceof Date 
-        ? format(transaction.date, 'yyyy-MM-dd') 
-        : String(transaction.date);
+  // First check for our strict month isolated transactions
+  // Extract transaction date
+  const transactionAny = transaction as any;
+  let dateStr = '';
+  
+  if (transactionAny.displayDateStr) {
+    dateStr = transactionAny.displayDateStr;
+  } else if (transaction.date) {
+    dateStr = transaction.date instanceof Date 
+      ? format(transaction.date, 'yyyy-MM-dd') 
+      : String(transaction.date);
+  }
+  
+  // If we have a valid date string, check for strict monthly status
+  if (dateStr) {
+    const dateParts = dateStr.split('-');
+    if (dateParts.length >= 2) {
+      const yearMonth = `${dateParts[0]}-${dateParts[1]}`;
+      const storageKey = `strict_paid_${transaction.title.replace(/\s+/g, '_')}_${yearMonth}`;
+      
+      // Check if we have a stored strict month-specific value
+      const storedValue = localStorage.getItem(storageKey);
+      
+      if (storedValue !== null) {
+        const isStrictPaid = storedValue === 'true';
+        console.log(`[STRICT ISOLATION] Using isolated monthly status for ${transaction.title} in ${yearMonth}: ${isStrictPaid}`);
+        modifiedTransaction.isPaid = isStrictPaid;
+        return modifiedTransaction;
+      }
     }
-    
+  }
+  
+  // Fall back to previous direct fix approach for backwards compatibility
+  if (isProblematicTransaction(transaction.title)) {
     console.log(`[SINGLE TXN] Checking problematic transaction: ${transaction.title}, date: ${dateStr}`);
     
     const directFix = applyDirectFixForProblematicTransactions(transaction);
@@ -297,20 +317,19 @@ export function applyTransactionPreference(transaction: TransactionWithCategory)
   
   // Continue with normal logic for non-problematic transactions
   // Apply paid status for recurring transaction occurrences
-  // Use type assertion to handle dynamic properties
-  const transactionAny = transaction as any;
   
   // Debug logging to see what's happening with individual transaction
-  console.log(`[Single Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${transactionAny.isRecurringInstance ? true : false}, displayDate: ${transactionAny.displayDate || 'none'}`);
+  console.log(`[Single Transformer Debug] Processing transaction: ${transaction.title}, isRecurring: ${transaction.isRecurring}, isRecurringInstance: ${transaction.isRecurringInstance || false}, displayDate: ${transaction.displayDate || 'none'}`);
   
   // Check if this is a recurring instance by either the isRecurringInstance flag or if it's a recurring transaction
-  if ((transactionAny.isRecurringInstance || transaction.isRecurring) && transaction.date) {
+  if (((transaction as any).isRecurringInstance || transaction.isRecurring) && transaction.date) {
     // Use displayDateStr if available (for consistent formatting), then displayDate, then transaction.date
-    let occurrenceDate = transactionAny.displayDateStr || 
-                        (transactionAny.displayDate ? 
-                          (transactionAny.displayDate instanceof Date ? 
-                            format(transactionAny.displayDate, 'yyyy-MM-dd') : 
-                            transactionAny.displayDate) : 
+    const txn = transaction as any; // Local type assertion
+    let occurrenceDate = txn.displayDateStr || 
+                        (txn.displayDate ? 
+                          (txn.displayDate instanceof Date ? 
+                            format(txn.displayDate, 'yyyy-MM-dd') : 
+                            txn.displayDate) : 
                           (transaction.date instanceof Date ? 
                             format(transaction.date, 'yyyy-MM-dd') : 
                             transaction.date));
