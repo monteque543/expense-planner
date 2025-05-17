@@ -83,12 +83,19 @@ export default function AddExpenseModal({
   categories,
   isPending,
   titleSuggestions = [],
-  defaultDate
+  defaultDate,
+  currentBudget = Infinity // Default to Infinity to disable budget check if not provided
 }: AddExpenseModalProps) {
   // State for the selected currency
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('PLN');
   // State for displaying converted amount
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  // State for budget warning dialog
+  const [showBudgetWarning, setShowBudgetWarning] = useState(false);
+  // Store form data while showing warning
+  const [pendingExpenseData, setPendingExpenseData] = useState<any>(null);
+  // Store the budget deficit amount
+  const [budgetDeficit, setBudgetDeficit] = useState(0);
   
   // Fetch exchange rates when component mounts
   useEffect(() => {
@@ -99,61 +106,29 @@ export default function AddExpenseModal({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       title: "",
-      amount: 0, // Initialize with 0 instead of undefined
-      date: defaultDate 
-        ? defaultDate.toISOString().split('T')[0] 
-        : new Date().toISOString().split('T')[0],
+      amount: 0,
+      date: defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       notes: "",
-      categoryId: undefined,
-      personLabel: undefined,
       isRecurring: false,
       recurringInterval: 'monthly', // Default to monthly
-      recurringEndDate: undefined,
     },
-    // Keep values when form has errors
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
   });
   
-  // Update the date field when defaultDate changes or modal opens
-  useEffect(() => {
-    if (defaultDate && isOpen) {
-      // Force the date to be at noon to avoid timezone issues
-      const clonedDate = new Date(
-        defaultDate.getFullYear(),
-        defaultDate.getMonth(),
-        defaultDate.getDate(),
-        12, 0, 0
-      );
-      
-      // Format the date directly to YYYY-MM-DD to avoid timezone issues
-      const day = String(clonedDate.getDate()).padStart(2, '0');
-      const month = String(clonedDate.getMonth() + 1).padStart(2, '0');
-      const year = clonedDate.getFullYear();
-      const formattedDate = `${year}-${month}-${day}`;
-      
-      console.log('Setting date in form to:', formattedDate, 'from', 
-                  defaultDate.getFullYear() + '-' + 
-                  (defaultDate.getMonth() + 1) + '-' + 
-                  defaultDate.getDate());
-      
-      // Force a reset of the form with the new date
-      form.reset({
-        ...form.getValues(),
-        date: formattedDate
-      });
-    }
-  }, [defaultDate, isOpen, form]);
-
-  // Watch the amount to update the converted value display
-  const amount = form.watch("amount");
+  const { watch, setValue } = form;
+  
+  // Watch the amount field
+  const amount = watch('amount');
   
   // Update converted amount when amount or currency changes
   useEffect(() => {
     if (amount && selectedCurrency !== 'PLN') {
-      const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
-      const convertedToPlnAmount = convertToPLN(amountNumber, selectedCurrency);
-      setConvertedAmount(convertedToPlnAmount);
+      try {
+        const converted = convertToPLN(Number(amount), selectedCurrency);
+        setConvertedAmount(converted);
+      } catch (e) {
+        console.error('Conversion error:', e);
+        setConvertedAmount(null);
+      }
     } else {
       setConvertedAmount(null);
     }
@@ -182,6 +157,28 @@ export default function AddExpenseModal({
       isPaid: false, // Default to unpaid for new expenses
     };
     
+    // Check if this expense would put the user over budget
+    if (finalAmount > currentBudget) {
+      // Calculate the budget deficit
+      const deficit = Math.abs(currentBudget - finalAmount);
+      setBudgetDeficit(deficit);
+      
+      // Store the data to use if the user confirms they want to proceed
+      setPendingExpenseData(formattedData);
+      
+      // Show the warning dialog
+      setShowBudgetWarning(true);
+      
+      // Don't submit yet - wait for user confirmation
+      return;
+    }
+    
+    // If we're here, the expense is within budget (or budget check is disabled)
+    submitExpense(formattedData);
+  }
+  
+  // Function to actually submit the expense (after budget check)
+  function submitExpense(formattedData: any) {
     onAddExpense(formattedData);
     
     // Reset the form and currency selection after successful submission
@@ -198,119 +195,147 @@ export default function AddExpenseModal({
       recurringInterval: 'monthly', // Default to monthly
       recurringEndDate: undefined,
     });
+    
+    // Also reset any pending data and warning state
+    setPendingExpenseData(null);
+    setShowBudgetWarning(false);
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Expense</DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    {titleSuggestions.length > 0 ? (
+    <>
+      {/* Budget Warning Alert Dialog */}
+      <AlertDialog open={showBudgetWarning} onOpenChange={setShowBudgetWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Budget Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="mb-2">You are poor and cannot afford this expense this month!</p>
+              <p className="font-medium">
+                Your current budget is <span className="text-destructive">{formatCurrency(currentBudget, 'PLN')}</span> but this expense costs <span className="text-destructive">{formatCurrency(pendingExpenseData?.amount || 0, 'PLN')}</span>.
+              </p>
+              <p className="mt-2 font-semibold">
+                You are missing <span className="text-destructive">{formatCurrency(budgetDeficit, 'PLN')}</span> to afford this expense.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowBudgetWarning(false);
+              setPendingExpenseData(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingExpenseData) {
+                  submitExpense(pendingExpenseData);
+                }
+              }}
+            >
+              Add Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Main Dialog */}
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Title field with autocomplete */}
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
                       <AutocompleteInput
-                        options={titleSuggestions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="e.g. Groceries, Rent, etc."
-                        emptyMessage="No matching titles found"
+                        {...field}
+                        suggestions={titleSuggestions}
+                        placeholder="e.g., Groceries"
+                        className="bg-background"
                       />
-                    ) : (
-                      <Input placeholder="e.g. Groceries, Rent, etc." {...field} />
-                    )}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      {/* Currency selector buttons */}
-                      <div className="flex space-x-2 mb-2">
-                        <Button 
-                          type="button" 
-                          variant={selectedCurrency === 'PLN' ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedCurrency('PLN')}
-                          className="flex-1"
-                        >
-                          PLN
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant={selectedCurrency === 'EUR' ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedCurrency('EUR')}
-                          className="flex-1"
-                        >
-                          <Euro className="h-4 w-4 mr-1" /> EUR
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant={selectedCurrency === 'USD' ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedCurrency('USD')}
-                          className="flex-1"
-                        >
-                          <DollarSign className="h-4 w-4 mr-1" /> USD
-                        </Button>
-                      </div>
-                      
-                      {/* Amount input with currency prefix */}
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-gray-500">
-                            {selectedCurrency === 'PLN' ? 'PLN' : 
-                             selectedCurrency === 'USD' ? '$' : '€'}
-                          </span>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Amount field with currency selector */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem className="col-span-1">
+                      <FormLabel>Amount</FormLabel>
+                      <div className="relative flex items-center">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="0.00"
+                            {...field}
+                            value={field.value !== 0 ? field.value : ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Allow only numbers and one decimal point
+                              if (/^[0-9]*\.?[0-9]*$/.test(value) || value === '') {
+                                field.onChange(value === '' ? 0 : value);
+                              }
+                            }}
+                            className="pl-8 bg-background"
+                          />
+                        </FormControl>
+                        
+                        {/* Currency indicator */}
+                        <div className="absolute left-2 text-muted-foreground">
+                          {selectedCurrency === 'PLN' && "zł"}
+                          {selectedCurrency === 'USD' && <DollarSign className="h-4 w-4" />}
+                          {selectedCurrency === 'EUR' && <Euro className="h-4 w-4" />}
                         </div>
-                        <Input 
-                          type="text" 
-                          inputMode="decimal"
-                          placeholder="0.00" 
-                          {...field} 
-                          className="pl-12"
-                          onChange={(e) => {
-                            // Only allow numbers, decimal points, and commas
-                            const value = e.target.value.replace(/[^0-9.,]/g, '');
-                            field.onChange(value);
-                          }}
-                        />
                       </div>
-                      
-                      {/* Show converted amount if currency is not PLN */}
-                      {convertedAmount !== null && selectedCurrency !== 'PLN' && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          ≈ {formatCurrency(convertedAmount, 'PLN')} 
-                          <span className="text-xs ml-1">
-                            (Rate: {getExchangeRate(selectedCurrency, 'PLN').toFixed(4)})
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Currency selector */}
+                <div className="col-span-1">
+                  <FormLabel>Currency</FormLabel>
+                  <Select
+                    value={selectedCurrency}
+                    onValueChange={(value: SupportedCurrency) => setSelectedCurrency(value)}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="PLN" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PLN">PLN (zł)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {/* Show converted amount if currency is not PLN */}
+              {convertedAmount !== null && selectedCurrency !== 'PLN' && (
+                <div className="text-sm text-muted-foreground">
+                  Converted: <span className="font-medium">{formatCurrency(convertedAmount, 'PLN')}</span>
+                </div>
               )}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
+              
+              {/* Date field */}
               <FormField
                 control={form.control}
                 name="date"
@@ -318,13 +343,18 @@ export default function AddExpenseModal({
                   <FormItem>
                     <FormLabel>Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        type="date" 
+                        {...field} 
+                        className="bg-background"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
+              {/* Category selector with autocomplete */}
               <FormField
                 control={form.control}
                 name="categoryId"
@@ -333,54 +363,45 @@ export default function AddExpenseModal({
                     <FormLabel>Category</FormLabel>
                     <FormControl>
                       <AutocompleteCategoryInput
+                        value={field.value?.toString()}
+                        onChange={(value) => field.onChange(parseInt(value))}
                         categories={categories}
-                        value={field.value}
-                        onChange={(value) => {
-                          field.onChange(value);
-                          
-                          // Auto-select recurring if Subscription category is selected
-                          const category = categories.find(c => c.id === value);
-                          if (category && category.name === 'Subscription') {
-                            // Set recurring to true
-                            form.setValue('isRecurring', true);
-                            
-                            // Set default monthly interval if not already set
-                            if (!form.getValues('recurringInterval')) {
-                              form.setValue('recurringInterval', 'monthly');
-                            }
-                          }
-                        }}
-                        placeholder="Search for category..."
-                        emptyMessage="No matching categories found"
+                        placeholder="Select a category"
+                        className="bg-background"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4">
+              
+              {/* Person selector */}
               <FormField
                 control={form.control}
                 name="personLabel"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Person</FormLabel>
-                    <Select 
+                    <Select
                       onValueChange={field.onChange}
-                      value={field.value}
+                      defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select person" />
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select a person" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {persons.map((person) => (
-                          <SelectItem key={person} value={person}>
+                          <SelectItem 
+                            key={person} 
+                            value={person}
+                          >
                             <div className="flex items-center">
-                              <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: personColors[person] }}></div>
+                              <div 
+                                className="h-3 w-3 rounded-full mr-2" 
+                                style={{ backgroundColor: personColors[person] || "#gray" }}
+                              />
                               {person}
                             </div>
                           </SelectItem>
@@ -391,109 +412,119 @@ export default function AddExpenseModal({
                   </FormItem>
                 )}
               />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Add any additional details..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="isRecurring"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Recurring Expense</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      This expense will repeat based on the selected interval
+              
+              {/* Notes field */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add any additional details here..."
+                        className="resize-none bg-background"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Recurring checkbox */}
+              <FormField
+                control={form.control}
+                name="isRecurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Recurring Expense</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        This expense repeats regularly
+                      </div>
                     </div>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            {form.watch("isRecurring") && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="recurringInterval"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Repeat Interval</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {/* Conditional fields for recurring expenses */}
+              {form.watch('isRecurring') && (
+                <div className="space-y-4 p-3 bg-secondary/20 rounded-lg">
+                  <FormField
+                    control={form.control}
+                    name="recurringInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Repeat Interval</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Select interval" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {recurringIntervals.map((interval) => (
+                              <SelectItem key={interval} value={interval}>
+                                {interval.charAt(0).toUpperCase() + interval.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="recurringEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date (optional)</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select interval" />
-                          </SelectTrigger>
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            className="bg-background"
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {recurringIntervals.map((interval) => (
-                            <SelectItem key={interval} value={interval}>
-                              {interval.charAt(0).toUpperCase() + interval.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="recurringEndDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Date (optional)</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={isPending}
+                >
+                  {isPending ? "Adding..." : "Add Expense"}
+                </Button>
               </div>
-            )}
-            
-            <div className="sticky bottom-0 bg-background pt-4 pb-2 flex flex-col sm:flex-row sm:justify-end gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white" 
-                disabled={isPending}
-              >
-                {isPending ? "Adding..." : "Add Expense"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
