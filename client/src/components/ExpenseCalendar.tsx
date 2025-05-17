@@ -549,17 +549,26 @@ const originalDate = typeof transaction.date === 'string'
             grouped[nextDateStr] = [];
           }
           
-          // Create a copy of the transaction with the future date
-          const futureCopy = {
-            ...transaction,
-            displayDate: nextDate, // Store occurrence date
-            displayDateStr: nextDateStr, // Add a formatted date string for consistent key generation
-            isRecurringInstance: true // Flag to indicate this is a recurring instance
-          };
+          // Check if this recurring instance has been deleted for this month
+          const monthKey = format(nextDate, 'yyyy-MM');
+          const storageKey = `deleted-recurring-instances-${monthKey}`;
+          const deletedInstanceIds: number[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
           
-          grouped[nextDateStr].push(futureCopy);
-          console.log(`Added future occurrence on ${nextDateStr}`);
-        }
+          // Skip this instance if it's been deleted for the month
+          if (deletedInstanceIds.includes(transaction.id)) {
+            console.log(`Skipping deleted recurring instance: ${transaction.title} on ${nextDateStr}`);
+          } else {
+            // Create a copy of the transaction with the future date
+            const futureCopy = {
+              ...transaction,
+              displayDate: nextDate, // Store occurrence date
+              displayDateStr: nextDateStr, // Add a formatted date string for consistent key generation
+              isRecurringInstance: true // Flag to indicate this is a recurring instance
+            };
+            
+            grouped[nextDateStr].push(futureCopy);
+            console.log(`Added future occurrence on ${nextDateStr}`);
+          }
         
         // Store current date for comparison
         prevDate = new Date(nextDate);
