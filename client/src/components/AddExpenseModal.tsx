@@ -261,7 +261,7 @@ export default function AddExpenseModal({
                     <FormControl>
                       <AutocompleteInput
                         {...field}
-                        suggestions={titleSuggestions}
+                        options={titleSuggestions || []}
                         placeholder="e.g., Groceries"
                         className="bg-background"
                       />
@@ -363,8 +363,8 @@ export default function AddExpenseModal({
                     <FormLabel>Category</FormLabel>
                     <FormControl>
                       <AutocompleteCategoryInput
-                        value={field.value?.toString()}
-                        onChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value || undefined}
+                        onChange={(value) => field.onChange(value)}
                         categories={categories}
                         placeholder="Select a category"
                         className="bg-background"
