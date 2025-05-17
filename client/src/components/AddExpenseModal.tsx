@@ -525,6 +525,40 @@ export default function AddExpenseModal({
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Budget Warning Dialog */}
+      <AlertDialog open={showBudgetWarning} onOpenChange={setShowBudgetWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Budget Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This expense of {formatCurrency(pendingExpenseData?.amount || 0, 'PLN')} will exceed your remaining budget 
+              by {formatCurrency(budgetDeficit, 'PLN')}.
+              <div className="mt-2 p-3 bg-destructive/10 rounded-md text-sm">
+                <strong>Warning:</strong> Adding this expense will put you over budget for this month.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={() => {
+                // User confirmed they want to add the expense despite budget warning
+                if (pendingExpenseData) {
+                  submitExpense(pendingExpenseData);
+                  setPendingExpenseData(null);
+                }
+              }}
+            >
+              Add Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
