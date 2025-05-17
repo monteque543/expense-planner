@@ -12,7 +12,17 @@ import { Switch } from "@/components/ui/switch";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, persons, recurringIntervals } from "@shared/schema";
-import { DollarSign, Euro, X } from "lucide-react";
+import { AlertTriangle, DollarSign, Euro, X } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   SupportedCurrency, 
   convertToPLN, 
@@ -29,6 +39,7 @@ interface AddExpenseModalProps {
   isPending: boolean;
   titleSuggestions?: string[]; // Available title suggestions for autocomplete
   defaultDate?: Date; // Default date to pre-fill in the form when opened from calendar
+  currentBudget?: number; // Current available budget to check if new expense is affordable
 }
 
 const expenseFormSchema = z.object({
