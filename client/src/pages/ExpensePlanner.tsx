@@ -179,61 +179,9 @@ export default function ExpensePlanner() {
     }
   });
   
-  // We'll handle recurring transactions with local functions for now
-
   // Define the handleDeleteTransaction function first 
   // so it can be used by the mutations - this completely avoids API calls
   // for hardcoded transactions
-  // Track deleted recurring transaction instances by month
-  const [deletedRecurringInstances, setDeletedRecurringInstances] = useState<Record<string, number[]>>({});
-  
-  // Function to mark a recurring transaction instance as deleted for a specific month
-  const markRecurringInstanceAsDeleted = (transactionId: number, date: Date) => {
-    const monthKey = format(date, 'yyyy-MM');
-    
-    setDeletedRecurringInstances(prev => {
-      const monthInstances = prev[monthKey] || [];
-      return {
-        ...prev,
-        [monthKey]: [...monthInstances, transactionId]
-      };
-    });
-    
-    // Save to localStorage for persistence
-    const storageKey = `deleted-recurring-instances-${monthKey}`;
-    const existingData = localStorage.getItem(storageKey);
-    const existingIds = existingData ? JSON.parse(existingData) : [];
-    localStorage.setItem(storageKey, JSON.stringify([...existingIds, transactionId]));
-    
-    console.log(`Marked recurring transaction ${transactionId} as deleted for month ${monthKey}`);
-  };
-  
-  // Function to check if a recurring transaction instance has been deleted
-  const isRecurringInstanceDeleted = (transactionId: number, date: Date) => {
-    const monthKey = format(date, 'yyyy-MM');
-    const monthInstances = deletedRecurringInstances[monthKey] || [];
-    return monthInstances.includes(transactionId);
-  };
-  
-  // Load deleted recurring instances from localStorage on component mount
-  useEffect(() => {
-    // Load all deleted recurring instances for all months from localStorage
-    const deletedInstancesMap: Record<string, number[]> = {};
-    
-    // Check localStorage for any existing deleted instances
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('deleted-recurring-instances-')) {
-        const monthKey = key.replace('deleted-recurring-instances-', '');
-        const ids = JSON.parse(localStorage.getItem(key) || '[]');
-        deletedInstancesMap[monthKey] = ids;
-      }
-    }
-    
-    setDeletedRecurringInstances(deletedInstancesMap);
-    console.log('Loaded deleted recurring instances:', deletedInstancesMap);
-  }, []);
-  
   const handleDeleteTransaction = (id: number, date?: Date) => {
     console.log(`Handling deletion for transaction ID: ${id}`);
     
@@ -250,24 +198,31 @@ export default function ExpensePlanner() {
       return;
     }
     
-    // Get the correct date to use for the operation
-    const transactionDate = date || (transaction.date instanceof Date 
-      ? transaction.date 
-      : new Date(transaction.date));
-    
     // Handle recurring transactions - we only want to delete the current instance
-    if (transaction.isRecurring) {
-      console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(transactionDate, 'yyyy-MM-dd')}`);
+    if (transaction.isRecurring && date) {
+      console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Mark just this instance as deleted in the current month view
-      markRecurringInstanceAsDeleted(transaction.id, transactionDate);
+      // Instead of actually deleting from the server, store this recurring instance
+      // as deleted in localStorage for the specific month
+      const monthKey = format(date, 'yyyy-MM');
+      const storageKey = `deleted-recurring-instances-${monthKey}`;
+      
+      // Get existing deleted transactions for this month
+      const existingDeleted = localStorage.getItem(storageKey);
+      const deletedIds = existingDeleted ? JSON.parse(existingDeleted) : [];
+      
+      // Add this transaction to the deleted list if not already there
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem(storageKey, JSON.stringify(deletedIds));
+      }
       
       toast({
         title: "Instance Deleted",
-        description: `Removed this instance of "${transaction.title}" for ${format(transactionDate, 'MMM yyyy')}`,
+        description: `Removed this instance of "${transaction.title}" for ${format(date, 'MMM yyyy')}`,
       });
       
-      // Force refresh of the transactions cache to update the UI
+      // Force refresh of the transactions cache
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       return; // Skip the regular deletion

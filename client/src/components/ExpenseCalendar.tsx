@@ -1,101 +1,62 @@
-import React, { useMemo, useRef } from 'react';
+import { useMemo } from "react";
 import { 
+  format, 
   startOfMonth, 
   endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
   eachDayOfInterval, 
   isSameMonth, 
-  format, 
-  parseISO,
-  isToday,
-  isBefore,
-  isWithinInterval,
+  isToday, 
+  startOfWeek, 
+  endOfWeek, 
+  parseISO, 
+  addDays, 
+  isSameDay, 
+  addMonths, 
+  addWeeks, 
+  addYears, 
+  lastDayOfMonth,
   startOfYear,
   endOfYear,
-  addDays,
-  addWeeks,
-  addMonths,
-  addYears,
-  lastDayOfMonth
-} from 'date-fns';
-
-import { TransactionWithCategory } from '@shared/schema';
-import { createHardcodedIncomeTransactions } from '@/utils/income-hardcoder';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, Edit, Trash2, MoreHorizontal, Plus, MoveHorizontal } from 'lucide-react';
+  isAfter,
+  isBefore
+} from "date-fns";
+import { TransactionWithCategory } from "@shared/schema";
 import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-
-// Helper function to check if a date is within a range
-function isWithinRange(date: Date, start: Date, end: Date): boolean {
-  return isWithinInterval(date, { start, end });
-}
-
-// Helper function to get date range based on active view
-function getDateRangeForView(date: Date, view: 'week' | 'month' | 'year'): { start: Date, end: Date } {
-  switch (view) {
-    case 'week':
-      return {
-        start: startOfWeek(date),
-        end: endOfWeek(date)
-      };
-    case 'year':
-      return {
-        start: startOfYear(date),
-        end: endOfYear(date)
-      };
-    case 'month':
-    default:
-      return {
-        start: startOfMonth(date),
-        end: endOfMonth(date)
-      };
-  }
-}
-
-// Calculate total income for the given view period
-function calculateTotalIncome(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
-  const { start, end } = getDateRangeForView(date, view);
-  
-  return transactions
-    .filter(t => !t.isExpense) // Get only income transactions
-    .filter(t => {
-      const transactionDate = typeof t.date === 'string' ? new Date(t.date) : new Date(t.date);
-      return isWithinInterval(transactionDate, { start, end });
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-}
-
-// Calculate total expenses for the given view period
-function calculateTotalExpenses(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
-  const { start, end } = getDateRangeForView(date, view);
-  
-  return transactions
-    .filter(t => t.isExpense) // Get only expense transactions
-    .filter(t => {
-      const transactionDate = typeof t.date === 'string' ? new Date(t.date) : new Date(t.date);
-      return isWithinInterval(transactionDate, { start, end });
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-}
-
-// Calculate balance (income - expenses)
-function calculateBalance(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): number {
-  const income = calculateTotalIncome(transactions, date, view);
-  const expenses = calculateTotalExpenses(transactions, date, view);
-  return income - expenses;
-}
-
-// Get CSS class for balance value
-function getBalanceClass(transactions: TransactionWithCategory[], date: Date, view: 'week' | 'month' | 'year'): string {
-  const balance = calculateBalance(transactions, date, view);
-  return balance >= 0 ? 'text-green-500' : 'text-red-500';
-}
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Calendar,
+  Check,
+  CheckCircle2, 
+  ChevronsLeft, 
+  ChevronsRight, 
+  Clock, 
+  DollarSign, 
+  Edit, 
+  MoreHorizontal, 
+  Plus, 
+  Trash,
+  Zap
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/utils/currency-converter";
+import { createHardcodedIncomeTransactions } from "@/utils/income-hardcoder";
+import { getPreviousMonthTotal, getCurrentMonthTotal } from "@/utils/report-calculations";
+import { getMonthlyPaidStatus } from "@/utils/strict-monthly-paid-status";
 
 interface ExpenseCalendarProps {
   transactions: TransactionWithCategory[];
@@ -105,7 +66,7 @@ interface ExpenseCalendarProps {
   onNextMonth: () => void;
   onSelectToday: () => void;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
-  onDeleteTransaction: (id: number) => void;
+  onDeleteTransaction: (id: number, date?: Date) => void;
   onDayClick?: (date: Date) => void;
   isLoading: boolean;
   activeView: 'week' | 'month' | 'year';
@@ -198,204 +159,26 @@ export default function ExpenseCalendar({
           grouped[dateStr] = [];
         }
         grouped[dateStr].push(...txs);
-        console.log(`🔥 EMERGENCY FIX: Added ${txs.length} hardcoded transactions for ${dateStr}`);
       });
     }
     
-    // Important: ALWAYS add Omega income and subscriptions for the current month being viewed
-    // This is a direct approach to ensure critical recurring transactions always appear
-    // We'll use viewMonth and viewYear defined above
-    
-    const importantRecurringTransactions = recurringOnes.filter(t => 
-      t.title === "Omega" || 
-      t.title === "Techs Salary" ||
-      t.category?.name === "Subscription" || 
-      !t.isExpense
-    );
-    
-    console.log("Important recurring transactions to duplicate in current view:", importantRecurringTransactions);
-    
-    // For each important recurring transaction, create a version for the current viewing month
-    importantRecurringTransactions.forEach(transaction => {
-      // Skip if transaction has a recurring end date that's before the current view month
-      if (transaction.recurringEndDate) {
-        const endDate = new Date(transaction.recurringEndDate);
-        if (endDate < viewStart) {
-          console.log(`Skipping cancelled subscription: ${transaction.title}`);
-          return;
-        }
-      }
-      
-      const originalDate = new Date(transaction.date);
-      
-      // Create a new date for this transaction in the currently viewed month
-      const dayOfMonth = Math.min(originalDate.getDate(), lastDayOfMonth(new Date(viewYear, viewMonth)).getDate());
-      
-      const dateInCurrentView = new Date(
-        viewYear,
-        viewMonth,
-        dayOfMonth,
-        12, 0, 0 // noon to avoid timezone issues
-      );
-      
-      // Only add if the month being viewed is after the original transaction date's month
-      // or if we're viewing a future month
-      const originalMonth = originalDate.getMonth();
-      const originalYear = originalDate.getFullYear();
-      
-      const isViewingFutureFromOriginal = 
-        (viewYear > originalYear) || 
-        (viewYear === originalYear && viewMonth > originalMonth);
-      
-      if (isViewingFutureFromOriginal) {
-        const dateStr = format(dateInCurrentView, 'yyyy-MM-dd');
-        
-        if (!grouped[dateStr]) {
-          grouped[dateStr] = [];
-        }
-        
-        // Create a copy for the current month
-        const futureCopy = {
-          ...transaction,
-          displayDate: dateInCurrentView,
-          isRecurringInstance: true
-        };
-        
-        grouped[dateStr].push(futureCopy);
-        console.log(`ADDED CRITICAL TRANSACTION FOR CURRENT VIEW: ${transaction.title} on ${dateStr}`);
-      }
-    });
-    
-    // PRE-GENERATE ALL FUTURE RECURRING INSTANCES
-    // We'll do this separately to make sure critical recurring transactions
-    // (income, subscriptions) are ALWAYS available in all calendar views
-    
-    // For each important recurring transaction (Omega, subscriptions)
-    recurringOnes.forEach(transaction => {
-      const isImportant = transaction.title === "Omega" || 
-                         transaction.title === "Techs Salary" ||
-                         transaction.category?.name === "Subscription" || 
-                         !transaction.isExpense;
-                         
-      if (isImportant) {
-        const originalDate = new Date(transaction.date);
-        const interval = transaction.recurringInterval || 'monthly';
-        
-        // Generate 12 months of future instances immediately
-        for (let i = 0; i < 12; i++) {
-          let futureDate: Date;
-          
-          // Skip first instance if it would be the original transaction
-          if (i === 0 && isWithinRange(originalDate, viewStart, viewEnd)) {
-            continue;
-          }
-          
-          if (interval === 'monthly') {
-            // Add months while preserving day of month (when possible)
-            const nextMonth = addMonths(originalDate, i + 1);
-            const originalDay = originalDate.getDate();
-            const lastDayOfNextMonth = lastDayOfMonth(nextMonth);
-            const targetDay = Math.min(originalDay, lastDayOfNextMonth.getDate());
-            
-            futureDate = new Date(
-              nextMonth.getFullYear(),
-              nextMonth.getMonth(),
-              targetDay,
-              12, 0, 0 // noon to avoid timezone issues
-            );
-          } else if (interval === 'weekly') {
-            futureDate = addWeeks(originalDate, i + 1);
-          } else if (interval === 'yearly') {
-            futureDate = addYears(originalDate, i + 1);
-          } else {
-            // Default to monthly
-            futureDate = addMonths(originalDate, i + 1);
-          }
-          
-          // Format the date for the key
-          const formattedDate = format(futureDate, 'yyyy-MM-dd');
-          if (!grouped[formattedDate]) {
-            grouped[formattedDate] = [];
-          }
-          
-          // Extract the month-year for isolation
-          const monthYear = formattedDate.substring(0, 7); // Extract YYYY-MM part for isolation
-          
-          // Create unique ID for this specific month's instance
-          const instanceId = `${transaction.id}_${monthYear}`;
-          
-          const futureCopy = {
-            ...transaction,
-            displayDate: futureDate,
-            displayDateStr: formattedDate, // Use our formatted date string
-            isRecurringInstance: true, // Flag to indicate this is a recurring instance
-            strictInstanceId: instanceId, // Add this month-specific identifier for isolation
-            strictMonth: monthYear // Store the month this instance belongs to
-          };
-          
-          grouped[formattedDate].push(futureCopy);
-          console.log(`PRE-GENERATED future instance of ${transaction.title} on ${formattedDate}`);
-        }
-      }
-    });
-    
-    // May/June 2025 - DEDUPLICATE ANY INCOME TRANSACTIONS
-    // This prevents any complex recurring logic from creating duplicates
-    if ((viewMonth === 4 || viewMonth === 5) && viewYear === 2025) {
-      console.log("🔄 DE-DUPLICATION: Removing any automatically generated income transactions for May/June 2025");
-      
-      // Check all dates in the grouped object
-      Object.keys(grouped).forEach(dateKey => {
-        if (grouped[dateKey] && Array.isArray(grouped[dateKey])) {
-          // Keep track of what we've seen to prevent duplicates
-          const seenTitles = new Set();
-          
-          // Filter out duplicate income transactions
-          grouped[dateKey] = grouped[dateKey].filter(transaction => {
-            // If it's not income, keep it
-            if (transaction.isExpense) return true;
-            
-            // For income, check if we've seen this title before
-            // Handle displayDate (which might be undefined in the type but is added by our code)
-            const transactionDate = 'displayDate' in transaction ? 
-              transaction.displayDate : transaction.date;
-            // Safely convert the date to a Date object
-            const dateObj = transactionDate instanceof Date ? 
-              transactionDate : 
-              typeof transactionDate === 'string' ? 
-                parseISO(transactionDate) : 
-                new Date();
-            const key = `${transaction.title}-${format(dateObj, 'yyyy-MM')}`;
-            
-            if (seenTitles.has(key)) {
-              console.log(`🗑️ REMOVED DUPLICATE: ${transaction.title} for ${key}`);
-              return false; // Remove duplicate
-            }
-            
-            // Keep this one and mark it as seen
-            seenTitles.add(key);
-            return true;
-          });
-        }
-      });
-    }
-    
-    // First, add the non-recurring transactions that fall within the current view period
-    console.log(`Filtering non-recurring transactions from ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')}`);
-    
-    transactions.filter(t => !t.isRecurring).forEach(transaction => {
-      // Parse the transaction date
-      const transactionDate = typeof transaction.date === 'string' 
+    // First add all normal (non-recurring) transactions to grouped object
+    // For recurring ones, we only add them here if they have a date within our view period
+    transactions.forEach(transaction => {
+      // Handle transaction date - if it's a string, parse it to Date
+      const transactionDate = typeof transaction.date === 'string'
         ? parseISO(transaction.date)
         : transaction.date;
       
-      // Only include transactions that fall within the current view period
-      const isInViewPeriod = transactionDate >= viewStart && transactionDate <= viewEnd;
+      const isInView = transactionDate >= viewStart && transactionDate <= viewEnd;
       
-      if (isInViewPeriod) {
+      // For normal (non-recurring) transactions, we add them directly if in view
+      // For recurring transactions, we'll handle them in a dedicated section below
+      if (isInView && !transaction.isRecurring) {
+        // Convert date to YYYY-MM-DD format for consistent grouping
         const dateStr = format(transactionDate, 'yyyy-MM-dd');
-        console.log(`Adding non-recurring transaction "${transaction.title}" (${dateStr}) to view`);
         
+        // Initialize empty array for this date if not already present
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
@@ -409,7 +192,7 @@ export default function ExpenseCalendar({
     // Then, separately process recurring transactions to show future occurrences
     recurringOnes.forEach(transaction => {
       // Safely parse the original transaction date, ensuring we always have a valid Date object
-const originalDate = typeof transaction.date === 'string' 
+      const originalDate = typeof transaction.date === 'string' 
         ? parseISO(transaction.date) 
         : transaction.date instanceof Date 
           ? transaction.date
@@ -569,6 +352,7 @@ const originalDate = typeof transaction.date === 'string'
             grouped[nextDateStr].push(futureCopy);
             console.log(`Added future occurrence on ${nextDateStr}`);
           }
+        }
         
         // Store current date for comparison
         prevDate = new Date(nextDate);
@@ -629,234 +413,339 @@ const originalDate = typeof transaction.date === 'string'
 
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-            <Skeleton className="h-7 w-40" />
-            <Skeleton className="h-8 w-16" />
+      <div className="min-h-[calc(100vh-200px)] p-2 bg-background rounded-lg border flex flex-col">
+        <div className="flex justify-between items-center mb-4 p-2">
+          <Skeleton className="h-8 w-32" />
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-9 rounded-md" />
           </div>
-          <div className="h-96">
-            <Skeleton className="h-full w-full" />
-          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-4 p-2 mt-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 flex-1 p-2">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
         </div>
       </div>
     );
   }
 
+  const previousMonthTotal = getPreviousMonthTotal(transactions, currentDate);
+  const currentMonthTotal = getCurrentMonthTotal(transactions, currentDate);
+  const monthlyChangePercent = previousMonthTotal === 0 
+    ? null 
+    : ((currentMonthTotal - previousMonthTotal) / Math.abs(previousMonthTotal)) * 100;
+  
+  // Calculate the expense trend text and color
+  const expenseTrendText = monthlyChangePercent === null 
+    ? 'No previous data' 
+    : monthlyChangePercent > 0
+      ? `↑ ${monthlyChangePercent.toFixed(1)}% more expenses`
+      : `↓ ${Math.abs(monthlyChangePercent).toFixed(1)}% less expenses`;
+  
+  // Get today for highlighting current date in the calendar
+  const today = new Date();
+
   return (
-    <div className="flex-1 overflow-auto p-2 md:p-6 min-h-[700px]">
-      <div className="bg-card rounded-lg shadow overflow-auto h-full">
-        {/* Calendar Header */}
-        <div className="bg-muted px-4 py-3 border-b border-border flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={onPrevMonth}
-              className="p-1 rounded-full hover:bg-muted/80 dark:hover:bg-muted/30"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-foreground/70" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <h2 className="text-xl font-semibold text-foreground">{currentMonthYear}</h2>
-            <button 
-              onClick={onNextMonth}
-              className="p-1 rounded-full hover:bg-muted/80 dark:hover:bg-muted/30"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-foreground/70" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={onSelectToday}
-              className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
-            >
-              Today
-            </button>
-          </div>
+    <div className="min-h-[calc(100vh-200px)] h-full p-2 bg-background rounded-lg border flex flex-col">
+      <div className="flex justify-between items-center mb-4 p-2">
+        <h2 className="text-xl font-semibold">{currentMonthYear}</h2>
+        
+        <div className="text-sm text-muted-foreground ml-4 max-w-xs hidden md:block">
+          <span className="font-medium">{formatCurrency(currentMonthTotal, 'PLN')}</span> this month. {' '}
+          <span 
+            className={cn(
+              monthlyChangePercent !== null && monthlyChangePercent > 0 && 'text-destructive',
+              monthlyChangePercent !== null && monthlyChangePercent < 0 && 'text-green-500'
+            )}
+          >
+            {expenseTrendText}
+          </span>
         </div>
         
-        {/* Financial Summary Section */}
-        <div className="bg-muted/30 px-4 py-3 border-b border-border">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-semibold">
-              {activeView === 'week' ? 'Weekly' : activeView === 'month' ? 'Monthly' : 'Yearly'} Summary
-            </h3>
-            <div className="text-xs text-muted-foreground">
-              {activeView === 'week' ? 'Current Week' : activeView === 'month' ? 'Current Month' : 'Current Year'}
-            </div>
-          </div>
-          
-          {/* Financial Statistics */}
-          <div className="grid grid-cols-3 gap-4 mt-2">
-            {/* Income */}
-            <div className="bg-card p-2 rounded-md border border-border">
-              <div className="text-xs text-muted-foreground mb-1">Income</div>
-              <div className="text-green-500 font-semibold">
-                {calculateTotalIncome(transactions, currentDate, activeView).toFixed(2)} PLN
-              </div>
-            </div>
-            
-            {/* Expenses */}
-            <div className="bg-card p-2 rounded-md border border-border">
-              <div className="text-xs text-muted-foreground mb-1">Expenses</div>
-              <div className="text-red-500 font-semibold">
-                {calculateTotalExpenses(transactions, currentDate, activeView).toFixed(2)} PLN
-              </div>
-            </div>
-            
-            {/* Balance */}
-            <div className="bg-card p-2 rounded-md border border-border">
-              <div className="text-xs text-muted-foreground mb-1">Balance</div>
-              <div className={`font-semibold ${getBalanceClass(transactions, currentDate, activeView)}`}>
-                {calculateBalance(transactions, currentDate, activeView).toFixed(2)} PLN
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={onPrevMonth} 
+            aria-label="Previous Month"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            className="whitespace-nowrap"
+            onClick={onSelectToday}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Today
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={onNextMonth} 
+            aria-label="Next Month"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
-        
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-px bg-muted text-center min-h-[800px] auto-rows-fr">
-          {/* Weekday Headers */}
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
-            <div key={idx} className="bg-muted/50 py-2 font-medium text-muted-foreground">{day}</div>
-          ))}
+      </div>
+      
+      {/* Day names */}
+      <div className="grid grid-cols-7 gap-4 text-center p-2 bg-background">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <div key={day} className="text-sm font-medium">
+            {day}
+          </div>
+        ))}
+      </div>
+      
+      {/* Calendar days */}
+      <div className="grid grid-cols-7 gap-1 flex-1">
+        {calendarDays.map((day) => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const dayTransactions = transactionsByDate[dateStr] || [];
           
-          {/* Calendar Days */}
-          {calendarDays.map((day, idx) => {
-            const dayStr = format(day, 'yyyy-MM-dd');
-            // Check if day is in the currently displayed month
-            const isCurrentMonth = isSameMonth(day, currentDate);
-            // Always show transactions for the day regardless of month, but ensure we have them
-            const dayTransactions = transactionsByDate[dayStr] || [];
-            const isTodayDate = isToday(day);
-            const isPastDay = isBefore(day, new Date());
-            const dayHasTransactions = dayTransactions.length > 0;
-            const showCompletedMark = dayHasTransactions && isPastDay;
-            
-            return (
-              <div 
-                key={idx} 
-                className={`relative bg-card p-1 calendar-cell ${isTodayDate ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''} ${isCurrentMonth ? 'hover:bg-muted/40 cursor-pointer' : ''}`}
-                onClick={(e) => {
-                  // Handle click on the entire cell container
-                  if (isCurrentMonth && onDayClick) {
-                    // Only trigger if clicked directly on this element (not on a transaction)
-                    if (e.target === e.currentTarget) {
-                      const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
-                      console.log('ENTIRE CELL clicked:', format(clickedDate, 'yyyy-MM-dd'));
-                      onDayClick(clickedDate);
-                    }
-                  }
-                }}
-              >
-                {/* Day number with highlighting for today */}
-                <div 
-                  className={`flex justify-between items-center ${!isCurrentMonth ? 'text-muted-foreground' : isTodayDate ? 'font-medium text-red-700 dark:text-red-400' : 'font-medium'} text-sm ${isCurrentMonth ? 'cursor-pointer' : ''}`}
-                  onClick={() => {
-                    if (isCurrentMonth && onDayClick) {
-                      // Create a new date object with time set to noon to avoid timezone issues
-                      const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
-                      console.log('Calendar day header clicked:', format(clickedDate, 'yyyy-MM-dd'));
-                      onDayClick(clickedDate);
-                    }
-                  }}
-                >
-                  <span className={`${isTodayDate ? 'font-bold' : ''}`}>
-                    {format(day, 'd')}
-                  </span>
-                  
-                  {/* Completed mark for past days with transactions */}
-                  {showCompletedMark && (
-                    <span className="text-green-500" title="Completed">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </span>
+          // Calculate total for expenses and income for this day
+          const expenseTotal = dayTransactions
+            .filter(t => t.isExpense)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+          
+          const incomeTotal = dayTransactions
+            .filter(t => !t.isExpense)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+          
+          // Whether this day is in the current month
+          const isCurrentMonth = isSameMonth(day, currentDate);
+          
+          // Determine if the day is in the past relative to today
+          const isPastDay = day < today;
+          
+          return (
+            <div
+              key={day.toString()}
+              className={cn(
+                "min-h-[100px] p-1 bg-card rounded-lg border border-border relative flex flex-col",
+                !isCurrentMonth && "opacity-40 bg-background border-dashed",
+                isToday(day) && "border-primary border-2",
+                onDayClick && "cursor-pointer hover:border-primary hover:shadow-sm transition-all"
+              )}
+              onClick={() => onDayClick && onDayClick(day)}
+            >
+              {/* Day number */}
+              <div className="text-right p-1">
+                <span 
+                  className={cn(
+                    "text-sm leading-none inline-flex justify-center items-center",
+                    isToday(day) && "bg-primary text-primary-foreground font-medium h-5 w-5 rounded-full"
                   )}
-                </div>
-                
-                {/* Transactions for this day */}
-                <div 
-                  className={`mt-1 overflow-y-auto max-h-[200px] ${isCurrentMonth && !dayHasTransactions ? 'cursor-pointer' : ''} relative group`}
-                  onClick={(e) => {
-                    if (isCurrentMonth && onDayClick && !dayHasTransactions) {
-                      // Only trigger if clicked directly on this element (not on a child)
-                      if (e.target === e.currentTarget) {
-                        // Create a new date object with time set to noon to avoid timezone issues
-                        const clickedDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
-                        console.log('Calendar day clicked (empty area):', format(clickedDate, 'yyyy-MM-dd'));
-                        onDayClick(clickedDate);
-                      }
-                    }
-                  }}
                 >
-                  {/* Visual hint for empty cells that are clickable */}
-                  {!dayHasTransactions && isCurrentMonth && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus className="h-5 w-5 text-muted-foreground/50" />
-                    </div>
-                  )}
-                  
-                  {dayTransactions.map((transaction, transIdx) => {
-                    // Determine if this is a recurring transaction instance (future occurrence)
-                    const isRecurringInstance = 'isRecurringInstance' in transaction;
+                  {format(day, 'd')}
+                </span>
+              </div>
+              
+              {/* Transactions for this day */}
+              <div className="flex-1 overflow-hidden">
+                <div className="space-y-1">
+                  {dayTransactions.map((transaction) => {
+                    // Determine if this transaction is in the past
+                    const transactionDate = transaction.displayDate || 
+                      (typeof transaction.date === 'string' 
+                        ? new Date(transaction.date) 
+                        : transaction.date);
+                    
+                    const isInPast = transactionDate < today;
+                    
+                    // Check if this is a recurring instance and get appropriate date
+                    const effectiveDate = transaction.displayDate || transactionDate;
+                    
+                    // Check if transaction is marked as paid
+                    const isPaid = transaction.isPaid;
+                    
+                    // Determine if this is a month-specific paid status that needs special handling
+                    const requiresStrictIsolation = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit'].includes(transaction.title);
+                    
+                    // Recurring flags for rendering
+                    const isRecurring = transaction.isRecurring;
+                    const isRecurringInstance = transaction.isRecurringInstance;
                     
                     return (
-                      <div 
-                        key={transIdx}
-                        className={`expense-pill ${transaction.isExpense ? transaction.isPaid ? 'bg-red-700/70' : 'bg-red-500' : transaction.isPaid ? 'bg-green-700/70' : 'bg-green-500'} 
-                          text-white rounded-sm px-1 py-0.5 mb-0.5 text-xs flex items-center justify-between
-                          cursor-pointer hover:opacity-90 group relative
-                          ${isRecurringInstance ? 'border-l-2 border-white' : ''}
-                          ${transaction.isPaid ? 'border border-green-300 shadow-sm' : ''}`}
-                        title={`${transaction.title}: ${transaction.amount.toFixed(2)} PLN - ${transaction.personLabel}${isRecurringInstance ? ' (Recurring)' : ''}${transaction.isPaid ? ' (Paid)' : ''}`}
-                        onClick={() => onEditTransaction(transaction)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          // Only allow deletion for actual transactions that have an ID
-                          if (transaction.id) {
-                            // Show confirmation and delete if confirmed
-                            if (window.confirm(`Delete transaction "${transaction.title}" (${transaction.amount.toFixed(2)} PLN)?`)) {
-                              onDeleteTransaction(transaction.id);
-                            }
-                          }
-                        }}
-                      >
-                        {/* Left side with title */}
-                        <div className="flex items-center truncate mr-1">
-                          {/* Icons */}
-                          <div className="flex-shrink-0 mr-1">
-                            {(transaction.isRecurring || isRecurringInstance) && <span title="Recurring">⟳</span>}
-                            {transaction.isPaid && (
-                              <span title="Paid" className="text-green-300 font-bold">
-                                ✓
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Title */}
-                          <span className={`truncate ${transaction.isPaid ? 'line-through decoration-green-300 decoration-2' : ''}`}>
-                            {transaction.title}
-                          </span>
-                        </div>
-                        
-                        {/* Right side with amount */}
-                        <span className="flex-shrink-0 font-medium whitespace-nowrap text-xs">{transaction.amount.toFixed(2)} PLN</span>
-                        
-                        {/* Context menu hint on hover */}
-                        <div className="absolute right-0 bottom-0 opacity-0 group-hover:opacity-50 text-[9px] text-white">
-                          Right-click to delete
-                        </div>
-                      </div>
+                      <TooltipProvider key={transaction.id + (transaction.displayDateStr || '')}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={cn(
+                                "text-xs p-1 px-2 rounded relative group",
+                                "flex items-center justify-between",
+                                "transition-all duration-150 overflow-hidden text-ellipsis",
+                                isPaid && "border-green-500 border bg-green-100 dark:bg-green-900/30",
+                                !isPaid && isInPast && "bg-red-100 dark:bg-red-900/30",
+                                !isPaid && !isInPast && (
+                                  transaction.isExpense 
+                                    ? "bg-destructive/10 hover:bg-destructive/20" 
+                                    : "bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50"
+                                ),
+                                // Add a special outline for recurring instances
+                                (isRecurring || isRecurringInstance) && !isPaid && "border border-dashed border-primary/40"
+                              )}
+                            >
+                              {/* Transaction title with truncation */}
+                              <div className={cn(
+                                "truncate flex-1 flex items-center gap-1",
+                                isPaid && "line-through text-muted-foreground"
+                              )}>
+                                {/* Display recurring indicator */}
+                                {(isRecurring || isRecurringInstance) && (
+                                  <Clock className="h-3 w-3 text-primary/70 flex-shrink-0" />
+                                )}
+                                
+                                {/* Fast transaction indicator */}
+                                {transaction.title === 'Fabi buying online' && (
+                                  <Zap className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                                )}
+                                
+                                {transaction.title}
+                              </div>
+                              
+                              {/* Amount */}
+                              <div className={cn(
+                                "font-medium",
+                                transaction.isExpense 
+                                  ? "text-destructive" 
+                                  : "text-green-500",
+                                isPaid && "line-through text-muted-foreground"
+                              )}>
+                                {transaction.isExpense ? '-' : '+'}{formatCurrency(transaction.amount || 0, 'PLN')}
+                              </div>
+                              
+                              {/* Paid badge */}
+                              {isPaid && (
+                                <div className="absolute -right-1 -top-1 text-green-500">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                </div>
+                              )}
+                              
+                              {/* Action buttons */}
+                              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-end p-1 transition-opacity">
+                                <div className="flex gap-1 ml-auto">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-5 w-5" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditTransaction(transaction);
+                                    }}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-5 w-5 text-destructive" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // For recurring instances, pass the displayDate when deleting
+                                      // to ensure we only delete this specific instance
+                                      if (transaction.isRecurring || transaction.isRecurringInstance) {
+                                        const dateToDelete = transaction.displayDate || transaction.date;
+                                        onDeleteTransaction(transaction.id, dateToDelete instanceof Date 
+                                          ? dateToDelete 
+                                          : new Date(dateToDelete)
+                                        );
+                                      } else {
+                                        onDeleteTransaction(transaction.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            <div className="space-y-1 p-1 max-w-xs">
+                              <div className="font-semibold">{transaction.title}</div>
+                              <div>
+                                {transaction.isExpense ? 'Expense: ' : 'Income: '}
+                                {formatCurrency(transaction.amount || 0, 'PLN')}
+                              </div>
+                              {transaction.personLabel && (
+                                <div className="text-xs">Person: {transaction.personLabel}</div>
+                              )}
+                              {transaction.category && (
+                                <div className="text-xs">
+                                  <Badge 
+                                    className="font-normal" 
+                                    style={{ backgroundColor: transaction.category.color || undefined }}
+                                  >
+                                    {transaction.category.name}
+                                  </Badge>
+                                </div>
+                              )}
+                              {transaction.notes && (
+                                <div className="text-xs text-muted-foreground">{transaction.notes}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                {transaction.isRecurring ? "Recurring" : "One-time"} 
+                                {transaction.isRecurring && transaction.recurringInterval && ` (${transaction.recurringInterval})`}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Status: {isPaid ? 'Paid ✓' : 'Unpaid'}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     );
                   })}
                 </div>
               </div>
-            );
-          })}
-        </div>
+              
+              {/* Daily totals if there are transactions */}
+              {(expenseTotal > 0 || incomeTotal > 0) && (
+                <div className="p-1 text-xs border-t border-border mt-auto">
+                  <div className="flex justify-between">
+                    {expenseTotal > 0 && (
+                      <span className="text-destructive font-medium">
+                        -{formatCurrency(expenseTotal, 'PLN')}
+                      </span>
+                    )}
+                    {incomeTotal > 0 && (
+                      <span className="text-green-500 font-medium ml-auto">
+                        +{formatCurrency(incomeTotal, 'PLN')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* "Add" button that appears on hover */}
+              {isCurrentMonth && onDayClick && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute bottom-1 right-1 h-5 w-5 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDayClick(day);
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

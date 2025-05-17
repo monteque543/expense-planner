@@ -11,6 +11,9 @@ declare module "@shared/schema" {
     // The display date for this instance (may differ from the base transaction date)
     displayDate?: string | Date;
     
+    // The string representation of the display date (for consistent keys)
+    displayDateStr?: string;
+    
     // Whether this transaction should be counted in budget calculations
     shouldCount?: boolean;
     
