@@ -179,17 +179,57 @@ export default function ExpensePlanner() {
     }
   });
   
+  // Import the recurring transaction handler functions
+  import { 
+    markInstanceAsDeleted, 
+    isInstanceDeleted,
+    applyAllInstanceOverrides 
+  } from "@/utils/recurring-transaction-handler";
+
   // Define the handleDeleteTransaction function first 
   // so it can be used by the mutations - this completely avoids API calls
   // for hardcoded transactions
-  const handleDeleteTransaction = (id: number) => {
+  const handleDeleteTransaction = (id: number, date?: Date) => {
     console.log(`Handling deletion for transaction ID: ${id}`);
     
     // Find the transaction in the current dataset
     const transaction = transactions.find(t => t.id === id);
     
+    if (!transaction) {
+      console.error(`Cannot find transaction with ID ${id} to delete`);
+      toast({
+        title: "Error",
+        description: "Transaction not found",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Get the correct date to use for the operation
+    const transactionDate = date || (transaction.date instanceof Date 
+      ? transaction.date 
+      : new Date(transaction.date));
+    
+    // Handle recurring transactions - we only want to delete the current instance
+    if (transaction.isRecurring) {
+      console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(transactionDate, 'yyyy-MM-dd')}`);
+      
+      // Mark just this instance as deleted in the current month view
+      markInstanceAsDeleted(transaction, transactionDate);
+      
+      toast({
+        title: "Instance Deleted",
+        description: `Removed this instance of "${transaction.title}" for ${format(transactionDate, 'MMM yyyy')}`,
+      });
+      
+      // Force refresh of the transactions cache
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      return; // Skip the regular deletion
+    }
+    
     // Special handling for "Grocerries" transactions which have known issues
-    if (transaction && transaction.title === 'Grocerries') {
+    if (transaction.title === 'Grocerries') {
       console.log(`[SPECIAL DELETE] Detected Grocerries transaction ID: ${id}`);
       
       // Notify user of special handling
