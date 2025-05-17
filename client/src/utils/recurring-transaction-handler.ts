@@ -1,6 +1,12 @@
 import { Transaction, TransactionWithCategory } from "@shared/schema";
 import { format, getMonth, getYear, parseISO } from "date-fns";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+
+// Define an extended transaction interface that includes our client-side properties
+interface ExtendedTransaction extends Transaction {
+  isDeleted?: boolean;
+  instanceDate?: string;
+}
 
 /**
  * This utility handles recurring transactions for single-instance operations

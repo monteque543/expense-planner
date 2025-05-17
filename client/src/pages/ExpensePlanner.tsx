@@ -179,16 +179,61 @@ export default function ExpensePlanner() {
     }
   });
   
-  // Import the recurring transaction handler functions
-  import { 
-    markInstanceAsDeleted, 
-    isInstanceDeleted,
-    applyAllInstanceOverrides 
-  } from "@/utils/recurring-transaction-handler";
+  // We'll handle recurring transactions with local functions for now
 
   // Define the handleDeleteTransaction function first 
   // so it can be used by the mutations - this completely avoids API calls
   // for hardcoded transactions
+  // Track deleted recurring transaction instances by month
+  const [deletedRecurringInstances, setDeletedRecurringInstances] = useState<Record<string, number[]>>({});
+  
+  // Function to mark a recurring transaction instance as deleted for a specific month
+  const markRecurringInstanceAsDeleted = (transactionId: number, date: Date) => {
+    const monthKey = format(date, 'yyyy-MM');
+    
+    setDeletedRecurringInstances(prev => {
+      const monthInstances = prev[monthKey] || [];
+      return {
+        ...prev,
+        [monthKey]: [...monthInstances, transactionId]
+      };
+    });
+    
+    // Save to localStorage for persistence
+    const storageKey = `deleted-recurring-instances-${monthKey}`;
+    const existingData = localStorage.getItem(storageKey);
+    const existingIds = existingData ? JSON.parse(existingData) : [];
+    localStorage.setItem(storageKey, JSON.stringify([...existingIds, transactionId]));
+    
+    console.log(`Marked recurring transaction ${transactionId} as deleted for month ${monthKey}`);
+  };
+  
+  // Function to check if a recurring transaction instance has been deleted
+  const isRecurringInstanceDeleted = (transactionId: number, date: Date) => {
+    const monthKey = format(date, 'yyyy-MM');
+    const monthInstances = deletedRecurringInstances[monthKey] || [];
+    return monthInstances.includes(transactionId);
+  };
+  
+  // Load deleted recurring instances from localStorage on component mount
+  useEffect(() => {
+    // Load all deleted recurring instances for all months from localStorage
+    const deletedInstancesMap: Record<string, number[]> = {};
+    
+    // Check localStorage for any existing deleted instances
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('deleted-recurring-instances-')) {
+        const monthKey = key.replace('deleted-recurring-instances-', '');
+        const ids = JSON.parse(localStorage.getItem(key) || '[]');
+        deletedInstancesMap[monthKey] = ids;
+      }
+    }
+    
+    setDeletedRecurringInstances(deletedInstancesMap);
+    console.log('Loaded deleted recurring instances:', deletedInstancesMap);
+  }, []);
+  
   const handleDeleteTransaction = (id: number, date?: Date) => {
     console.log(`Handling deletion for transaction ID: ${id}`);
     
@@ -215,14 +260,14 @@ export default function ExpensePlanner() {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(transactionDate, 'yyyy-MM-dd')}`);
       
       // Mark just this instance as deleted in the current month view
-      markInstanceAsDeleted(transaction, transactionDate);
+      markRecurringInstanceAsDeleted(transaction.id, transactionDate);
       
       toast({
         title: "Instance Deleted",
         description: `Removed this instance of "${transaction.title}" for ${format(transactionDate, 'MMM yyyy')}`,
       });
       
-      // Force refresh of the transactions cache
+      // Force refresh of the transactions cache to update the UI
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       return; // Skip the regular deletion
