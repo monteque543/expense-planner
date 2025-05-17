@@ -36,9 +36,9 @@ import {
   filterTransactions
 } from "@/utils/transaction-transformers";
 import { 
-  requiresStrictIsolation,
-  saveMonthlyPaidStatus, 
-  clearAllMonthlyStatuses 
+  getMonthlyPaidStatus,
+  setMonthlyPaidStatus, 
+  extractYearMonth 
 } from "@/utils/strict-monthly-paid-status";
 import { 
   Tooltip, 
@@ -202,8 +202,7 @@ export default function ExpensePlanner() {
     if (transaction.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Instead of actually deleting from the server, store this recurring instance
-      // as deleted in localStorage for the specific month
+      // Mark this transaction instance as deleted just for this month
       const monthKey = format(date, 'yyyy-MM');
       const storageKey = `deleted-recurring-instances-${monthKey}`;
       
@@ -222,7 +221,7 @@ export default function ExpensePlanner() {
         description: `Removed this instance of "${transaction.title}" for ${format(date, 'MMM yyyy')}`,
       });
       
-      // Force refresh of the transactions cache
+      // Force refresh of the transactions cache to update the UI
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       return; // Skip the regular deletion
