@@ -457,12 +457,12 @@ export default function ExpenseCalendar({
       <div className="flex justify-between items-center mb-4 p-2">
         <h2 className="text-xl font-semibold">{currentMonthYear}</h2>
         
-        <div className="text-sm text-muted-foreground ml-4 max-w-md hidden md:flex items-center gap-4">
+        <div className="text-sm ml-4 max-w-md md:block hidden">
           {/* Month summary with income, expenses and remaining amount */}
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-green-500">↑</span>
-              <span className="font-medium text-green-500">
+          <div className="flex flex-col gap-1.5 bg-card p-3 rounded-md shadow-sm border">
+            <div className="flex items-center gap-2 text-base">
+              <span className="text-green-500 font-bold">↑</span>
+              <span className="font-semibold text-green-500 text-base">
                 {formatCurrency(
                   transactions
                     .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
@@ -470,20 +470,20 @@ export default function ExpenseCalendar({
                   'PLN'
                 )}
               </span>
-              <span>income</span>
+              <span className="text-muted-foreground">monthly income</span>
             </div>
             
-            <div className="flex items-center gap-1.5">
-              <span className="text-destructive">↓</span>
-              <span className="font-medium text-destructive">
+            <div className="flex items-center gap-2 text-base">
+              <span className="text-destructive font-bold">↓</span>
+              <span className="font-semibold text-destructive text-base">
                 {formatCurrency(currentMonthTotal, 'PLN')}
               </span>
-              <span>expenses</span>
+              <span className="text-muted-foreground">monthly expenses</span>
             </div>
             
-            <div className="flex items-center gap-1.5 font-semibold">
-              <span className="text-primary">=</span>
-              <span className="font-medium">
+            <div className="flex items-center gap-2 text-base border-t pt-1.5 mt-1">
+              <span className="text-primary font-bold">=</span>
+              <span className="font-semibold text-base">
                 {formatCurrency(
                   transactions
                     .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
@@ -491,21 +491,19 @@ export default function ExpenseCalendar({
                   'PLN'
                 )}
               </span>
-              <span>remaining</span>
+              <span className="text-muted-foreground">remaining balance</span>
             </div>
-          </div>
-          
-          <div className="border-l h-12 mx-2"></div>
-          
-          <div>
-            <span 
-              className={cn(
-                monthlyChangePercent !== null && monthlyChangePercent > 0 && 'text-destructive',
-                monthlyChangePercent !== null && monthlyChangePercent < 0 && 'text-green-500'
-              )}
-            >
-              {expenseTrendText}
-            </span>
+            
+            <div className="mt-1 text-xs">
+              <span 
+                className={cn(
+                  monthlyChangePercent !== null && monthlyChangePercent > 0 && 'text-destructive',
+                  monthlyChangePercent !== null && monthlyChangePercent < 0 && 'text-green-500'
+                )}
+              >
+                {expenseTrendText}
+              </span>
+            </div>
           </div>
         </div>
         
