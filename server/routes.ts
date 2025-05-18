@@ -17,12 +17,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
   
-  // Create an authentication middleware
+  // Authentication middleware - currently disabled to allow usage without login
   function requireAuth(req: Request, res: Response, next: NextFunction) {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ message: "Authentication required" });
+    // Skip authentication check and allow all requests
+    return next();
+    
+    // Original authentication check (commented out)
+    // if (req.isAuthenticated()) {
+    //   return next();
+    // }
+    // res.status(401).json({ message: "Authentication required" });
   }
   
   const router = express.Router();

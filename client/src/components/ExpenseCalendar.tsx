@@ -457,16 +457,56 @@ export default function ExpenseCalendar({
       <div className="flex justify-between items-center mb-4 p-2">
         <h2 className="text-xl font-semibold">{currentMonthYear}</h2>
         
-        <div className="text-sm text-muted-foreground ml-4 max-w-xs hidden md:block">
-          <span className="font-medium">{formatCurrency(currentMonthTotal, 'PLN')}</span> this month. {' '}
-          <span 
-            className={cn(
-              monthlyChangePercent !== null && monthlyChangePercent > 0 && 'text-destructive',
-              monthlyChangePercent !== null && monthlyChangePercent < 0 && 'text-green-500'
-            )}
-          >
-            {expenseTrendText}
-          </span>
+        <div className="text-sm text-muted-foreground ml-4 max-w-md hidden md:flex items-center gap-4">
+          {/* Month summary with income, expenses and remaining amount */}
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-green-500">↑</span>
+              <span className="font-medium text-green-500">
+                {formatCurrency(
+                  transactions
+                    .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
+                    .reduce((sum, t) => sum + (t.amount || 0), 0), 
+                  'PLN'
+                )}
+              </span>
+              <span>income</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              <span className="text-destructive">↓</span>
+              <span className="font-medium text-destructive">
+                {formatCurrency(currentMonthTotal, 'PLN')}
+              </span>
+              <span>expenses</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 font-semibold">
+              <span className="text-primary">=</span>
+              <span className="font-medium">
+                {formatCurrency(
+                  transactions
+                    .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
+                    .reduce((sum, t) => sum + (t.amount || 0), 0) - currentMonthTotal, 
+                  'PLN'
+                )}
+              </span>
+              <span>remaining</span>
+            </div>
+          </div>
+          
+          <div className="border-l h-12 mx-2"></div>
+          
+          <div>
+            <span 
+              className={cn(
+                monthlyChangePercent !== null && monthlyChangePercent > 0 && 'text-destructive',
+                monthlyChangePercent !== null && monthlyChangePercent < 0 && 'text-green-500'
+              )}
+            >
+              {expenseTrendText}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center space-x-2">
