@@ -11,7 +11,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={ExpensePlanner} />
+      {/* Changed from ProtectedRoute to Route to bypass auth requirement */}
+      <Route path="/" component={ExpensePlanner} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
