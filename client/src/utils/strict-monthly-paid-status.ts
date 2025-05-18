@@ -42,6 +42,9 @@ export function extractYearMonth(date: Date): string {
   return format(date, 'yyyy-MM');
 }
 
+// Alias for backward compatibility
+export const saveMonthlyPaidStatus = setMonthlyPaidStatus;
+
 /**
  * Gets the month-specific paid status for a transaction
  * This is used to isolate recurring transaction paid status by month
