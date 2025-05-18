@@ -38,9 +38,12 @@ import {
 import { 
   getMonthlyPaidStatus,
   setMonthlyPaidStatus, 
-  extractYearMonth 
+  extractYearMonth,
+  requiresStrictIsolation,
+  clearAllMonthlyStatuses,
+  saveMonthlyPaidStatus,
+  markRecurringInstanceAsDeleted
 } from "@/utils/strict-monthly-paid-status";
-import { markRecurringInstanceAsDeleted } from "@/utils/month-specific-deletion";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -204,7 +207,6 @@ export default function ExpensePlanner() {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
       // Use our utility function to mark this instance as deleted just for this month
-      import { markRecurringInstanceAsDeleted } from "@/utils/month-specific-deletion";
       markRecurringInstanceAsDeleted(id, date);
       
       toast({

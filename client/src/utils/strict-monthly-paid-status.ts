@@ -92,3 +92,26 @@ export function clearAllMonthlyStatuses(): void {
     }
   }
 }
+
+/**
+ * Marks a recurring transaction instance as deleted for a specific month
+ * @param transactionId The ID of the transaction to mark as deleted
+ * @param date The date of the instance to delete
+ */
+export function markRecurringInstanceAsDeleted(transactionId: number, date: Date): void {
+  // Create a month key in format YYYY-MM
+  const monthKey = format(date, 'yyyy-MM');
+  const storageKey = `deleted-recurring-instances-${monthKey}`;
+  
+  // Get existing deleted transactions for this month
+  const existingDeleted = localStorage.getItem(storageKey);
+  const deletedIds = existingDeleted ? JSON.parse(existingDeleted) : [];
+  
+  // Add this transaction to the deleted list if not already there
+  if (!deletedIds.includes(transactionId)) {
+    deletedIds.push(transactionId);
+    localStorage.setItem(storageKey, JSON.stringify(deletedIds));
+  }
+  
+  console.log(`Marked recurring transaction ${transactionId} as deleted for month ${monthKey}`);
+}
