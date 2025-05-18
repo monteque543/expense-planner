@@ -56,24 +56,3 @@ export function getDeletedRecurringInstances(date: Date): number[] {
   const existingData = localStorage.getItem(storageKey);
   return existingData ? JSON.parse(existingData) : [];
 }
-
-/**
- * Removes a recurring transaction instance from the deleted list for a specific month
- * @param transactionId The ID of the transaction to remove from the deleted list
- * @param date The date of the instance to restore (used to determine the month)
- */
-export function restoreDeletedRecurringInstance(transactionId: number, date: Date): void {
-  // Create a month key in format YYYY-MM
-  const monthKey = format(date, 'yyyy-MM');
-  const storageKey = `deleted-recurring-instances-${monthKey}`;
-  
-  // Get any existing deleted instances for this month
-  const existingData = localStorage.getItem(storageKey);
-  const existingIds = existingData ? JSON.parse(existingData) : [];
-  
-  // Remove this transaction ID from the deleted list
-  const updatedIds = existingIds.filter((id: number) => id !== transactionId);
-  localStorage.setItem(storageKey, JSON.stringify(updatedIds));
-  
-  console.log(`Restored recurring transaction ${transactionId} for month ${monthKey}`);
-}

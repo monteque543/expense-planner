@@ -1,38 +1,6 @@
 import { format } from "date-fns";
 import { TransactionWithCategory } from "@shared/schema";
 
-// List of transaction names that require strict isolation by month
-const STRICT_ISOLATION_TRANSACTIONS = [
-  'Netflix', 
-  'Orange', 
-  'Karma daisy', 
-  'TRW', 
-  'Replit', 
-  'cancel sub'
-];
-
-/**
- * Checks if a transaction requires strict monthly isolation
- * @param transaction The transaction to check
- * @returns Boolean indicating if this transaction needs month-specific handling
- */
-export function requiresStrictIsolation(transaction: TransactionWithCategory): boolean {
-  return STRICT_ISOLATION_TRANSACTIONS.includes(transaction.title);
-}
-
-/**
- * Clears all monthly statuses from local storage
- * Use this to reset all saved states (for debugging)
- */
-export function clearAllMonthlyStatuses(): void {
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (key.startsWith('transaction-') || key.startsWith('deleted-recurring-instances-'))) {
-      localStorage.removeItem(key);
-    }
-  }
-}
-
 /**
  * Extract the year and month from a date
  * @param date The date to extract from
@@ -41,9 +9,6 @@ export function clearAllMonthlyStatuses(): void {
 export function extractYearMonth(date: Date): string {
   return format(date, 'yyyy-MM');
 }
-
-// Alias for backward compatibility
-export const saveMonthlyPaidStatus = setMonthlyPaidStatus;
 
 /**
  * Gets the month-specific paid status for a transaction
@@ -101,4 +66,29 @@ export function setMonthlyPaidStatus(
   
   // Save the paid status for this month
   localStorage.setItem(storageKey, isPaid.toString());
+}
+
+/**
+ * Returns true if the transaction needs special handling for strict isolation
+ */
+export function requiresStrictIsolation(transaction: TransactionWithCategory): boolean {
+  const strictIsolationNames = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub'];
+  return strictIsolationNames.includes(transaction.title);
+}
+
+/**
+ * Alias for backward compatibility
+ */
+export const saveMonthlyPaidStatus = setMonthlyPaidStatus;
+
+/**
+ * Clears all monthly statuses from localStorage
+ */
+export function clearAllMonthlyStatuses(): void {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('transaction-') || key.startsWith('deleted-recurring-instances-'))) {
+      localStorage.removeItem(key);
+    }
+  }
 }

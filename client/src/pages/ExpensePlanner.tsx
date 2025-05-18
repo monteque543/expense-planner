@@ -40,6 +40,7 @@ import {
   setMonthlyPaidStatus, 
   extractYearMonth 
 } from "@/utils/strict-monthly-paid-status";
+import { markRecurringInstanceAsDeleted } from "@/utils/month-specific-deletion";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -202,19 +203,9 @@ export default function ExpensePlanner() {
     if (transaction.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Mark this transaction instance as deleted just for this month
-      const monthKey = format(date, 'yyyy-MM');
-      const storageKey = `deleted-recurring-instances-${monthKey}`;
-      
-      // Get existing deleted transactions for this month
-      const existingDeleted = localStorage.getItem(storageKey);
-      const deletedIds = existingDeleted ? JSON.parse(existingDeleted) : [];
-      
-      // Add this transaction to the deleted list if not already there
-      if (!deletedIds.includes(id)) {
-        deletedIds.push(id);
-        localStorage.setItem(storageKey, JSON.stringify(deletedIds));
-      }
+      // Use our utility function to mark this instance as deleted just for this month
+      import { markRecurringInstanceAsDeleted } from "@/utils/month-specific-deletion";
+      markRecurringInstanceAsDeleted(id, date);
       
       toast({
         title: "Instance Deleted",
