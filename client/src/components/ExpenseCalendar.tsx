@@ -38,9 +38,11 @@ import {
 import { 
   Calendar,
   Check,
+  CheckCircle,
   CheckCircle2, 
   ChevronsLeft, 
   ChevronsRight, 
+  Circle,
   Clock, 
   DollarSign, 
   Edit, 
