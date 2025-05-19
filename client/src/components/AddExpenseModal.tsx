@@ -13,6 +13,7 @@ import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { AutocompleteCategoryInput } from "@/components/ui/autocomplete-category";
 import { Category, Transaction, persons, recurringIntervals } from "@shared/schema";
 import { AlertTriangle, DollarSign, Euro, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +87,7 @@ export default function AddExpenseModal({
   defaultDate,
   currentBudget = Infinity // Default to Infinity to disable budget check if not provided
 }: AddExpenseModalProps) {
+  const { toast } = useToast();
   // State for the selected currency
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('PLN');
   // State for displaying converted amount

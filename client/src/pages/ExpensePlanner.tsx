@@ -45,11 +45,12 @@ import {
   saveMonthlyPaidStatus
 } from "@/utils/strict-monthly-paid-status";
 import {
-  markRecurringTransactionAsPaid,
-  isRecurringTransactionPaid,
-  markRecurringTransactionAsDeleted,
-  isRecurringTransactionDeleted
-} from "@/utils/simplified-paid-status";
+  setPaidStatus,
+  isPaid,
+  setDeletedStatus,
+  isDeleted,
+  applyMonthlyStatuses
+} from "@/utils/monthlySavedStatus";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -236,9 +237,9 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our new simplified utility for month-specific deletion
+      // Use our ultra-simple monthly tracker for deletion
       const deleteDate = new Date(date);
-      markRecurringTransactionAsDeleted(id, deleteDate, true);
+      setDeletedStatus(id, deleteDate, true);
       console.log(`[SIMPLIFIED DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
@@ -513,14 +514,14 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // SUPER-SIMPLE APPROACH: Use a direct utility with guaranteed month-specific behavior
-        const isPaid = transaction.isPaid === true; // Ensure it's a boolean
+        // Use the new ultra-simple monthly status tracker
+        const isPaidValue = transaction.isPaid === true; // Ensure it's a boolean
         const id = transaction.id;
         
-        // Use our simplified utility for direct month-specific paid status
-        markRecurringTransactionAsPaid(id, dateObj, isPaid);
+        // Directly set the paid status for this specific month only
+        setPaidStatus(id, dateObj, isPaidValue);
         
-        console.log(`[MONTH SPECIFIC] Successfully set transaction ${id} (${transaction.title}) paid status to ${isPaid} for ${format(dateObj, 'yyyy-MM')}`);
+        console.log(`[MONTH SPECIFIC] Set transaction ${id} (${transaction.title}) paid status to ${isPaidValue} for month ${format(dateObj, 'yyyy-MM')}`);
         
         // Also store a master record entry for additional verification
         try {
