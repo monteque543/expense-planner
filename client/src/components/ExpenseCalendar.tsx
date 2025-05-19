@@ -483,14 +483,20 @@ export default function ExpenseCalendar({
             
             <div className="flex items-center gap-2 text-base border-t pt-1.5 mt-1">
               <span className="text-primary font-bold">=</span>
-              <span className="font-semibold text-base">
-                {formatCurrency(
-                  transactions
-                    .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
-                    .reduce((sum, t) => sum + (t.amount || 0), 0) - currentMonthTotal, 
-                  'PLN'
-                )}
-              </span>
+              {(() => {
+                const remainingBalance = transactions
+                  .filter(t => !t.isExpense && isSameMonth(new Date(t.date), currentDate))
+                  .reduce((sum, t) => sum + (t.amount || 0), 0) - currentMonthTotal;
+                
+                return (
+                  <span className={cn(
+                    "font-semibold text-base",
+                    remainingBalance < 0 ? "text-destructive" : ""
+                  )}>
+                    {formatCurrency(remainingBalance, 'PLN')}
+                  </span>
+                );
+              })()}
               <span className="text-muted-foreground">remaining balance</span>
             </div>
             
@@ -749,23 +755,7 @@ export default function ExpenseCalendar({
                 </div>
               </div>
               
-              {/* Daily totals if there are transactions */}
-              {(expenseTotal > 0 || incomeTotal > 0) && (
-                <div className="p-1 text-xs border-t border-border mt-auto">
-                  <div className="flex justify-between">
-                    {expenseTotal > 0 && (
-                      <span className="text-destructive font-medium">
-                        -{formatCurrency(expenseTotal, 'PLN')}
-                      </span>
-                    )}
-                    {incomeTotal > 0 && (
-                      <span className="text-green-500 font-medium ml-auto">
-                        +{formatCurrency(incomeTotal, 'PLN')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Daily totals removed as requested */}
               
               {/* "Add" button that appears on hover */}
               {isCurrentMonth && onDayClick && (

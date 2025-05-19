@@ -157,10 +157,14 @@ export default function AddExpenseModal({
       isPaid: false, // Default to unpaid for new expenses
     };
     
-    // Check if this expense would put the user over budget
-    if (finalAmount > currentBudget) {
+    // Stricter budget warning system
+    // Check if this expense would put the user over budget or if the current budget is already negative
+    if (currentBudget < 0 || finalAmount > currentBudget) {
       // Calculate the budget deficit
-      const deficit = Math.abs(currentBudget - finalAmount);
+      const deficit = currentBudget < 0 
+        ? Math.abs(currentBudget) + finalAmount  // Already in deficit, so add the new amount
+        : Math.abs(currentBudget - finalAmount); // Calculate how much this would put us over
+      
       setBudgetDeficit(deficit);
       
       // Store the data to use if the user confirms they want to proceed
