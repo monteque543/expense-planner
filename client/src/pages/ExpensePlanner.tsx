@@ -1302,6 +1302,7 @@ export default function ExpensePlanner() {
       </div>
 
       {/* Modals */}
+      {/* Pass the current selected date to modal */}
       <AddExpenseModal
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}

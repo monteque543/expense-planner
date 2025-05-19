@@ -6,7 +6,16 @@ import { TransactionWithCategory } from "@shared/schema";
  * @param date The date to extract from
  * @returns A string in format 'YYYY-MM'
  */
-export function extractYearMonth(date: Date): string {
+export function extractYearMonth(date: Date | string): string {
+  if (typeof date === 'string') {
+    // Handle string dates (YYYY-MM-DD) format
+    const parts = date.split('-');
+    if (parts.length >= 2) {
+      return `${parts[0]}-${parts[1]}`;
+    }
+    // Fallback for invalid string
+    return format(new Date(), 'yyyy-MM');
+  }
   return format(date, 'yyyy-MM');
 }
 
