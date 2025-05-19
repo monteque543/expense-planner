@@ -143,31 +143,29 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
-    // STRICT BUDGET PROTECTION: 
-    // Always block expenses when budget is negative or the expense would exceed budget
+    // ENHANCED BUDGET PROTECTION:
+    // Always block expenses when they would exceed budget - no option to proceed anyway
     if (currentBudget !== undefined) {
-      console.log(`[BUDGET CHECK] Current budget: ${currentBudget}, Expense amount: ${finalAmount}`);
+      console.log(`[BUDGET CHECK] Current budget: ${currentBudget} PLN, Expense amount: ${finalAmount} PLN`);
       
-      if (currentBudget <= 0 || finalAmount > currentBudget) {
+      // Check if budget is negative or expense exceeds budget
+      if (currentBudget < 0 || finalAmount > currentBudget) {
         // Calculate exact deficit for better user feedback
         const deficit = currentBudget <= 0 
           ? Math.abs(currentBudget) + finalAmount 
           : finalAmount - currentBudget;
         
-        console.log(`[BUDGET PROTECTION] Blocking expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
+        console.log(`[HARD BLOCK] Preventing expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
         
-        // Store budget deficit for display
-        setBudgetDeficit(deficit);
-        
-        // Store the data temporarily in case user wants to proceed
-        setPendingExpenseData({
-          ...data,
-          amount: finalAmount,
+        // Show a toast message rather than a dialog that can be bypassed
+        toast({
+          title: "Budget Limit Exceeded",
+          description: `This expense of ${finalAmount.toFixed(2)} PLN exceeds your available budget by ${deficit.toFixed(2)} PLN. Unable to proceed.`,
+          variant: "destructive"
         });
         
-        // Show warning dialog to inform user
-        setShowBudgetWarning(true);
-        return; // Stop submission until user decides
+        // No option to proceed - form is not submitted
+        return;
       }
     }
     

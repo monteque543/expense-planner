@@ -44,10 +44,12 @@ import {
   clearAllMonthlyStatuses,
   saveMonthlyPaidStatus
 } from "@/utils/strict-monthly-paid-status";
-import { 
-  markTransactionDeletedForMonth,
-  isTransactionDeletedForMonth
-} from "@/utils/month-specific-deletion";
+import {
+  markRecurringTransactionAsPaid,
+  isRecurringTransactionPaid,
+  markRecurringTransactionAsDeleted,
+  isRecurringTransactionDeleted
+} from "@/utils/simplified-paid-status";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -234,17 +236,10 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use a simple, reliable approach for month-specific deletion
+      // Use our new simplified utility for month-specific deletion
       const deleteDate = new Date(date);
-      const monthKey = format(deleteDate, 'yyyy-MM');
-      const deleteKey = `deleted_${id}_${monthKey}`;
-      
-      // Store deletion status directly in localStorage
-      localStorage.setItem(deleteKey, 'true');
-      console.log(`[SIMPLIFIED DELETE] Marked transaction ${id} as deleted for month ${monthKey} with key: ${deleteKey}`);
-      
-      // Also use our existing utility as a backup
-      markRecurringInstanceAsDeleted(id, date);
+      markRecurringTransactionAsDeleted(id, deleteDate, true);
+      console.log(`[SIMPLIFIED DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
         title: "Instance Hidden",
@@ -518,19 +513,18 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // MUCH SIMPLER APPROACH: Use a single reliable format for paid status
+        // SUPER-SIMPLE APPROACH: Use a direct utility with guaranteed month-specific behavior
         const isPaid = transaction.isPaid === true; // Ensure it's a boolean
         const id = transaction.id;
-        const monthKey = format(dateObj, 'yyyy-MM');
-        const statusKey = `paid_status_${id}_${monthKey}`;
         
-        // Set paid status with a simple, predictable key format
-        localStorage.setItem(statusKey, isPaid ? 'true' : 'false');
+        // Use our simplified utility for direct month-specific paid status
+        markRecurringTransactionAsPaid(id, dateObj, isPaid);
         
-        console.log(`[MONTH SPECIFIC] Set recurring transaction ${id} (${transaction.title}) as ${isPaid ? 'PAID' : 'UNPAID'} for month ${monthKey}`);
+        console.log(`[MONTH SPECIFIC] Successfully set transaction ${id} (${transaction.title}) paid status to ${isPaid} for ${format(dateObj, 'yyyy-MM')}`);
         
-        // Add a master record entry too for additional verification
+        // Also store a master record entry for additional verification
         try {
+          const monthKey = format(dateObj, 'yyyy-MM');
           const masterKey = `month_paid_statuses_${monthKey}`;
           const existingData = localStorage.getItem(masterKey) || '{}';
           const monthStatuses = JSON.parse(existingData);
