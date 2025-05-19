@@ -390,8 +390,8 @@ export default function EditTransactionModal({
         // Special check for certain transactions that need month-specific isolation
         if (transaction && transaction.title && ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub', 'webflow'].includes(transaction.title)) {
           toast({
-            title: "Enhanced Monthly Isolation Applied",
-            description: `Paid status for ${transaction.title} is now locked to this specific month (${yearMonth}).`,
+            title: data.isPaid ? "Marked as Paid" : "Marked as Unpaid",
+            description: `Transaction "${transaction.title}" updated successfully`,
             variant: "default",
           });
         }
