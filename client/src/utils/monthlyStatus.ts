@@ -3,6 +3,10 @@
  */
 import { format } from 'date-fns';
 
+// Define storage key prefixes
+const PAID_KEY_PREFIX = 'recurring_paid_';
+const DELETED_KEY_PREFIX = 'recurring_deleted_';
+
 /**
  * Format a date into YYYY-MM format for storage keys
  */
@@ -15,8 +19,10 @@ function getMonthKey(date: Date): string {
  */
 export function markPaid(id: number, date: Date, isPaid: boolean): void {
   const monthKey = getMonthKey(date);
-  localStorage.setItem(`paid_${id}_${monthKey}`, isPaid ? 'true' : 'false');
-  console.log(`[MONTHLY] Transaction ${id} marked as ${isPaid ? 'PAID' : 'UNPAID'} for ${monthKey}`);
+  const storageKey = `${PAID_KEY_PREFIX}${id}_${monthKey}`;
+  
+  localStorage.setItem(storageKey, isPaid ? 'true' : 'false');
+  console.log(`Transaction ${id} marked as ${isPaid ? 'PAID' : 'UNPAID'} for ${monthKey}`);
 }
 
 /**
@@ -24,7 +30,9 @@ export function markPaid(id: number, date: Date, isPaid: boolean): void {
  */
 export function isPaid(id: number, date: Date): boolean {
   const monthKey = getMonthKey(date);
-  return localStorage.getItem(`paid_${id}_${monthKey}`) === 'true';
+  const storageKey = `${PAID_KEY_PREFIX}${id}_${monthKey}`;
+  
+  return localStorage.getItem(storageKey) === 'true';
 }
 
 /**
@@ -32,8 +40,10 @@ export function isPaid(id: number, date: Date): boolean {
  */
 export function markDeleted(id: number, date: Date, isDeleted: boolean): void {
   const monthKey = getMonthKey(date);
-  localStorage.setItem(`deleted_${id}_${monthKey}`, isDeleted ? 'true' : 'false');
-  console.log(`[MONTHLY] Transaction ${id} marked as ${isDeleted ? 'DELETED' : 'VISIBLE'} for ${monthKey}`);
+  const storageKey = `${DELETED_KEY_PREFIX}${id}_${monthKey}`;
+  
+  localStorage.setItem(storageKey, isDeleted ? 'true' : 'false');
+  console.log(`Transaction ${id} marked as ${isDeleted ? 'DELETED' : 'VISIBLE'} for ${monthKey}`);
 }
 
 /**
@@ -41,44 +51,66 @@ export function markDeleted(id: number, date: Date, isDeleted: boolean): void {
  */
 export function isDeleted(id: number, date: Date): boolean {
   const monthKey = getMonthKey(date);
-  return localStorage.getItem(`deleted_${id}_${monthKey}`) === 'true';
+  const storageKey = `${DELETED_KEY_PREFIX}${id}_${monthKey}`;
+  
+  return localStorage.getItem(storageKey) === 'true';
 }
 
 /**
  * Apply month-specific statuses to transactions
  */
 export function applyMonthlyStatuses(transactions: any[]): any[] {
-  return transactions
-    .map(transaction => {
-      // Only process recurring transactions
-      if (!transaction.isRecurring) return transaction;
-      
-      // Get the appropriate date
-      const dateToUse = transaction.displayDate || transaction.date;
-      const dateObj = new Date(typeof dateToUse === 'string' ? dateToUse : dateToUse);
-      
-      // Check if we have a month-specific paid status
-      const monthKey = getMonthKey(dateObj);
-      const hasPaidStatus = localStorage.getItem(`paid_${transaction.id}_${monthKey}`) !== null;
-      
-      // Only override if we have a specific status
-      if (hasPaidStatus) {
-        return {
-          ...transaction,
-          isPaid: isPaid(transaction.id, dateObj)
-        };
-      }
-      
+  if (!transactions || !Array.isArray(transactions)) {
+    return [];
+  }
+
+  // First apply paid status
+  const withPaidStatus = transactions.map(transaction => {
+    if (!transaction.isRecurring) {
       return transaction;
-    })
-    .filter(transaction => {
-      // Filter out deleted transactions
-      if (!transaction.isRecurring) return true;
-      
-      const dateToUse = transaction.displayDate || transaction.date;
-      const dateObj = new Date(typeof dateToUse === 'string' ? dateToUse : dateToUse);
-      
-      // Skip if marked as deleted for this month
-      return !isDeleted(transaction.id, dateObj);
-    });
+    }
+
+    // For recurring transactions, get the display date or original date
+    const date = transaction.displayDate || new Date(transaction.date);
+    
+    // Check if we have a specific paid status for this month
+    const monthKey = getMonthKey(date);
+    if (localStorage.getItem(`${PAID_KEY_PREFIX}${transaction.id}_${monthKey}`) !== null) {
+      return {
+        ...transaction,
+        isPaid: isPaid(transaction.id, date)
+      };
+    }
+    
+    return transaction;
+  });
+  
+  // Then filter out deleted transactions
+  return withPaidStatus.filter(transaction => {
+    if (!transaction.isRecurring) {
+      return true;
+    }
+    
+    // For recurring transactions, check if it's deleted for this month
+    const date = transaction.displayDate || new Date(transaction.date);
+    return !isDeleted(transaction.id, date);
+  });
+}
+
+/**
+ * Clear all monthly statuses (for testing purposes)
+ */
+export function clearAllMonthlyStatuses(): number {
+  const keys = Object.keys(localStorage);
+  let cleared = 0;
+  
+  keys.forEach(key => {
+    if (key.startsWith(PAID_KEY_PREFIX) || key.startsWith(DELETED_KEY_PREFIX)) {
+      localStorage.removeItem(key);
+      cleared++;
+    }
+  });
+  
+  console.log(`[CLEAR] Cleared ${cleared} monthly status entries`);
+  return cleared;
 }

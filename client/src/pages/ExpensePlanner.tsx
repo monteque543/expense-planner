@@ -208,8 +208,11 @@ export default function ExpensePlanner() {
         if (transaction.isRecurring) {
           console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
           
-          // Use our utility function to mark this instance as deleted just for this month
-          markRecurringInstanceAsDeleted(id, date);
+          // Use our recurring tracker utility
+          const { markDeleted } = require('@/utils/recurringTracker');
+          markDeleted(id, date, true);
+          
+          console.log(`[RECURRING DELETE] Set transaction ${id} (${transaction.title}) as deleted for month ${format(date, 'yyyy-MM')}`);
           
           toast({
             title: "Instance Hidden",
@@ -959,6 +962,7 @@ export default function ExpensePlanner() {
                   });
                   
                   // 3. Also clear our new strict monthly paid status system
+                  const { clearAllMonthlyStatuses } = require('@/utils/monthlyStatus');
                   const strictCleared = clearAllMonthlyStatuses();
                   console.log(`[FACTORY RESET] Cleared ${strictCleared} strict monthly status records`);
                   
