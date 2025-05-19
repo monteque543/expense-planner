@@ -145,10 +145,10 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
-    // ENHANCED BUDGET PROTECTION - SIMPLIFIED AND FIXED
-    // Always check budget before submission - only one check, no duplicated code
+    // DEBUG-ENABLED BUDGET PROTECTION
+    // Always check budget before submission - with extra debugging
     if (currentBudget !== undefined) {
-      console.log(`[STRICT BUDGET CHECK] Current budget: ${currentBudget.toFixed(2)} PLN, Expense amount: ${finalAmount.toFixed(2)} PLN`);
+      console.log(`[DEBUG-MODAL] ⚠️ MODAL BUDGET CHECK - Budget: ${currentBudget.toFixed(2)} PLN, Expense: ${finalAmount.toFixed(2)} PLN`);
       
       const formattedData = {
         ...data,
@@ -166,29 +166,49 @@ export default function AddExpenseModal({
       // Budget is already negative
       if (currentBudget < 0) {
         const deficit = Math.abs(currentBudget) + finalAmount;
-        console.log(`[STRICT BLOCK] Budget already negative: ${currentBudget.toFixed(2)} PLN. Blocking completely.`);
+        console.log(`[DEBUG-MODAL] 🚫 BLOCK ATTEMPT - Budget negative: ${currentBudget.toFixed(2)} PLN, deficit: ${deficit.toFixed(2)} PLN`);
+        console.log(`[DEBUG-MODAL] Show Budget Warning: ${showBudgetWarning}`);
         
         // No "Add Anyway" option
         setBudgetDeficit(deficit);
         setPendingExpenseData(null); // No override possible
+        
+        // Force dialog to show
         setShowBudgetWarning(true);
+        console.log(`[DEBUG-MODAL] Set showBudgetWarning to TRUE`);
+        
+        // Extra check to confirm state update
+        setTimeout(() => {
+          console.log(`[DEBUG-MODAL] After state update - showBudgetWarning: ${showBudgetWarning}`);
+        }, 10);
+        
         return; // Do not submit
       }
       
       // Expense would exceed budget
       if (finalAmount > currentBudget) {
         const deficit = finalAmount - currentBudget;
-        console.log(`[WARNING] Expense ${finalAmount.toFixed(2)} PLN exceeds budget ${currentBudget.toFixed(2)} PLN by ${deficit.toFixed(2)} PLN`);
+        console.log(`[DEBUG-MODAL] ⚠️ WARNING ATTEMPT - Expense exceeds budget by ${deficit.toFixed(2)} PLN`);
+        console.log(`[DEBUG-MODAL] Show Budget Warning: ${showBudgetWarning}`);
         
         // Allow "Add Anyway" option
         setBudgetDeficit(deficit);
         setPendingExpenseData(formattedData); // Allow override
+        
+        // Force dialog to show
         setShowBudgetWarning(true);
+        console.log(`[DEBUG-MODAL] Set showBudgetWarning to TRUE`);
+        
+        // Extra check to confirm state update
+        setTimeout(() => {
+          console.log(`[DEBUG-MODAL] After state update - showBudgetWarning: ${showBudgetWarning}`);
+        }, 10);
+        
         return; // Do not submit yet
       }
       
       // Budget is sufficient, proceed with expense
-      console.log(`[APPROVED] Budget check passed. Adding expense.`);
+      console.log(`[DEBUG-MODAL] ✅ APPROVED: Budget check passed. Adding expense.`);
       submitExpense(formattedData);
       return;
     }
