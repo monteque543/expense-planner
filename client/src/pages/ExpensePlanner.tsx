@@ -36,19 +36,12 @@ import {
   filterTransactions
 } from "@/utils/transaction-transformers";
 import { 
-  markRecurringInstanceAsDeleted,
-  extractYearMonth,
-  requiresStrictIsolation,
-  clearAllMonthlyStatuses,
-  saveMonthlyPaidStatus
-} from "@/utils/strict-monthly-paid-status";
-import {
-  setMonthlyPaidStatus,
-  getMonthlyPaidStatus,
-  setMonthlyDeletedStatus,
-  getMonthlyDeletedStatus,
+  markPaid,
+  isPaid,
+  markDeleted,
+  isDeleted,
   applyMonthlyStatuses
-} from "@/utils/month-specific-operations";
+} from "@/utils/monthlyStatus";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -235,14 +228,10 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our simple tracker utility for deletion
+      // Use our simple tracker for month-specific deletion
       const deleteDate = new Date(date);
-      
-      // Import needed function
-      const { setDeleted } = require('@/utils/simpleTracker');
-      
-      // Mark as deleted for this specific month
-      setDeleted(id, deleteDate, true);
+      const { markDeleted } = require('@/utils/recurringTracker');
+      markDeleted(id, deleteDate, true);
       console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
@@ -517,15 +506,15 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // Use the simple tracker utility for paid status
+        // Use our simple tracker for month-specific paid status
         const isPaidValue = transaction.isPaid === true; // Ensure it's a boolean
         const id = transaction.id;
         
-        // Import needed function
-        const { setPaid } = require('@/utils/simpleTracker');
+        // Import the required function
+        const { markPaid } = require('@/utils/recurringTracker');
         
         // Mark as paid/unpaid for this specific month only
-        setPaid(id, dateObj, isPaidValue);
+        markPaid(id, dateObj, isPaidValue);
         
         console.log(`[MONTH SPECIFIC] Set transaction ${id} (${transaction.title}) paid status to ${isPaidValue} for month ${format(dateObj, 'yyyy-MM')}`);
         
