@@ -29,12 +29,14 @@ export function processTransactionsWithMonthlyStatus(transactions: TransactionWi
       
       // Check if we have a specific paid status for this transaction in this month
       const monthKey = format(dateObj, 'yyyy-MM');
-      const paidKey = `recurring_paid_${transaction.id}_${monthKey}`;
+      const paidKey = `paid_status_${transaction.id}_${monthKey}`;
       
       if (localStorage.getItem(paidKey) !== null) {
+        const isPaidValue = localStorage.getItem(paidKey) === 'true';
+        console.log(`Found paid status for ${transaction.title} (${transaction.id}) in month ${monthKey}: ${isPaidValue}`);
         return {
           ...transaction,
-          isPaid: isPaid(transaction.id, dateObj)
+          isPaid: isPaidValue
         };
       }
       
