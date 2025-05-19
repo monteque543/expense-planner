@@ -576,9 +576,28 @@ export default function ExpensePlanner() {
       return;
     }
     
-    // For regular edits, show the modal
-    setSelectedTransaction(transaction);
-    setShowEditModal(true);
+    // Special handling for webflow transaction to ensure it's editable
+    if (transaction.title === "webflow") {
+      console.log("[WEBFLOW EDIT] Special handling for webflow transaction");
+      
+      // Ensure all fields are properly set
+      const enhancedTransaction: TransactionWithCategory = {
+        ...transaction,
+        title: "webflow",
+        // Make sure isRecurring is explicitly set
+        isRecurring: true,
+        // Don't pass any category object that might be incomplete
+        category: categories.find(c => c.id === transaction.categoryId) || undefined
+      };
+      
+      // Set the transaction and open the edit modal
+      setSelectedTransaction(enhancedTransaction);
+      setShowEditModal(true);
+    } else {
+      // For regular edits, show the modal
+      setSelectedTransaction(transaction);
+      setShowEditModal(true);
+    }
   };
   
   // Date changes now handled through the edit modal
@@ -603,7 +622,7 @@ export default function ExpensePlanner() {
       const statuses = JSON.parse(storedData) as RecurringTransactionPaidStatus[];
       
       // Problematic transactions that need special handling
-      const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy'];
+      const problematicTitles = ['TRW', 'Replit', 'Netflix', 'Orange', 'Karma daisy', 'webflow'];
       
       // Create a filtered list without these transactions (we'll regenerate them properly next time)
       const filteredStatuses = statuses.filter(status => {
