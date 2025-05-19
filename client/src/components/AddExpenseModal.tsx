@@ -143,6 +143,20 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
+    // BUDGET PROTECTION: Check if this expense would exceed the available budget
+    if (currentBudget !== undefined && currentBudget < 0) {
+      // Calculate how much over budget we are
+      setBudgetDeficit(Math.abs(currentBudget) + finalAmount);
+      // Store the data to use if user wants to proceed anyway
+      setPendingExpenseData({
+        ...data,
+        amount: finalAmount,
+      });
+      // Show warning dialog that the expense exceeds budget
+      setShowBudgetWarning(true);
+      return; // Stop submission until user decides
+    }
+    
     // Convert string dates to Date objects
     const formattedData = {
       ...data,
