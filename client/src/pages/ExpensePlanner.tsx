@@ -209,7 +209,7 @@ export default function ExpensePlanner() {
           console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
           
           // Use our recurring tracker utility
-          const { markDeleted } = require('@/utils/recurringTracker');
+          const { markDeleted } = require('../utils/monthlyStatus');
           markDeleted(id, date, true);
           
           console.log(`[RECURRING DELETE] Set transaction ${id} (${transaction.title}) as deleted for month ${format(date, 'yyyy-MM')}`);
@@ -233,7 +233,7 @@ export default function ExpensePlanner() {
       
       // Use our simple tracker for month-specific deletion
       const deleteDate = new Date(date);
-      const { markDeleted } = require('@/utils/monthTracker');
+      const { markDeleted } = require('../utils/monthlyStatus');
       markDeleted(id, deleteDate, true);
       console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
@@ -514,7 +514,7 @@ export default function ExpensePlanner() {
         const id = transaction.id;
         
         // Import the required function
-        const { markPaid } = require('@/utils/monthlyStatus');
+        const { markPaid } = require('../utils/monthlyStatus');
         
         // Mark as paid/unpaid for this specific month only
         markPaid(id, dateObj, isPaidValue);
@@ -962,7 +962,7 @@ export default function ExpensePlanner() {
                   });
                   
                   // 3. Also clear our new strict monthly paid status system
-                  const { clearAllMonthlyStatuses } = require('@/utils/monthlyStatus');
+                  const { clearAllMonthlyStatuses } = require('../utils/monthlyStatus');
                   const strictCleared = clearAllMonthlyStatuses();
                   console.log(`[FACTORY RESET] Cleared ${strictCleared} strict monthly status records`);
                   
