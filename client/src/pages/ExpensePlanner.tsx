@@ -187,11 +187,64 @@ export default function ExpensePlanner() {
   // so it can be used by the mutations - this completely avoids API calls
   // for hardcoded transactions
   const handleDeleteTransaction = (id: number, date?: Date) => {
-    console.log(`Handling deletion for transaction ID: ${id}`);
+    console.log(`Handling deletion for transaction ID: ${id}, with date: ${date ? format(date, 'yyyy-MM-dd') : 'none'}`);
     
-    // Find the transaction in the current dataset
-    const transaction = transactions.find(t => t.id === id);
+    // For recurring transactions that use the calendar delete function, find based on both ID and date
+    let transaction = transactions.find(t => t.id === id);
     
+    // If we have a date parameter and couldn't find the transaction, it might be a recurring instance
+    // so we need to look more carefully through generated recurring instances
+    if (!transaction && date) {
+      console.log(`[RECURRING DELETE] Searching for recurring instance with ID ${id} for month ${format(date, 'yyyy-MM')}`);
+      
+      // Get all transactions including recurring instances
+      const allTransactions = data || [];
+      
+      // First try to find the base transaction 
+      transaction = allTransactions.find(t => t.id === id);
+      
+      if (transaction) {
+        console.log(`[RECURRING DELETE] Found base transaction: ${transaction.title}`);
+        
+        // Since we found the base transaction, we can proceed with month-specific deletion
+        if (transaction.isRecurring) {
+          console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
+          
+          // Use our utility function to mark this instance as deleted just for this month
+          markRecurringInstanceAsDeleted(id, date);
+          
+          toast({
+            title: "Instance Hidden",
+            description: `Removed "${transaction.title}" for ${format(date, 'MMM yyyy')} only`,
+          });
+          
+          // Force refresh of the transactions cache to update the UI
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+          
+          return; // Skip the regular deletion
+        }
+      }
+    }
+    
+    // Handle regular recurring transactions
+    if (transaction?.isRecurring && date) {
+      console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
+      
+      // Use our utility function to mark this instance as deleted just for this month
+      markRecurringInstanceAsDeleted(id, date);
+      
+      toast({
+        title: "Instance Hidden",
+        description: `Removed "${transaction.title}" for ${format(date, 'MMM yyyy')} only`,
+      });
+      
+      // Force refresh of the transactions cache to update the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      return; // Skip the regular deletion
+    }
+    
+    // If we still couldn't find the transaction, show an error
     if (!transaction) {
       console.error(`Cannot find transaction with ID ${id} to delete`);
       toast({
@@ -200,24 +253,6 @@ export default function ExpensePlanner() {
         variant: "destructive",
       });
       return;
-    }
-    
-    // Handle recurring transactions - we only want to delete the current instance
-    if (transaction.isRecurring && date) {
-      console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
-      
-      // Use our utility function to mark this instance as deleted just for this month
-      markRecurringInstanceAsDeleted(id, date);
-      
-      toast({
-        title: "Instance Deleted",
-        description: `Removed this instance of "${transaction.title}" for ${format(date, 'MMM yyyy')}`,
-      });
-      
-      // Force refresh of the transactions cache to update the UI
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
-      return; // Skip the regular deletion
     }
     
     // Special handling for "Grocerries" transactions which have known issues

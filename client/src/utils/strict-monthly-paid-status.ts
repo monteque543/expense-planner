@@ -66,6 +66,22 @@ export function setMonthlyPaidStatus(
   
   // Save the paid status for this month
   localStorage.setItem(storageKey, isPaid.toString());
+  
+  console.log(`[PAID STATUS] Saved month-specific paid status for transaction ${transaction.id} (${transaction.title}): ${isPaid} for month ${monthKey}`);
+  
+  // For debugging, list the localStorage items
+  let paidStatuses = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('transaction-') && key.includes('-paid-')) {
+      paidStatuses.push({
+        key,
+        value: localStorage.getItem(key)
+      });
+    }
+  }
+  
+  console.log(`[PAID STATUS DEBUG] Current paid statuses in localStorage:`, paidStatuses);
 }
 
 /**
