@@ -234,10 +234,17 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use both utilities to ensure deletion works properly
+      // Use a simple, reliable approach for month-specific deletion
+      const deleteDate = new Date(date);
+      const monthKey = format(deleteDate, 'yyyy-MM');
+      const deleteKey = `deleted_${id}_${monthKey}`;
+      
+      // Store deletion status directly in localStorage
+      localStorage.setItem(deleteKey, 'true');
+      console.log(`[SIMPLIFIED DELETE] Marked transaction ${id} as deleted for month ${monthKey} with key: ${deleteKey}`);
+      
+      // Also use our existing utility as a backup
       markRecurringInstanceAsDeleted(id, date);
-      // Also use our new utility for more reliable month-specific deletion
-      markRecurringInstanceAsDeletedForMonth(id, date);
       
       toast({
         title: "Instance Hidden",
@@ -511,44 +518,27 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // DIRECT APPROACH: Set paid status in a way that's guaranteed to work
+        // MUCH SIMPLER APPROACH: Use a single reliable format for paid status
         const isPaid = transaction.isPaid === true; // Ensure it's a boolean
-        const title = transaction.title;
         const id = transaction.id;
         const monthKey = format(dateObj, 'yyyy-MM');
+        const statusKey = `paid_status_${id}_${monthKey}`;
         
-        console.log(`[MARK AS PAID] Setting ${title} (${id}) as ${isPaid ? 'PAID' : 'UNPAID'} for ${monthKey}`);
+        // Set paid status with a simple, predictable key format
+        localStorage.setItem(statusKey, isPaid ? 'true' : 'false');
         
-        // Common prefixes used for marking paid status
-        const prefixes = ['transaction', 'txn', 'paid', 'status', 'recurring', 'fixed'];
-        const separators = ['-', '_', '.'];
+        console.log(`[MONTH SPECIFIC] Set recurring transaction ${id} (${transaction.title}) as ${isPaid ? 'PAID' : 'UNPAID'} for month ${monthKey}`);
         
-        // Store with all variations to ensure at least one works
-        prefixes.forEach(prefix => {
-          separators.forEach(separator => {
-            // Store multiple formats
-            localStorage.setItem(`${prefix}${separator}${id}${separator}${monthKey}${separator}paid`, isPaid.toString());
-            localStorage.setItem(`${prefix}${separator}${id}${separator}paid${separator}${monthKey}`, isPaid.toString());
-          });
-        });
-        
-        // Also store by transaction name (special logic for known transactions)
-        const simplifiedName = title.toLowerCase().replace(/\s+/g, '-');
-        localStorage.setItem(`${simplifiedName}-${monthKey}-paid`, isPaid.toString());
-        localStorage.setItem(`${simplifiedName}-status`, isPaid.toString());
-        
-        // Also store in a master record
-        const masterKey = `all-paid-statuses-${monthKey}`;
+        // Add a master record entry too for additional verification
         try {
-          const existing = localStorage.getItem(masterKey) || '{}';
-          const allStatuses = JSON.parse(existing);
-          allStatuses[id] = isPaid;
-          localStorage.setItem(masterKey, JSON.stringify(allStatuses));
-        } catch (e) {
-          console.error("Error saving to master record", e);
+          const masterKey = `month_paid_statuses_${monthKey}`;
+          const existingData = localStorage.getItem(masterKey) || '{}';
+          const monthStatuses = JSON.parse(existingData);
+          monthStatuses[id] = isPaid;
+          localStorage.setItem(masterKey, JSON.stringify(monthStatuses));
+        } catch (error) {
+          console.error('Error updating master paid status record:', error);
         }
-        
-        console.log(`[MARK AS PAID] Saved paid status in 20+ formats to ensure compatibility`);
       
         
         // Force update cached data
