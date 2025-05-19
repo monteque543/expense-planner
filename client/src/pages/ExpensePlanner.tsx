@@ -230,7 +230,7 @@ export default function ExpensePlanner() {
       
       // Use our simple tracker for month-specific deletion
       const deleteDate = new Date(date);
-      const { markDeleted } = require('@/utils/recurringTracker');
+      const { markDeleted } = require('@/utils/monthTracker');
       markDeleted(id, deleteDate, true);
       console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
@@ -511,7 +511,7 @@ export default function ExpensePlanner() {
         const id = transaction.id;
         
         // Import the required function
-        const { markPaid } = require('@/utils/recurringTracker');
+        const { markPaid } = require('@/utils/monthTracker');
         
         // Mark as paid/unpaid for this specific month only
         markPaid(id, dateObj, isPaidValue);

@@ -150,20 +150,22 @@ export default function AddExpenseModal({
     if (currentBudget !== undefined) {
       console.log(`[BUDGET CHECK] Current budget: ${currentBudget} PLN, Expense amount: ${finalAmount} PLN`);
       
-      // Check if budget is negative or expense exceeds budget
+      // ENHANCED BUDGET PROTECTION: Hard block all expenses when budget is negative
+      // This is month-specific since currentBudget is calculated for the current month
       if (currentBudget < 0 || finalAmount > currentBudget) {
         // Calculate exact deficit for better user feedback
         const deficit = currentBudget <= 0 
           ? Math.abs(currentBudget) + finalAmount 
           : finalAmount - currentBudget;
         
-        console.log(`[HARD BLOCK] Preventing expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
+        console.log(`[STRICT BUDGET PROTECTION] Blocking expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
         
-        // Show a toast message rather than a dialog that can be bypassed
+        // Show a clear error message that cannot be bypassed
         toast({
-          title: "Budget Limit Exceeded",
-          description: `This expense of ${finalAmount.toFixed(2)} PLN exceeds your available budget by ${deficit.toFixed(2)} PLN. Unable to proceed.`,
-          variant: "destructive"
+          title: "Budget Protection Activated",
+          description: `This expense of ${finalAmount.toFixed(2)} PLN exceeds your available budget by ${deficit.toFixed(2)} PLN. Transaction blocked.`,
+          variant: "destructive",
+          duration: 5000
         });
         
         // No option to proceed - form is not submitted
