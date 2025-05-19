@@ -259,16 +259,30 @@ export default function AddExpenseModal({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Budget Warning
+              {currentBudget < 0 ? 'Budget Blocked' : 'Budget Warning'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              <p className="mb-2">You are poor and cannot afford this expense this month!</p>
-              <p className="font-medium">
-                Your current budget is <span className="text-destructive">{formatCurrency(currentBudget, 'PLN')}</span> but this expense costs <span className="text-destructive">{formatCurrency(pendingExpenseData?.amount || 0, 'PLN')}</span>.
-              </p>
-              <p className="mt-2 font-semibold">
-                You are missing <span className="text-destructive">{formatCurrency(budgetDeficit, 'PLN')}</span> to afford this expense.
-              </p>
+              {currentBudget < 0 ? (
+                <>
+                  <p className="mb-2 font-bold">You cannot add any more expenses this month!</p>
+                  <p className="font-medium">
+                    Your current budget is already negative at <span className="text-destructive font-bold">{formatCurrency(currentBudget, 'PLN')}</span>.
+                  </p>
+                  <p className="mt-2">
+                    You need to add more income before you can add additional expenses.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2">This expense will exceed your available budget for this month!</p>
+                  <p className="font-medium">
+                    Your current budget is <span className="text-destructive">{formatCurrency(currentBudget, 'PLN')}</span> but this expense costs <span className="text-destructive">{formatCurrency(pendingExpenseData?.amount || 0, 'PLN')}</span>.
+                  </p>
+                  <p className="mt-2 font-semibold">
+                    You are missing <span className="text-destructive">{formatCurrency(budgetDeficit, 'PLN')}</span> to afford this expense.
+                  </p>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -276,18 +290,20 @@ export default function AddExpenseModal({
               setShowBudgetWarning(false);
               setPendingExpenseData(null);
             }}>
-              Cancel
+              {currentBudget < 0 ? 'Close' : 'Cancel'}
             </AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (pendingExpenseData) {
-                  submitExpense(pendingExpenseData);
-                }
-              }}
-            >
-              Add Anyway
-            </AlertDialogAction>
+            {currentBudget >= 0 && (
+              <AlertDialogAction 
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (pendingExpenseData) {
+                    submitExpense(pendingExpenseData);
+                  }
+                }}
+              >
+                Add Anyway
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
