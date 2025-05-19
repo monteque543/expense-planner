@@ -143,17 +143,26 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
-    // BUDGET PROTECTION: Check if this expense would exceed the available budget
-    if (currentBudget !== undefined && currentBudget < 0) {
-      // Calculate how much over budget we are
-      setBudgetDeficit(Math.abs(currentBudget) + finalAmount);
+    // BUDGET PROTECTION: Stronger check to prevent adding expenses when budget is negative
+    // This will always block expenses when the budget is negative
+    if (currentBudget !== undefined && (currentBudget < 0 || finalAmount > currentBudget)) {
+      // Calculate how much over budget this expense would put us
+      const deficit = currentBudget < 0 
+        ? Math.abs(currentBudget) + finalAmount 
+        : finalAmount - currentBudget;
+      
+      // Store budget deficit
+      setBudgetDeficit(deficit);
+      
       // Store the data to use if user wants to proceed anyway
       setPendingExpenseData({
         ...data,
         amount: finalAmount,
       });
-      // Show warning dialog that the expense exceeds budget
+      
+      // Show warning dialog
       setShowBudgetWarning(true);
+      console.log(`[BUDGET WARNING] Prevented adding expense of ${finalAmount} PLN when budget is ${currentBudget} PLN`);
       return; // Stop submission until user decides
     }
     

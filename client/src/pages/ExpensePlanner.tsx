@@ -517,19 +517,41 @@ export default function ExpensePlanner() {
         
         // Ensure we have a valid boolean value for isPaid to avoid null issues
         const isPaidValue = transaction.isPaid === true;
+        console.log(`[MARK_AS_PAID] Setting transaction ${transaction.id} (${transaction.title}) to ${isPaidValue ? 'PAID' : 'UNPAID'}`);
+        
+        // IMPROVED APPROACH: Use multiple storage methods to guarantee it works
         
         // Method 1: Use the monthly paid status utility
         setMonthlyPaidStatus(transaction, isPaidValue, dateObj);
         
-        // Method 2: Use the new direct localStorage approach
+        // Method 2: Use direct localStorage with multiple key formats for maximum compatibility
         const monthKey = format(dateObj, 'yyyy-MM');
-        const storageKey = `transaction-${transaction.id}-paid-${monthKey}`;
-        localStorage.setItem(storageKey, isPaidValue.toString());
         
-        // Method 3: For known problematic transactions, also use special handling
-        if (['Netflix', 'Replit', 'TRW', 'Orange', 'Karma daisy'].includes(transaction.title)) {
-          console.log(`[SPECIAL PAID] Using special handling for known problematic transaction: ${transaction.title}`);
-          localStorage.setItem(`${transaction.title.toLowerCase()}-${monthKey}-paid`, isPaidValue.toString());
+        // Main format
+        localStorage.setItem(`transaction-${transaction.id}-paid-${monthKey}`, isPaidValue.toString());
+        
+        // Alternative formats
+        localStorage.setItem(`txn_status_${transaction.id}_${monthKey}`, isPaidValue.toString());
+        localStorage.setItem(`strict_paid_${transaction.id}_${monthKey}`, isPaidValue.toString());
+        localStorage.setItem(`monthly_strict_${transaction.id}_${monthKey}`, isPaidValue.toString());
+        localStorage.setItem(`fixed_status_${transaction.id}_${monthKey}`, isPaidValue.toString());
+        
+        // Method 3: Special handling for all recurring transactions by name
+        const titleKey = transaction.title.toLowerCase().replace(/\s+/g, '-');
+        localStorage.setItem(`${titleKey}-status`, isPaidValue.toString());
+        localStorage.setItem(`${titleKey}-${monthKey}-paid`, isPaidValue.toString());
+        
+        console.log(`[MARK_AS_PAID] Used multiple storage formats to ensure paid status is saved`);
+        
+        // Method 4: Add direct entry to a master paid status object for this month
+        try {
+          const monthlyStatusKey = `monthly-paid-status-${monthKey}`;
+          const existingData = localStorage.getItem(monthlyStatusKey) || '{}';
+          const monthlyStatuses = JSON.parse(existingData);
+          monthlyStatuses[transaction.id] = isPaidValue;
+          localStorage.setItem(monthlyStatusKey, JSON.stringify(monthlyStatuses));
+        } catch (error) {
+          console.error('[PAID_STATUS] Error updating master paid status:', error);
         }
         
         // Force update cached data
