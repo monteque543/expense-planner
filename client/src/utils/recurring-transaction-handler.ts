@@ -118,17 +118,47 @@ export function applyInstanceOverrides(
   date: Date | string
 ): TransactionWithCategory {
   const overrides = getInstanceOverrides(transaction, date);
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
   
-  if (!overrides) return transaction;
+  // Check for month-specific paid status (from strict-monthly-paid-status utility)
+  let isPaid = transaction.isPaid;
+  
+  // If we have month-specific paid status, use that
+  try {
+    const monthlyPaidStatus = localStorage.getItem(`transaction-${transaction.id}-paid-${format(dateObj, 'yyyy-MM')}`);
+    if (monthlyPaidStatus !== null) {
+      isPaid = monthlyPaidStatus === 'true';
+      console.log(`Found month-specific paid status for ${transaction.title} (${transaction.id}): ${isPaid}`);
+    }
+  } catch (error) {
+    console.error('Error checking month-specific paid status:', error);
+  }
+  
+  if (!overrides) {
+    // No stored overrides, but we might have month-specific paid status
+    return {
+      ...transaction,
+      isPaid,
+      // Add display properties for the calendar
+      displayDate: dateObj,
+      displayDateStr: format(dateObj, 'yyyy-MM-dd'),
+      isRecurringInstance: true
+    };
+  }
   
   // Apply overrides but preserve the original ID and recurring properties
   return {
     ...transaction,
     ...overrides,
+    isPaid, // Use our month-specific paid status
     id: transaction.id,
     isRecurring: transaction.isRecurring,
     recurringInterval: transaction.recurringInterval,
-    recurringEndDate: transaction.recurringEndDate
+    recurringEndDate: transaction.recurringEndDate,
+    // Add display properties for the calendar
+    displayDate: dateObj,
+    displayDateStr: format(dateObj, 'yyyy-MM-dd'),
+    isRecurringInstance: true
   };
 }
 

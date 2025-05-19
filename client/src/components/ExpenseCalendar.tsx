@@ -695,19 +695,26 @@ export default function ExpenseCalendar({
                                       // Toggle the paid status
                                       const newPaidStatus = !isPaid;
                                       
-                                      // Update via the edit transaction function
                                       // For recurring instances, need to pass the actual date
                                       // to ensure it only affects this instance
-                                      const dateToUse = transaction.displayDate || transaction.date;
-                                      const dateObj = dateToUse instanceof Date 
-                                        ? dateToUse 
-                                        : new Date(dateToUse);
+                                      let dateToUse = transaction.date; // Default to transaction date
+                                      
+                                      // For recurring instances, use displayDate if available
+                                      if (transaction.isRecurring && 'displayDate' in transaction && transaction.displayDate) {
+                                        dateToUse = transaction.displayDate;
+                                      }
+                                      
+                                      // Ensure we have a proper Date object
+                                      const dateObj = typeof dateToUse === 'string' 
+                                        ? new Date(dateToUse) 
+                                        : dateToUse;
+                                      
+                                      console.log(`[MARK PAID] Setting ${transaction.title} (${transaction.id}) paid status to ${newPaidStatus} for date: ${format(dateObj, 'yyyy-MM-dd')}`);
                                       
                                       // Update the transaction
                                       onEditTransaction({
                                         ...transaction,
                                         isPaid: newPaidStatus,
-                                        // Add displayDate for handling recurring instances
                                         displayDate: dateObj
                                       });
                                     }}
@@ -740,13 +747,17 @@ export default function ExpenseCalendar({
                                       
                                       // Always pass a date when deleting, which ensures recurring transactions
                                       // only get deleted for the specific month
-                                      const dateToDelete = 'displayDate' in transaction 
-                                        ? transaction.displayDate 
-                                        : transaction.date;
-                                        
-                                      const dateObj = dateToDelete instanceof Date 
-                                        ? dateToDelete 
-                                        : new Date(dateToDelete);
+                                      let dateToDelete = transaction.date; // Default to transaction date
+                                      
+                                      // For recurring instances, use displayDate if available
+                                      if (transaction.isRecurring && 'displayDate' in transaction && transaction.displayDate) {
+                                        dateToDelete = transaction.displayDate;
+                                      }
+                                      
+                                      // Ensure we have a proper Date object
+                                      const dateObj = typeof dateToDelete === 'string' 
+                                        ? new Date(dateToDelete) 
+                                        : dateToDelete;
                                         
                                       console.log(`Deleting transaction: ${transaction.title} (${transaction.id}) for date: ${format(dateObj, 'yyyy-MM-dd')}`);
                                       onDeleteTransaction(transaction.id, dateObj);
