@@ -451,6 +451,39 @@ export default function ExpensePlanner() {
   
   // Handler for editing a transaction
   const handleEditTransaction = (transaction: TransactionWithCategory) => {
+    // Check if this is a "Mark as Paid" toggle from the calendar view
+    if ('displayDate' in transaction && transaction.isPaid !== undefined) {
+      console.log(`[MARK AS PAID] Handling paid toggle for ${transaction.title} (${transaction.id}): ${transaction.isPaid}`);
+      
+      // For recurring transactions, save to localStorage with month-specific key
+      if (transaction.isRecurring) {
+        const dateToUse = 'displayDate' in transaction ? transaction.displayDate : transaction.date;
+        const dateObj = dateToUse instanceof Date ? dateToUse : new Date(dateToUse);
+        
+        // Use our utility to save month-specific paid status
+        setMonthlyPaidStatus(transaction, transaction.isPaid, dateObj);
+        
+        // Force update cached data
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        
+        toast({
+          title: transaction.isPaid ? "Marked as Paid" : "Marked as Unpaid",
+          description: `Transaction "${transaction.title}" updated successfully`
+        });
+        
+        return;
+      }
+      
+      // For regular transactions, update via API
+      updateTransaction.mutate({ 
+        id: transaction.id, 
+        data: { isPaid: transaction.isPaid } 
+      });
+      
+      return;
+    }
+    
+    // For regular edits, show the modal
     setSelectedTransaction(transaction);
     setShowEditModal(true);
   };

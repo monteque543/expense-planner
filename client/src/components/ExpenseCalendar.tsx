@@ -630,15 +630,16 @@ export default function ExpenseCalendar({
                                 "text-xs p-1 px-2 rounded relative group",
                                 "flex items-center justify-between",
                                 "transition-all duration-150 overflow-hidden text-ellipsis",
-                                isPaid && "border-green-500 border bg-green-100 dark:bg-green-900/30",
+                                // Use more noticeable styling for paid transactions
+                                isPaid && "border-green-500 border bg-green-100/80 dark:bg-green-900/40",
                                 !isPaid && isInPast && "bg-red-100 dark:bg-red-900/30",
                                 !isPaid && !isInPast && (
                                   transaction.isExpense 
                                     ? "bg-destructive/10 hover:bg-destructive/20" 
                                     : "bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50"
                                 ),
-                                // Add a special outline for recurring instances
-                                (isRecurring || isRecurringInstance) && !isPaid && "border border-dashed border-primary/40"
+                                // Add a special outline for actual recurring transactions ONLY
+                                isRecurring && !isPaid && "border border-dashed border-primary/40"
                               )}
                             >
                               {/* Transaction title with truncation */}
