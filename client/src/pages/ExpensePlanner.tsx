@@ -101,6 +101,20 @@ export default function ExpensePlanner() {
       switch (e.key.toUpperCase()) {
         case 'E': // Add Expense
           e.preventDefault(); // Prevent the 'e' from being added to input fields
+          
+          // Apply the same budget protection rules to keyboard shortcut
+          if (currentBudget < 0) {
+            // Show warning toast
+            toast({
+              title: "Budget Protection Activated",
+              description: `Cannot add expenses when budget is negative (${currentBudget.toFixed(2)} PLN). Add income first.`,
+              variant: "destructive",
+              duration: 7000
+            });
+            return; // Don't open the expense modal
+          }
+          
+          // If budget is positive, proceed normally
           setShowExpenseModal(true);
           break;
         case 'I': // Add Income
@@ -1070,15 +1084,45 @@ export default function ExpensePlanner() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button 
-                    onClick={() => setShowExpenseModal(true)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition font-medium text-sm"
-                  >
-                    Add Expense
-                  </button>
+                  <div className="relative">
+                    {/* Budget Warning Indicator - Visible only when budget is negative */}
+                    {currentBudget < 0 && (
+                      <div className="absolute -right-2 -top-2 w-5 h-5 flex items-center justify-center bg-destructive text-white rounded-full text-xs">
+                        !
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => {
+                        // Budget protection check
+                        if (currentBudget < 0) {
+                          // Show clear warning toast
+                          toast({
+                            title: "Budget Protection Activated",
+                            description: `Cannot add expenses when budget is negative (${currentBudget.toFixed(2)} PLN). Add income first.`,
+                            variant: "destructive",
+                            duration: 7000
+                          });
+                          return;
+                        }
+                        
+                        // If budget is positive, proceed normally
+                        setShowExpenseModal(true);
+                      }}
+                      className={`px-4 py-2 text-white rounded-md transition font-medium text-sm ${
+                        currentBudget < 0 
+                          ? "bg-gray-500 cursor-not-allowed" // Disabled style
+                          : "bg-red-500 hover:bg-red-600"    // Normal style
+                      }`}
+                    >
+                      Add Expense
+                    </button>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Press 'E' to quickly add expense</p>
+                <TooltipContent className="max-w-xs">
+                  {currentBudget < 0 
+                    ? <p className="text-destructive font-semibold">Budget Protection: Current budget is {currentBudget.toFixed(2)} PLN. Add income first.</p>
+                    : <p>Press 'E' to quickly add expense</p>
+                  }
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
