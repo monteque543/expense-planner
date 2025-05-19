@@ -22,13 +22,15 @@ interface UpcomingExpensesProps {
   isLoading: boolean;
   onEditTransaction: (transaction: TransactionWithCategory) => void;
   currentDate?: Date;
+  onBudgetUpdate?: (currentBudget: number) => void; // Callback to pass the budget up to parent
 }
 
 export default function UpcomingExpenses({ 
   transactions, 
   isLoading,
   onEditTransaction,
-  currentDate
+  currentDate,
+  onBudgetUpdate
 }: UpcomingExpensesProps) {
   const [upcomingExpenses, setUpcomingExpenses] = useState<TransactionWithCategory[]>([]);
   const [totalUpcoming, setTotalUpcoming] = useState(0);
@@ -344,6 +346,11 @@ export default function UpcomingExpenses({
     
     // For the Upcoming Expenses component, we want to show what will remain AFTER paying upcoming expenses
     setRemainingBudget(afterPayingUpcoming);
+    
+    // Pass the current available budget (BEFORE paying upcoming expenses) to the parent component for budget protection
+    if (onBudgetUpdate) {
+      onBudgetUpdate(currentAvailableBudget);
+    }
   }, [transactions, currentDate]);
   
   if (isLoading) {
