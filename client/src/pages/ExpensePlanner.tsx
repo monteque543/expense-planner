@@ -1261,27 +1261,35 @@ export default function ExpensePlanner() {
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
         onAddExpense={(data) => {
-          // Check if budget is negative, and if so prevent adding the expense
+          console.log(`STRICT BUDGET CHECK: Current budget: ${currentBudget} PLN, Expense amount: ${data.amount} PLN`);
+          
+          // STRICT ENFORCEMENT: Check if budget is negative or would become negative
           if (currentBudget < 0) {
+            // Budget is already negative - STRICTLY BLOCK
             toast({
-              title: "Budget Protection",
-              description: `You cannot add expenses when your budget is negative (${currentBudget.toFixed(2)} PLN)`,
+              title: "Budget Protection - Blocked",
+              description: `You cannot add expenses when your budget is negative (${currentBudget.toFixed(2)} PLN). Please add more income first.`,
               variant: "destructive",
               duration: 5000
             });
-            return;
+            setShowExpenseModal(false); // Force close the dialog
+            return; // Prevent the transaction from being added
           }
           // Check if expense would exceed budget
-          if (data.amount > currentBudget) {
+          else if (data.amount > currentBudget) {
+            // Expense would make budget negative - WARN AND BLOCK by default
             toast({
-              title: "Budget Warning",
-              description: `This expense (${data.amount.toFixed(2)} PLN) exceeds your available budget (${currentBudget.toFixed(2)} PLN)`,
+              title: "Budget Protection - Warning",
+              description: `This expense (${data.amount.toFixed(2)} PLN) exceeds your available budget (${currentBudget.toFixed(2)} PLN). Use the modal warning dialog to add anyway if needed.`,
               variant: "destructive",
               duration: 5000
             });
-            return;
+            // Don't close modal - let the warning dialog in the modal handle this case
+            return; // Prevent the transaction from being added automatically
           }
+          
           // If we pass budget checks, add the transaction
+          console.log("Budget check passed - adding transaction");
           addTransaction.mutate({ ...data, isExpense: true });
         }}
         categories={categories.filter((c: Category) => c.isExpense)}
