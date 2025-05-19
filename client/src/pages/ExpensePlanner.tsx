@@ -235,9 +235,14 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our direct month-specific operations utility
+      // Use our simple tracker utility for deletion
       const deleteDate = new Date(date);
-      setMonthlyDeletedStatus(id, deleteDate, true);
+      
+      // Import needed function
+      const { setDeleted } = require('@/utils/simpleTracker');
+      
+      // Mark as deleted for this specific month
+      setDeleted(id, deleteDate, true);
       console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
@@ -512,12 +517,15 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // Use the new ultra-simple monthly status tracker
+        // Use the simple tracker utility for paid status
         const isPaidValue = transaction.isPaid === true; // Ensure it's a boolean
         const id = transaction.id;
         
-        // Directly set the paid status for this specific month only
-        setPaidStatus(id, dateObj, isPaidValue);
+        // Import needed function
+        const { setPaid } = require('@/utils/simpleTracker');
+        
+        // Mark as paid/unpaid for this specific month only
+        setPaid(id, dateObj, isPaidValue);
         
         console.log(`[MONTH SPECIFIC] Set transaction ${id} (${transaction.title}) paid status to ${isPaidValue} for month ${format(dateObj, 'yyyy-MM')}`);
         
