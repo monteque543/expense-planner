@@ -258,7 +258,7 @@ export default function EditTransactionModal({
       isRecurring: data.isRecurring || false,
       recurringInterval: data.isRecurring ? (data.recurringInterval || 'monthly') : null,
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
-      isPaid: data.isPaid || false, // Include the isPaid field
+      isPaid: data.isPaid !== undefined ? data.isPaid : (transaction.isPaid || false), // Preserve existing isPaid value if not explicitly changed
     };
     
     console.log(`[EditModal] Sending update to backend for transaction ${transaction.id}:`, updateData);
