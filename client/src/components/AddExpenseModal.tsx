@@ -157,24 +157,36 @@ export default function AddExpenseModal({
       isPaid: false, // Default to unpaid for new expenses
     };
     
-    // Stricter budget warning system
-    // Check if this expense would put the user over budget or if the current budget is already negative
-    if (currentBudget < 0 || finalAmount > currentBudget) {
-      // Calculate the budget deficit
-      const deficit = currentBudget < 0 
-        ? Math.abs(currentBudget) + finalAmount  // Already in deficit, so add the new amount
-        : Math.abs(currentBudget - finalAmount); // Calculate how much this would put us over
+    // ENHANCED Budget Protection System
+    if (currentBudget !== undefined) {
+      console.log(`BUDGET CHECK: Current budget: ${currentBudget} PLN, Expense amount: ${finalAmount} PLN`);
       
-      setBudgetDeficit(deficit);
-      
-      // Store the data to use if the user confirms they want to proceed
-      setPendingExpenseData(formattedData);
-      
-      // Show the warning dialog
-      setShowBudgetWarning(true);
-      
-      // Don't submit yet - wait for user confirmation
-      return;
+      if (currentBudget < 0) {
+        // STRICT BLOCK: If budget is already negative, ALWAYS block the expense
+        const deficit = Math.abs(currentBudget) + finalAmount;
+        setBudgetDeficit(deficit);
+        
+        // Set to null to prevent the "Add Anyway" button from working
+        setPendingExpenseData(null);
+        
+        // Show a warning dialog but block completely
+        setShowBudgetWarning(true);
+        console.log(`STRICT BLOCK: Budget already negative (${currentBudget} PLN), blocking expense entirely`);
+        return;
+      } 
+      else if (finalAmount > currentBudget) {
+        // WARNING: If this expense would put the budget into negative
+        const deficit = finalAmount - currentBudget;
+        setBudgetDeficit(deficit);
+        
+        // Store the data in case user wants to override
+        setPendingExpenseData(formattedData);
+        
+        // Show the warning dialog
+        setShowBudgetWarning(true);
+        console.log(`WARNING: Expense (${finalAmount} PLN) exceeds remaining budget (${currentBudget} PLN)`);
+        return;
+      }
     }
     
     // If we're here, the expense is within budget (or budget check is disabled)
@@ -536,30 +548,51 @@ export default function AddExpenseModal({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Budget Warning
+              {currentBudget && currentBudget < 0 ? "Budget Protection" : "Budget Warning"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This expense of {formatCurrency(pendingExpenseData?.amount || 0, 'PLN')} will exceed your remaining budget 
-              by {formatCurrency(budgetDeficit, 'PLN')}.
-              <div className="mt-2 p-3 bg-destructive/10 rounded-md text-sm">
-                <strong>Warning:</strong> Adding this expense will put you over budget for this month.
-              </div>
+              {currentBudget && currentBudget < 0 ? (
+                // Strict blocking message when budget is already negative
+                <>
+                  <div className="font-semibold">
+                    Your budget is already negative ({formatCurrency(currentBudget, 'PLN')})
+                  </div>
+                  Adding a new expense of {formatCurrency(pendingExpenseData?.amount || 0, 'PLN')} would increase your deficit 
+                  to {formatCurrency(budgetDeficit, 'PLN')}.
+                  <div className="mt-2 p-3 bg-destructive/10 rounded-md text-sm border border-destructive">
+                    <strong>BLOCKED:</strong> You cannot add expenses when your budget is negative.
+                    Please add income first or reduce other expenses.
+                  </div>
+                </>
+              ) : (
+                // Warning message when expense would exceed current budget
+                <>
+                  This expense of {formatCurrency(pendingExpenseData?.amount || 0, 'PLN')} will exceed your remaining budget 
+                  by {formatCurrency(budgetDeficit, 'PLN')}.
+                  <div className="mt-2 p-3 bg-destructive/10 rounded-md text-sm">
+                    <strong>Warning:</strong> Adding this expense will put you over budget for this month.
+                  </div>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-              onClick={() => {
-                // User confirmed they want to add the expense despite budget warning
-                if (pendingExpenseData) {
-                  submitExpense(pendingExpenseData);
-                  setPendingExpenseData(null);
-                }
-              }}
-            >
-              Add Anyway
-            </AlertDialogAction>
+            {/* Only show "Add Anyway" button if budget is not negative yet */}
+            {(!currentBudget || currentBudget >= 0) && pendingExpenseData && (
+              <AlertDialogAction 
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={() => {
+                  // User confirmed they want to add the expense despite budget warning
+                  if (pendingExpenseData) {
+                    submitExpense(pendingExpenseData);
+                    setPendingExpenseData(null);
+                  }
+                }}
+              >
+                Add Anyway
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
