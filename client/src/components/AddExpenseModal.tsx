@@ -105,6 +105,8 @@ export default function AddExpenseModal({
     fetchLatestRates();
   }, []);
   
+
+  
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -116,6 +118,14 @@ export default function AddExpenseModal({
       recurringInterval: 'monthly', // Default to monthly
     },
   });
+  
+  // Important: Update form date when defaultDate changes (e.g., when switching months)
+  useEffect(() => {
+    if (form && defaultDate) {
+      form.setValue('date', defaultDate.toISOString().split('T')[0]);
+      console.log(`[AddExpenseModal] Updated date to: ${defaultDate.toISOString().split('T')[0]}`);
+    }
+  }, [defaultDate, form]);
   
   const { watch, setValue } = form;
   

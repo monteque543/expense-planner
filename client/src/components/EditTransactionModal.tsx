@@ -344,9 +344,15 @@ export default function EditTransactionModal({
           if (transaction.title === "webflow") {
             // Add extra storage for webflow with multiple backup formats
             const yearMonth = extractYearMonth(formattedDate);
+            // Store in MANY formats to ensure it works
             localStorage.setItem(`webflow-${yearMonth}-paid`, data.isPaid.toString());
             localStorage.setItem(`webflow_${yearMonth}_paid`, data.isPaid.toString());
             localStorage.setItem(`txn_webflow_${yearMonth}_paid`, data.isPaid.toString());
+            localStorage.setItem(`webflow_paid_${yearMonth}`, data.isPaid.toString());
+            localStorage.setItem(`webflow-paid-${yearMonth}`, data.isPaid.toString());
+            localStorage.setItem(`webflow-status-${yearMonth}`, data.isPaid.toString());
+            localStorage.setItem(`transaction-webflow-paid-${yearMonth}`, data.isPaid.toString());
+            localStorage.setItem(`strict_paid_webflow_${yearMonth}`, data.isPaid.toString());
             console.log(`[SPECIAL HANDLING] Extra storage keys for webflow transaction in ${yearMonth}: ${data.isPaid}`);
           }
         }
@@ -356,7 +362,12 @@ export default function EditTransactionModal({
         const yearMonth = extractYearMonth(formattedDate);
         
         // Create a unique key for THIS specific transaction on THIS specific month (legacy format)
-        const storageKey = `strict_paid_${transaction.title.replace(/\s+/g, '_')}_${yearMonth}`;
+        let storageKey = `strict_paid_${transaction.title.replace(/\s+/g, '_')}_${yearMonth}`;
+        
+        // Special case for webflow transaction
+        if (transaction.title === "webflow") {
+          storageKey = `strict_paid_webflow_${yearMonth}`;
+        }
         
         // Store the paid status with month-specific isolation (legacy format)
         localStorage.setItem(storageKey, data.isPaid.toString());

@@ -108,9 +108,13 @@ export function setMonthlyPaidStatus(
 /**
  * Returns true if the transaction needs special handling for strict isolation
  */
-export function requiresStrictIsolation(transaction: TransactionWithCategory): boolean {
-  const strictIsolationNames = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub'];
-  return strictIsolationNames.includes(transaction.title);
+export function requiresStrictIsolation(transaction: TransactionWithCategory | any): boolean {
+  const strictIsolationNames = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub', 'webflow'];
+  // Allow string or object as input (for backward compatibility)
+  if (typeof transaction === 'string') {
+    return strictIsolationNames.includes(transaction);
+  }
+  return transaction && transaction.title && strictIsolationNames.includes(transaction.title);
 }
 
 /**
