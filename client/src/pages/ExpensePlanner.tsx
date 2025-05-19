@@ -37,13 +37,18 @@ import {
 } from "@/utils/transaction-transformers";
 import { 
   getMonthlyPaidStatus,
-  setMonthlyPaidStatus, 
+  setMonthlyPaidStatus,
+  markRecurringInstanceAsDeleted,
   extractYearMonth,
   requiresStrictIsolation,
   clearAllMonthlyStatuses,
-  saveMonthlyPaidStatus,
-  markRecurringInstanceAsDeleted
+  saveMonthlyPaidStatus
 } from "@/utils/strict-monthly-paid-status";
+import { 
+  markRecurringInstanceAsDeletedForMonth,
+  isRecurringInstanceDeletedForMonth,
+  filterDeletedRecurringInstances
+} from "@/utils/month-specific-deletion";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -230,8 +235,10 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our utility function to mark this instance as deleted just for this month
+      // Use both utilities to ensure deletion works properly
       markRecurringInstanceAsDeleted(id, date);
+      // Also use our new utility for more reliable month-specific deletion
+      markRecurringInstanceAsDeletedForMonth(id, date);
       
       toast({
         title: "Instance Hidden",
@@ -508,18 +515,21 @@ export default function ExpensePlanner() {
         // Use all available methods to ensure month-specific marking works
         console.log(`[RECURRING PAID] Setting month-specific status for ${transaction.title} to ${transaction.isPaid} for date ${format(dateObj, 'yyyy-MM-dd')}`);
         
+        // Ensure we have a valid boolean value for isPaid to avoid null issues
+        const isPaidValue = transaction.isPaid === true;
+        
         // Method 1: Use the monthly paid status utility
-        setMonthlyPaidStatus(transaction, transaction.isPaid, dateObj);
+        setMonthlyPaidStatus(transaction, isPaidValue, dateObj);
         
         // Method 2: Use the new direct localStorage approach
         const monthKey = format(dateObj, 'yyyy-MM');
         const storageKey = `transaction-${transaction.id}-paid-${monthKey}`;
-        localStorage.setItem(storageKey, transaction.isPaid.toString());
+        localStorage.setItem(storageKey, isPaidValue.toString());
         
         // Method 3: For known problematic transactions, also use special handling
         if (['Netflix', 'Replit', 'TRW', 'Orange', 'Karma daisy'].includes(transaction.title)) {
           console.log(`[SPECIAL PAID] Using special handling for known problematic transaction: ${transaction.title}`);
-          localStorage.setItem(`${transaction.title.toLowerCase()}-${monthKey}-paid`, transaction.isPaid.toString());
+          localStorage.setItem(`${transaction.title.toLowerCase()}-${monthKey}-paid`, isPaidValue.toString());
         }
         
         // Force update cached data
