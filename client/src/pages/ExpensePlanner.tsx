@@ -27,6 +27,7 @@ import {
   markTransactionAsDeleted,
   deletedHardcodedTransactionIds
 } from "@/utils/expense-hardcoder";
+import { markMonthlyTransactionAsPaid } from "@/utils/monthlyTracker";
 import {
   saveEditedTransaction,
   markTransactionAsDeleted as persistDeletedTransaction
@@ -510,17 +511,12 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // Use our tracker for month-specific paid status
-        const isPaidValue = transaction.isPaid === true; // Ensure it's a boolean
+        // Use our new helper function for month-specific tracking
+        const isPaidValue = transaction.isPaid === true;
         const id = transaction.id;
         
-        // Mark as paid/unpaid for this specific month only
-        // Simple direct implementation - save to localStorage with month key
-        const monthKey = format(dateObj, 'yyyy-MM');
-        const storageKey = `paid_recurring_${id}_${monthKey}`;
-        
-        // Store in localStorage
-        localStorage.setItem(storageKey, isPaidValue ? 'true' : 'false');
+        // Use the new utility function to mark this transaction as paid
+        markMonthlyTransactionAsPaid(id, dateObj, isPaidValue);
         
         // Show success message
         toast({
