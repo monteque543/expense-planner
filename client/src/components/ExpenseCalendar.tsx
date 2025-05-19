@@ -738,17 +738,18 @@ export default function ExpenseCalendar({
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       
-                                      // For recurring instances, pass the displayDate when deleting
-                                      // to ensure we only delete this specific instance
-                                      if (transaction.isRecurring || transaction.isRecurringInstance) {
-                                        const dateToDelete = transaction.displayDate || transaction.date;
-                                        onDeleteTransaction(transaction.id, dateToDelete instanceof Date 
-                                          ? dateToDelete 
-                                          : new Date(dateToDelete)
-                                        );
-                                      } else {
-                                        onDeleteTransaction(transaction.id);
-                                      }
+                                      // Always pass a date when deleting, which ensures recurring transactions
+                                      // only get deleted for the specific month
+                                      const dateToDelete = 'displayDate' in transaction 
+                                        ? transaction.displayDate 
+                                        : transaction.date;
+                                        
+                                      const dateObj = dateToDelete instanceof Date 
+                                        ? dateToDelete 
+                                        : new Date(dateToDelete);
+                                        
+                                      console.log(`Deleting transaction: ${transaction.title} (${transaction.id}) for date: ${format(dateObj, 'yyyy-MM-dd')}`);
+                                      onDeleteTransaction(transaction.id, dateObj);
                                     }}
                                   >
                                     <Trash className="h-3 w-3" />

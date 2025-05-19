@@ -189,4 +189,8 @@ export type Savings = typeof savings.$inferSelect;
 // Extended types for the app
 export type TransactionWithCategory = Transaction & {
   category?: Category;
+  // Extended properties for recurring transaction instances
+  displayDate?: Date;           // Date for a specific recurring instance
+  displayDateStr?: string;      // Formatted date string for display
+  isRecurringInstance?: boolean; // Flag to identify recurring instances
 };
