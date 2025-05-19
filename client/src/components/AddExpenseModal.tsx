@@ -145,83 +145,67 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
-    // ENHANCED BUDGET PROTECTION:
-    // Always block expenses when they would exceed budget - no option to proceed anyway
+    // ENHANCED BUDGET PROTECTION - SIMPLIFIED AND FIXED
+    // Always check budget before submission - only one check, no duplicated code
     if (currentBudget !== undefined) {
-      console.log(`[BUDGET CHECK] Current budget: ${currentBudget} PLN, Expense amount: ${finalAmount} PLN`);
+      console.log(`[STRICT BUDGET CHECK] Current budget: ${currentBudget.toFixed(2)} PLN, Expense amount: ${finalAmount.toFixed(2)} PLN`);
       
-      // ENHANCED BUDGET PROTECTION: Hard block all expenses when budget is negative
-      // This is month-specific since currentBudget is calculated for the current month
-      if (currentBudget < 0 || finalAmount > currentBudget) {
-        // Calculate exact deficit for better user feedback
-        const deficit = currentBudget <= 0 
-          ? Math.abs(currentBudget) + finalAmount 
-          : finalAmount - currentBudget;
+      const formattedData = {
+        ...data,
+        amount: finalAmount, // Use the converted amount
+        date: new Date(data.date),
+        notes: data.notes || null,
+        categoryId: data.categoryId,
+        personLabel: data.personLabel,
+        isRecurring: data.isRecurring || false,
+        recurringInterval: data.isRecurring ? data.recurringInterval : null,
+        recurringEndDate: data.isRecurring && data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+        isPaid: false, // Default to unpaid for new expenses
+      };
+      
+      // Budget is already negative
+      if (currentBudget < 0) {
+        const deficit = Math.abs(currentBudget) + finalAmount;
+        console.log(`[STRICT BLOCK] Budget already negative: ${currentBudget.toFixed(2)} PLN. Blocking completely.`);
         
-        console.log(`[STRICT BUDGET PROTECTION] Blocking expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
-        
-        // Set up budget warning dialog
+        // No "Add Anyway" option
         setBudgetDeficit(deficit);
+        setPendingExpenseData(null); // No override possible
         setShowBudgetWarning(true);
-        
-        // Only allow bypass if budget is positive but expense would exceed it
-        // If budget is already negative, prevent adding expenses entirely
-        if (currentBudget <= 0) {
-          setPendingExpenseData(null);
-        } else {
-          setPendingExpenseData(data);
-        }
-        
-        // No option to proceed immediately - form is not submitted
-        return;
+        return; // Do not submit
       }
+      
+      // Expense would exceed budget
+      if (finalAmount > currentBudget) {
+        const deficit = finalAmount - currentBudget;
+        console.log(`[WARNING] Expense ${finalAmount.toFixed(2)} PLN exceeds budget ${currentBudget.toFixed(2)} PLN by ${deficit.toFixed(2)} PLN`);
+        
+        // Allow "Add Anyway" option
+        setBudgetDeficit(deficit);
+        setPendingExpenseData(formattedData); // Allow override
+        setShowBudgetWarning(true);
+        return; // Do not submit yet
+      }
+      
+      // Budget is sufficient, proceed with expense
+      console.log(`[APPROVED] Budget check passed. Adding expense.`);
+      submitExpense(formattedData);
+      return;
     }
     
-    // Convert string dates to Date objects
+    // No budget check needed, just format and submit
     const formattedData = {
       ...data,
-      amount: finalAmount, // Use the converted amount
+      amount: finalAmount,
       date: new Date(data.date),
       notes: data.notes || null,
-      categoryId: data.categoryId, // Now required
-      personLabel: data.personLabel,  // Now required in schema
+      categoryId: data.categoryId,
+      personLabel: data.personLabel,
       isRecurring: data.isRecurring || false,
       recurringInterval: data.isRecurring ? data.recurringInterval : null,
       recurringEndDate: data.isRecurring && data.recurringEndDate ? new Date(data.recurringEndDate) : null,
-      isPaid: false, // Default to unpaid for new expenses
+      isPaid: false,
     };
-    
-    // ENHANCED Budget Protection System
-    if (currentBudget !== undefined) {
-      console.log(`BUDGET CHECK: Current budget: ${currentBudget} PLN, Expense amount: ${finalAmount} PLN`);
-      
-      if (currentBudget < 0) {
-        // STRICT BLOCK: If budget is already negative, ALWAYS block the expense
-        const deficit = Math.abs(currentBudget) + finalAmount;
-        setBudgetDeficit(deficit);
-        
-        // Set to null to prevent the "Add Anyway" button from working
-        setPendingExpenseData(null);
-        
-        // Show a warning dialog but block completely
-        setShowBudgetWarning(true);
-        console.log(`STRICT BLOCK: Budget already negative (${currentBudget} PLN), blocking expense entirely`);
-        return;
-      } 
-      else if (finalAmount > currentBudget) {
-        // WARNING: If this expense would put the budget into negative
-        const deficit = finalAmount - currentBudget;
-        setBudgetDeficit(deficit);
-        
-        // Store the data in case user wants to override
-        setPendingExpenseData(formattedData);
-        
-        // Show the warning dialog
-        setShowBudgetWarning(true);
-        console.log(`WARNING: Expense (${finalAmount} PLN) exceeds remaining budget (${currentBudget} PLN)`);
-        return;
-      }
-    }
     
     // If we're here, the expense is within budget (or budget check is disabled)
     submitExpense(formattedData);
@@ -253,35 +237,54 @@ export default function AddExpenseModal({
 
   return (
     <>
-      {/* Budget Warning Alert Dialog */}
-      <AlertDialog open={showBudgetWarning} onOpenChange={setShowBudgetWarning}>
-        <AlertDialogContent>
+      {/* Budget Warning Alert Dialog - Enhanced for strict protection */}
+      <AlertDialog 
+        open={showBudgetWarning} 
+        onOpenChange={(open) => {
+          setShowBudgetWarning(open);
+          // Clear pending data when dialog is dismissed
+          if (!open) {
+            setPendingExpenseData(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              {currentBudget < 0 ? 'Budget Blocked' : 'Budget Warning'}
+              {currentBudget < 0 ? 'Budget Protection - Blocked' : 'Budget Protection - Warning'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-base">
               {currentBudget < 0 ? (
-                <>
-                  <p className="mb-2 font-bold">You cannot add any more expenses this month!</p>
+                <div className="space-y-3">
+                  <p className="font-bold text-destructive">You cannot add any expenses when your budget is negative!</p>
                   <p className="font-medium">
                     Your current budget is already negative at <span className="text-destructive font-bold">{formatCurrency(currentBudget, 'PLN')}</span>.
                   </p>
-                  <p className="mt-2">
-                    You need to add more income before you can add additional expenses.
-                  </p>
-                </>
+                  <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md mt-2 text-sm">
+                    <p className="font-semibold">Required Actions:</p>
+                    <p>You must add income or reduce expenses elsewhere before adding new expenses.</p>
+                    <p className="mt-1">This restriction cannot be bypassed for budget protection.</p>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <p className="mb-2">This expense will exceed your available budget for this month!</p>
-                  <p className="font-medium">
-                    Your current budget is <span className="text-destructive">{formatCurrency(currentBudget, 'PLN')}</span> but this expense costs <span className="text-destructive">{formatCurrency(pendingExpenseData?.amount || 0, 'PLN')}</span>.
-                  </p>
-                  <p className="mt-2 font-semibold">
-                    You are missing <span className="text-destructive">{formatCurrency(budgetDeficit, 'PLN')}</span> to afford this expense.
-                  </p>
-                </>
+                <div className="space-y-3">
+                  <p className="font-semibold">This expense will exceed your available monthly budget!</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="bg-background p-2 rounded-md text-center">
+                      <p className="text-sm text-muted-foreground">Current Budget</p>
+                      <p className="font-bold text-lg">{formatCurrency(currentBudget, 'PLN')}</p>
+                    </div>
+                    <div className="bg-background p-2 rounded-md text-center">
+                      <p className="text-sm text-muted-foreground">Expense Amount</p>
+                      <p className="font-bold text-lg text-destructive">{formatCurrency(pendingExpenseData?.amount || 0, 'PLN')}</p>
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md mt-2">
+                    <p className="font-semibold">You will be short by <span className="text-destructive font-bold">{formatCurrency(budgetDeficit, 'PLN')}</span></p>
+                    <p className="text-sm mt-1">You can proceed with this expense, but your budget will become negative.</p>
+                  </div>
+                </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -292,10 +295,12 @@ export default function AddExpenseModal({
             }}>
               {currentBudget < 0 ? 'Close' : 'Cancel'}
             </AlertDialogCancel>
-            {currentBudget >= 0 && (
+            {/* Only show "Add Anyway" if budget is not negative yet */}
+            {currentBudget >= 0 && pendingExpenseData && (
               <AlertDialogAction 
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => {
+                  console.log("[BUDGET OVERRIDE] User chose to add expense despite budget warning");
                   if (pendingExpenseData) {
                     submitExpense(pendingExpenseData);
                   }
