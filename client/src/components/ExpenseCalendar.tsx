@@ -678,6 +678,44 @@ export default function ExpenseCalendar({
                               {/* Action buttons */}
                               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-end p-1 transition-opacity">
                                 <div className="flex gap-1 ml-auto">
+                                  {/* Mark as Paid/Unpaid toggle button */}
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className={cn(
+                                      "h-5 w-5", 
+                                      isPaid ? "text-green-500" : "text-muted-foreground"
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // Toggle the paid status
+                                      const newPaidStatus = !isPaid;
+                                      
+                                      // Update via the edit transaction function
+                                      // For recurring instances, need to pass the actual date
+                                      // to ensure it only affects this instance
+                                      const dateToUse = transaction.displayDate || transaction.date;
+                                      const dateObj = dateToUse instanceof Date 
+                                        ? dateToUse 
+                                        : new Date(dateToUse);
+                                      
+                                      // Update the transaction
+                                      onEditTransaction({
+                                        ...transaction,
+                                        isPaid: newPaidStatus,
+                                        // Add displayDate for handling recurring instances
+                                        displayDate: dateObj
+                                      });
+                                    }}
+                                  >
+                                    {isPaid ? (
+                                      <CheckCircle className="h-3 w-3 fill-green-500" />
+                                    ) : (
+                                      <Circle className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                  
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
