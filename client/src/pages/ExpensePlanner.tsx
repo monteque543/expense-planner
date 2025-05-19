@@ -66,6 +66,7 @@ export default function ExpensePlanner() {
   const [activePersonFilter, setActivePersonFilter] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'month' | 'week' | 'year'>('month');
   const [isIdle, setIsIdle] = useState(false);
+  const [currentBudget, setCurrentBudget] = useState<number>(0);
   const { toast } = useToast();
   
   // Handle when user becomes idle or returns
@@ -1157,6 +1158,7 @@ export default function ExpensePlanner() {
               isLoading={isLoadingTransactions}
               onEditTransaction={handleEditTransaction}
               currentDate={selectedDate}
+              onBudgetUpdate={setCurrentBudget}
             />
             
             {/* Budget Coaching Companion */}
@@ -1256,6 +1258,7 @@ export default function ExpensePlanner() {
         isPending={addTransaction.isPending}
         titleSuggestions={uniqueTitles}
         defaultDate={selectedDate}
+        currentBudget={currentBudget}
       />
 
       <AddIncomeModal
