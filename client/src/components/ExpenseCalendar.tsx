@@ -644,10 +644,10 @@ export default function ExpenseCalendar({
                               {/* Transaction title with truncation */}
                               <div className={cn(
                                 "truncate flex-1 flex items-center gap-1",
-                                isPaid && "line-through text-muted-foreground"
+                                isPaid && "line-through text-muted-foreground opacity-70"
                               )}>
-                                {/* Display recurring indicator */}
-                                {(isRecurring || isRecurringInstance) && (
+                                {/* Display recurring indicator - only for transactions that are actually recurring */}
+                                {isRecurring && (
                                   <Clock className="h-3 w-3 text-primary/70 flex-shrink-0" />
                                 )}
                                 
@@ -663,9 +663,9 @@ export default function ExpenseCalendar({
                               <div className={cn(
                                 "font-medium",
                                 transaction.isExpense 
-                                  ? "text-destructive" 
-                                  : "text-green-500",
-                                isPaid && "line-through text-muted-foreground"
+                                  ? isPaid ? "text-muted-foreground" : "text-destructive" 
+                                  : isPaid ? "text-muted-foreground" : "text-green-500",
+                                isPaid && "line-through opacity-70"
                               )}>
                                 {transaction.isExpense ? '-' : '+'}{formatCurrency(transaction.amount || 0, 'PLN')}
                               </div>

@@ -203,7 +203,7 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       <div className="mt-3 bg-card rounded-lg p-3 shadow-sm">
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Balance</span>
-          <span className={`font-mono font-medium ${financialData.balance >= 0 ? 'text-primary dark:text-primary-foreground' : 'text-red-500 dark:text-red-400'}`}>
+          <span className={`font-mono font-medium ${financialData.balance >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
             {financialData.balance >= 0 ? '+' : '-'}{Math.abs(financialData.balance).toFixed(2)} PLN
           </span>
         </div>
