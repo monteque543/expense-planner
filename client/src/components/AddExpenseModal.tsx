@@ -143,27 +143,32 @@ export default function AddExpenseModal({
       finalAmount = convertToPLN(finalAmount, selectedCurrency);
     }
     
-    // BUDGET PROTECTION: Stronger check to prevent adding expenses when budget is negative
-    // This will always block expenses when the budget is negative
-    if (currentBudget !== undefined && (currentBudget < 0 || finalAmount > currentBudget)) {
-      // Calculate how much over budget this expense would put us
-      const deficit = currentBudget < 0 
-        ? Math.abs(currentBudget) + finalAmount 
-        : finalAmount - currentBudget;
+    // STRICT BUDGET PROTECTION: 
+    // Always block expenses when budget is negative or the expense would exceed budget
+    if (currentBudget !== undefined) {
+      console.log(`[BUDGET CHECK] Current budget: ${currentBudget}, Expense amount: ${finalAmount}`);
       
-      // Store budget deficit
-      setBudgetDeficit(deficit);
-      
-      // Store the data to use if user wants to proceed anyway
-      setPendingExpenseData({
-        ...data,
-        amount: finalAmount,
-      });
-      
-      // Show warning dialog
-      setShowBudgetWarning(true);
-      console.log(`[BUDGET WARNING] Prevented adding expense of ${finalAmount} PLN when budget is ${currentBudget} PLN`);
-      return; // Stop submission until user decides
+      if (currentBudget <= 0 || finalAmount > currentBudget) {
+        // Calculate exact deficit for better user feedback
+        const deficit = currentBudget <= 0 
+          ? Math.abs(currentBudget) + finalAmount 
+          : finalAmount - currentBudget;
+        
+        console.log(`[BUDGET PROTECTION] Blocking expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
+        
+        // Store budget deficit for display
+        setBudgetDeficit(deficit);
+        
+        // Store the data temporarily in case user wants to proceed
+        setPendingExpenseData({
+          ...data,
+          amount: finalAmount,
+        });
+        
+        // Show warning dialog to inform user
+        setShowBudgetWarning(true);
+        return; // Stop submission until user decides
+      }
     }
     
     // Convert string dates to Date objects

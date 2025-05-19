@@ -582,7 +582,15 @@ export default function ExpenseCalendar({
                 isToday(day) && "border-primary border-2",
                 onDayClick && "cursor-pointer hover:border-primary hover:shadow-sm transition-all"
               )}
-              onClick={() => onDayClick && onDayClick(day)}
+              onClick={() => {
+                // COMPLETELY DISABLE THE AUTO-POPUP
+                if (onDayClick) {
+                  // Just update the selected date without triggering the popup
+                  const newDay = new Date(day);
+                  newDay.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                  onDayClick(newDay);
+                }
+              }}
             >
               {/* Day number */}
               <div className="text-right p-1">

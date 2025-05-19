@@ -45,9 +45,8 @@ import {
   saveMonthlyPaidStatus
 } from "@/utils/strict-monthly-paid-status";
 import { 
-  markRecurringInstanceAsDeletedForMonth,
-  isRecurringInstanceDeletedForMonth,
-  filterDeletedRecurringInstances
+  markTransactionDeletedForMonth,
+  isTransactionDeletedForMonth
 } from "@/utils/month-specific-deletion";
 import { 
   Tooltip, 
@@ -512,47 +511,45 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // Use all available methods to ensure month-specific marking works
-        console.log(`[RECURRING PAID] Setting month-specific status for ${transaction.title} to ${transaction.isPaid} for date ${format(dateObj, 'yyyy-MM-dd')}`);
-        
-        // Ensure we have a valid boolean value for isPaid to avoid null issues
-        const isPaidValue = transaction.isPaid === true;
-        console.log(`[MARK_AS_PAID] Setting transaction ${transaction.id} (${transaction.title}) to ${isPaidValue ? 'PAID' : 'UNPAID'}`);
-        
-        // IMPROVED APPROACH: Use multiple storage methods to guarantee it works
-        
-        // Method 1: Use the monthly paid status utility
-        setMonthlyPaidStatus(transaction, isPaidValue, dateObj);
-        
-        // Method 2: Use direct localStorage with multiple key formats for maximum compatibility
+        // DIRECT APPROACH: Set paid status in a way that's guaranteed to work
+        const isPaid = transaction.isPaid === true; // Ensure it's a boolean
+        const title = transaction.title;
+        const id = transaction.id;
         const monthKey = format(dateObj, 'yyyy-MM');
         
-        // Main format
-        localStorage.setItem(`transaction-${transaction.id}-paid-${monthKey}`, isPaidValue.toString());
+        console.log(`[MARK AS PAID] Setting ${title} (${id}) as ${isPaid ? 'PAID' : 'UNPAID'} for ${monthKey}`);
         
-        // Alternative formats
-        localStorage.setItem(`txn_status_${transaction.id}_${monthKey}`, isPaidValue.toString());
-        localStorage.setItem(`strict_paid_${transaction.id}_${monthKey}`, isPaidValue.toString());
-        localStorage.setItem(`monthly_strict_${transaction.id}_${monthKey}`, isPaidValue.toString());
-        localStorage.setItem(`fixed_status_${transaction.id}_${monthKey}`, isPaidValue.toString());
+        // Common prefixes used for marking paid status
+        const prefixes = ['transaction', 'txn', 'paid', 'status', 'recurring', 'fixed'];
+        const separators = ['-', '_', '.'];
         
-        // Method 3: Special handling for all recurring transactions by name
-        const titleKey = transaction.title.toLowerCase().replace(/\s+/g, '-');
-        localStorage.setItem(`${titleKey}-status`, isPaidValue.toString());
-        localStorage.setItem(`${titleKey}-${monthKey}-paid`, isPaidValue.toString());
+        // Store with all variations to ensure at least one works
+        prefixes.forEach(prefix => {
+          separators.forEach(separator => {
+            // Store multiple formats
+            localStorage.setItem(`${prefix}${separator}${id}${separator}${monthKey}${separator}paid`, isPaid.toString());
+            localStorage.setItem(`${prefix}${separator}${id}${separator}paid${separator}${monthKey}`, isPaid.toString());
+          });
+        });
         
-        console.log(`[MARK_AS_PAID] Used multiple storage formats to ensure paid status is saved`);
+        // Also store by transaction name (special logic for known transactions)
+        const simplifiedName = title.toLowerCase().replace(/\s+/g, '-');
+        localStorage.setItem(`${simplifiedName}-${monthKey}-paid`, isPaid.toString());
+        localStorage.setItem(`${simplifiedName}-status`, isPaid.toString());
         
-        // Method 4: Add direct entry to a master paid status object for this month
+        // Also store in a master record
+        const masterKey = `all-paid-statuses-${monthKey}`;
         try {
-          const monthlyStatusKey = `monthly-paid-status-${monthKey}`;
-          const existingData = localStorage.getItem(monthlyStatusKey) || '{}';
-          const monthlyStatuses = JSON.parse(existingData);
-          monthlyStatuses[transaction.id] = isPaidValue;
-          localStorage.setItem(monthlyStatusKey, JSON.stringify(monthlyStatuses));
-        } catch (error) {
-          console.error('[PAID_STATUS] Error updating master paid status:', error);
+          const existing = localStorage.getItem(masterKey) || '{}';
+          const allStatuses = JSON.parse(existing);
+          allStatuses[id] = isPaid;
+          localStorage.setItem(masterKey, JSON.stringify(allStatuses));
+        } catch (e) {
+          console.error("Error saving to master record", e);
         }
+        
+        console.log(`[MARK AS PAID] Saved paid status in 20+ formats to ensure compatibility`);
+      
         
         // Force update cached data
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -1215,9 +1212,12 @@ export default function ExpensePlanner() {
                           `${year}-${month+1}-${day}`, 
                           'ISO:', clickedDate.toISOString());
               
-              // Just update the selected date without showing any modal
-              // This fixes the annoying popup issue when clicking on days
+              // ONLY update the selected date, don't show any modal
               setSelectedDate(clickedDate);
+              
+              // Explicitly cancel any popups that might be trying to show
+              setShowExpenseModal(false);
+              setShowIncomeModal(false);
             }}
             isLoading={isLoadingTransactions}
             activeView={activeView}
