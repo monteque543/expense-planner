@@ -1253,7 +1253,30 @@ export default function ExpensePlanner() {
       <AddExpenseModal
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
-        onAddExpense={(data) => addTransaction.mutate({ ...data, isExpense: true })}
+        onAddExpense={(data) => {
+          // Check if budget is negative, and if so prevent adding the expense
+          if (currentBudget < 0) {
+            toast({
+              title: "Budget Protection",
+              description: `You cannot add expenses when your budget is negative (${currentBudget.toFixed(2)} PLN)`,
+              variant: "destructive",
+              duration: 5000
+            });
+            return;
+          }
+          // Check if expense would exceed budget
+          if (data.amount > currentBudget) {
+            toast({
+              title: "Budget Warning",
+              description: `This expense (${data.amount.toFixed(2)} PLN) exceeds your available budget (${currentBudget.toFixed(2)} PLN)`,
+              variant: "destructive",
+              duration: 5000
+            });
+            return;
+          }
+          // If we pass budget checks, add the transaction
+          addTransaction.mutate({ ...data, isExpense: true });
+        }}
         categories={categories.filter((c: Category) => c.isExpense)}
         isPending={addTransaction.isPending}
         titleSuggestions={uniqueTitles}
