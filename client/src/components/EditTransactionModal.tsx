@@ -327,10 +327,28 @@ export default function EditTransactionModal({
         console.log(`[EditModal Debug] Saving paid status. Title: "${transaction.title}", Date: "${formattedDate}", IsPaid: ${data.isPaid}`);
         
         // Check if this transaction requires strict monthly isolation
-        if (requiresStrictIsolation(transaction.title)) {
+        if (transaction && transaction.title) {
+          // Create a minimal transaction object to pass to saveMonthlyPaidStatus
+          const minimalTxn = {
+            id: transaction.id,
+            title: transaction.title,
+            date: new Date(formattedDate), // Convert to Date object
+            isRecurring: transaction.isRecurring
+          } as TransactionWithCategory;
+          
           // Use the new strict monthly isolation system
-          saveMonthlyPaidStatus(transaction.title, formattedDate, data.isPaid);
+          saveMonthlyPaidStatus(minimalTxn, data.isPaid);
           console.log(`[STRICT ISOLATION] Saved month-specific paid status for ${transaction.title} on ${formattedDate}: ${data.isPaid}`);
+          
+          // Special handling for "webflow" transaction
+          if (transaction.title === "webflow") {
+            // Add extra storage for webflow with multiple backup formats
+            const yearMonth = extractYearMonth(formattedDate);
+            localStorage.setItem(`webflow-${yearMonth}-paid`, data.isPaid.toString());
+            localStorage.setItem(`webflow_${yearMonth}_paid`, data.isPaid.toString());
+            localStorage.setItem(`txn_webflow_${yearMonth}_paid`, data.isPaid.toString());
+            console.log(`[SPECIAL HANDLING] Extra storage keys for webflow transaction in ${yearMonth}: ${data.isPaid}`);
+          }
         }
         
         // For backward compatibility, also use the old approach
@@ -358,7 +376,8 @@ export default function EditTransactionModal({
         console.log(`[LEGACY STORAGE] Saved strict isolated status for "${transaction.title}" in ${yearMonth}: ${data.isPaid} (key: ${storageKey})`);
         
         // Show a toast notification only if we're using the strict month isolation
-        if (requiresStrictIsolation(transaction.title)) {
+        // Special check for certain transactions that need month-specific isolation
+        if (transaction && transaction.title && ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub', 'webflow'].includes(transaction.title)) {
           toast({
             title: "Enhanced Monthly Isolation Applied",
             description: `Paid status for ${transaction.title} is now locked to this specific month (${yearMonth}).`,
