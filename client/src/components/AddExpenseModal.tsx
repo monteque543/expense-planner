@@ -160,15 +160,19 @@ export default function AddExpenseModal({
         
         console.log(`[STRICT BUDGET PROTECTION] Blocking expense of ${finalAmount} PLN with budget of ${currentBudget} PLN. Deficit: ${deficit} PLN`);
         
-        // Show a clear error message that cannot be bypassed
-        toast({
-          title: "Budget Protection Activated",
-          description: `This expense of ${finalAmount.toFixed(2)} PLN exceeds your available budget by ${deficit.toFixed(2)} PLN. Transaction blocked.`,
-          variant: "destructive",
-          duration: 5000
-        });
+        // Set up budget warning dialog
+        setBudgetDeficit(deficit);
+        setShowBudgetWarning(true);
         
-        // No option to proceed - form is not submitted
+        // Only allow bypass if budget is positive but expense would exceed it
+        // If budget is already negative, prevent adding expenses entirely
+        if (currentBudget <= 0) {
+          setPendingExpenseData(null);
+        } else {
+          setPendingExpenseData(data);
+        }
+        
+        // No option to proceed immediately - form is not submitted
         return;
       }
     }

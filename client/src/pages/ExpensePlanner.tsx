@@ -41,7 +41,7 @@ import {
   markDeleted,
   isDeleted,
   applyMonthlyStatuses
-} from "@/utils/monthlyStatus";
+} from "../utils/monthlyStatus";
 import { 
   Tooltip, 
   TooltipContent, 
