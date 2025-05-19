@@ -344,11 +344,16 @@ export default function ExpenseCalendar({
             console.log(`Skipping deleted recurring instance: ${transaction.title} on ${nextDateStr}`);
           } else {
             // Create a copy of the transaction with the future date
+            const monthKey = format(nextDate, 'yyyy-MM');
+            const paidKey = `paid_status_${transaction.id}_${monthKey}`;
+            const isPaidStatus = localStorage.getItem(paidKey) === 'true';
+            
             const futureCopy = {
               ...transaction,
               displayDate: nextDate, // Store occurrence date
               displayDateStr: nextDateStr, // Add a formatted date string for consistent key generation
-              isRecurringInstance: true // Flag to indicate this is a recurring instance
+              isRecurringInstance: true, // Flag to indicate this is a recurring instance
+              isPaid: isPaidStatus // Apply the month-specific paid status directly
             };
             
             grouped[nextDateStr].push(futureCopy);
