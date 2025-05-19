@@ -514,7 +514,7 @@ export default function ExpensePlanner() {
         const id = transaction.id;
         
         // Import the required function
-        const { markPaid } = require('@/utils/monthTracker');
+        const { markPaid } = require('@/utils/monthlyStatus');
         
         // Mark as paid/unpaid for this specific month only
         markPaid(id, dateObj, isPaidValue);
