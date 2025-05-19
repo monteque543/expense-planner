@@ -95,6 +95,23 @@ export async function markInstanceAsDeleted(
   transaction: Transaction,
   date: Date | string
 ): Promise<void> {
+  // Also directly use the month-specific localStorage approach
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  const monthKey = format(dateObj, 'yyyy-MM');
+  const storageKey = `deleted-recurring-instances-${monthKey}`;
+  
+  // Get any existing deleted instances for this month
+  const existingData = localStorage.getItem(storageKey);
+  const existingIds = existingData ? JSON.parse(existingData) : [];
+  
+  // Add this transaction ID if not already present
+  if (!existingIds.includes(transaction.id)) {
+    existingIds.push(transaction.id);
+    localStorage.setItem(storageKey, JSON.stringify(existingIds));
+    console.log(`[RECURRING DELETE] Added transaction ${transaction.id} to deleted list for month ${monthKey}`);
+  }
+  
+  // Also use the snapshot approach for backward compatibility
   return createInstanceSnapshot(transaction, date, { isDeleted: true });
 }
 

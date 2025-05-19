@@ -197,11 +197,11 @@ export default function ExpensePlanner() {
     if (!transaction && date) {
       console.log(`[RECURRING DELETE] Searching for recurring instance with ID ${id} for month ${format(date, 'yyyy-MM')}`);
       
-      // Get all transactions including recurring instances
-      const allTransactions = data || [];
+      // Get all transactions including recurring instances - use our cached transactions
+      const allTransactions = transactions;
       
-      // First try to find the base transaction 
-      transaction = allTransactions.find(t => t.id === id);
+      // First try to find the base transaction - explicitly set the type for 't'
+      transaction = allTransactions.find((t: TransactionWithCategory) => t.id === id);
       
       if (transaction) {
         console.log(`[RECURRING DELETE] Found base transaction: ${transaction.title}`);
@@ -1159,12 +1159,9 @@ export default function ExpensePlanner() {
                           `${year}-${month+1}-${day}`, 
                           'ISO:', clickedDate.toISOString());
               
-              // First update the date, then show the modal
+              // Just update the selected date without showing any modal
+              // This fixes the annoying popup issue when clicking on days
               setSelectedDate(clickedDate);
-              // Use setTimeout to ensure state is updated before showing the modal
-              setTimeout(() => {
-                setShowExpenseModal(true);
-              }, 50);
             }}
             isLoading={isLoadingTransactions}
             activeView={activeView}
