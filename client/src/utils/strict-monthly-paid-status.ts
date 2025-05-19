@@ -81,11 +81,23 @@ export function setMonthlyPaidStatus(
   localStorage.setItem(`recurring-paid-${transaction.id}-${monthKey}`, isPaid.toString());
   
   // Special handling for problematic recurring transactions
-  const specialTransactions = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub', 'Biolan', 'Cloud storage'];
+  const specialTransactions = ['Netflix', 'Orange', 'Karma daisy', 'TRW', 'Replit', 'cancel sub', 'Biolan', 'Cloud storage', 'webflow'];
   if (specialTransactions.includes(transaction.title)) {
     const keyName = transaction.title.toLowerCase().replace(/\s+/g, '-');
     localStorage.setItem(`${keyName}-${monthKey}-paid`, isPaid.toString());
     console.log(`[SPECIAL PAID STATUS] Using dedicated key for ${transaction.title}: ${keyName}-${monthKey}-paid = ${isPaid}`);
+    
+    // Extra special handling for webflow
+    if (transaction.title === 'webflow') {
+      // Store in multiple formats to ensure it works properly
+      localStorage.setItem(`webflow-${monthKey}-paid`, isPaid.toString());
+      localStorage.setItem(`webflow_${monthKey}_paid`, isPaid.toString());
+      localStorage.setItem(`txn_webflow_${monthKey}_paid`, isPaid.toString());
+      localStorage.setItem(`webflow_paid_${monthKey}`, isPaid.toString());
+      localStorage.setItem(`strict_paid_webflow_${monthKey}`, isPaid.toString());
+      localStorage.setItem(`webflow-paid-status-${monthKey}`, isPaid.toString());
+      console.log(`[WEBFLOW SPECIAL] Stored webflow status using multiple keys for ${monthKey}: ${isPaid}`);
+    }
   }
   
   console.log(`[PAID STATUS] Saved month-specific paid status for transaction ${transaction.id} (${transaction.title}): ${isPaid} for month ${monthKey}`);
