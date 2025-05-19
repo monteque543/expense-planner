@@ -1329,15 +1329,19 @@ export default function ExpensePlanner() {
               // Create updated transaction
               const updatedTransaction = { ...transaction, ...data };
               
-              // Check if this is a strict isolation transaction (like Netflix, Orange, etc.)
-              if (requiresStrictIsolation(updatedTransaction) && 'isPaid' in data) {
+              // If this is a recurring transaction and isPaid is changing, use month-specific tracking
+              if (updatedTransaction.isRecurring && 'isPaid' in data) {
                 // Get the date to use (either displayDate for recurring instances or regular date)
                 const dateToUse = (updatedTransaction as any).displayDate || updatedTransaction.date;
+                const dateObj = new Date(dateToUse);
+                
+                // Import the monthly status tracking function
+                const { markPaid } = require('@/utils/monthlyStatus');
                 
                 // Save the paid status with month-specific isolation
-                saveMonthlyPaidStatus(
-                  updatedTransaction.title, 
-                  dateToUse, 
+                markPaid(
+                  updatedTransaction.id, 
+                  dateObj, 
                   Boolean(data.isPaid)
                 );
                 console.log(`[STRICT ISOLATION] Saved month-specific paid status for ${updatedTransaction.title} on ${format(new Date(dateToUse), 'yyyy-MM-dd')}: ${data.isPaid}`);
