@@ -535,7 +535,7 @@ export default function UpcomingExpenses({
               </div>
               <div className="flex justify-between mt-2">
                 <span className="font-semibold">Remaining budget</span>
-                <span className={`font-bold ${remainingBudget >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <span className={`font-bold ${remainingBudget >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                   {remainingBudget.toFixed(2)} PLN
                 </span>
               </div>

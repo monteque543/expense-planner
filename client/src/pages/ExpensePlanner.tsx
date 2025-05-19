@@ -510,15 +510,23 @@ export default function ExpensePlanner() {
           return;
         }
         
-        // Use our simple tracker for month-specific paid status
+        // Use our enhanced tracker for month-specific paid status
         const isPaidValue = transaction.isPaid === true; // Ensure it's a boolean
         const id = transaction.id;
         
-        // Import the required function
-        const { markPaid } = require('../utils/recurringTracker');
+        // Import the new fixed function
+        const { markRecurringTransactionAsPaid } = require('../utils/fixBalanceColor');
         
-        // Mark as paid/unpaid for this specific month only
-        markPaid(id, dateObj, isPaidValue);
+        // Mark as paid/unpaid for this specific month only with the improved function
+        const success = markRecurringTransactionAsPaid(transaction, dateObj, isPaidValue);
+        
+        if (success) {
+          toast({
+            title: "Updated",
+            description: `${transaction.title} marked as ${isPaidValue ? 'paid' : 'unpaid'} for ${format(dateObj, 'MMMM yyyy')}`,
+            duration: 3000
+          });
+        }
         
         console.log(`[MONTH SPECIFIC] Set transaction ${id} (${transaction.title}) paid status to ${isPaidValue} for month ${format(dateObj, 'yyyy-MM')}`);
         
