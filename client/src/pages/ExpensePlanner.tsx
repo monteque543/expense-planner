@@ -36,8 +36,6 @@ import {
   filterTransactions
 } from "@/utils/transaction-transformers";
 import { 
-  getMonthlyPaidStatus,
-  setMonthlyPaidStatus,
   markRecurringInstanceAsDeleted,
   extractYearMonth,
   requiresStrictIsolation,
@@ -45,12 +43,12 @@ import {
   saveMonthlyPaidStatus
 } from "@/utils/strict-monthly-paid-status";
 import {
-  setPaidStatus,
-  isPaid,
-  setDeletedStatus,
-  isDeleted,
+  setMonthlyPaidStatus,
+  getMonthlyPaidStatus,
+  setMonthlyDeletedStatus,
+  getMonthlyDeletedStatus,
   applyMonthlyStatuses
-} from "@/utils/monthlySavedStatus";
+} from "@/utils/month-specific-operations";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -237,10 +235,10 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our ultra-simple monthly tracker for deletion
+      // Use our direct month-specific operations utility
       const deleteDate = new Date(date);
-      setDeletedStatus(id, deleteDate, true);
-      console.log(`[SIMPLIFIED DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
+      setMonthlyDeletedStatus(id, deleteDate, true);
+      console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
         title: "Instance Hidden",
