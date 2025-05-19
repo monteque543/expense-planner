@@ -247,11 +247,13 @@ export default function ExpensePlanner() {
     if (transaction?.isRecurring && date) {
       console.log(`[INSTANCE DELETE] Handling recurring transaction: ${transaction.title} for date ${format(date, 'yyyy-MM-dd')}`);
       
-      // Use our simple tracker for month-specific deletion
+      // Use our new skip functionality to hide this transaction just for this month
       const deleteDate = new Date(date);
-      const { markDeleted } = require('../utils/monthlyStatus');
-      markDeleted(id, deleteDate, true);
-      console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as deleted for month ${format(deleteDate, 'yyyy-MM')}`);
+      // Import the monthly tracking functions
+      const { skipRecurringTransactionForMonth } = require('../utils/monthlyTracker');
+      // Mark this transaction as skipped for this specific month
+      skipRecurringTransactionForMonth(id, deleteDate);
+      console.log(`[MONTHLY DELETE] Successfully marked recurring transaction ${id} as skipped for month ${format(deleteDate, 'yyyy-MM')}`);
       
       toast({
         title: "Instance Hidden",
