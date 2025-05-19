@@ -498,7 +498,7 @@ export default function ExpenseCalendar({
                 return (
                   <span className={cn(
                     "font-semibold text-base",
-                    remainingBalance < 0 ? "text-destructive" : ""
+                    remainingBalance < 0 ? "text-destructive" : "text-green-500"
                   )}>
                     {formatCurrency(remainingBalance, 'PLN')}
                   </span>
