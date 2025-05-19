@@ -144,7 +144,7 @@ export default function EditTransactionModal({
         recurringEndDate: transaction.recurringEndDate 
           ? format(new Date(transaction.recurringEndDate), "yyyy-MM-dd") 
           : undefined,
-        isPaid: transaction.isPaid || false, // Include the isPaid field
+        isPaid: transaction.isPaid === true, // Explicitly set to boolean value
       });
     }
   }, [transaction, form]);

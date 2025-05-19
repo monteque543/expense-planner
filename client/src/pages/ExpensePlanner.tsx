@@ -1113,6 +1113,7 @@ export default function ExpensePlanner() {
                           ? "bg-gray-500 cursor-not-allowed" // Disabled style
                           : "bg-red-500 hover:bg-red-600"    // Normal style
                       }`}
+                      disabled={currentBudget < 0} // Explicitly disable button when budget is negative
                     >
                       Add Expense
                     </button>
