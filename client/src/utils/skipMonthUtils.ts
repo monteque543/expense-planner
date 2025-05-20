@@ -15,16 +15,30 @@ export function skipTransactionForMonth(transactionId: number, date: Date): void
     // Store in localStorage
     localStorage.setItem(storageKey, 'true');
     
+    // Add an alert so we can confirm the transaction is being skipped
+    alert(`⚠️ SKIPPING: Transaction ${transactionId} for month ${monthKey}`);
+    
     console.log(`[SKIP MONTH] Transaction ${transactionId} marked as SKIPPED for ${monthKey}`);
+    console.log(`[STORAGE] Storage key: ${storageKey} = true`);
     
     // Also add to master list for quick access
     updateSkippedMonthsList(transactionId, monthKey, true);
     
+    // After skipping, verify by checking if it's marked as skipped
+    const isSkipped = localStorage.getItem(storageKey) === 'true';
+    console.log(`[VERIFICATION] Transaction ${transactionId} is now skipped: ${isSkipped}`);
+    
     // This is a full reload approach - sometimes React's state management
     // gets confused with complex financial calculations
-    window.location.reload();
-  } catch (err) {
+    console.log('[RELOAD] Page will reload to apply changes');
+    
+    // Delay reload to ensure storage is committed
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  } catch (err: any) {
     console.error('Error saving skipped status to localStorage:', err);
+    alert(`ERROR: Could not skip transaction: ${err.message || 'Unknown error'}`);
   }
 }
 
