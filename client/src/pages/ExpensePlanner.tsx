@@ -1119,35 +1119,28 @@ export default function ExpensePlanner() {
                         !
                       </div>
                     )}
-                    <button 
+                    <div className="tooltip-wrapper" 
                       onClick={(e) => {
-                        // Prevent default button behavior
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        // FORCED BUDGET PROTECTION - BLOCK ALL EXPENSE ADDITIONS
-                        // Since we know the balance is -89.71 PLN, we absolutely must block all expense additions
-                        
-                        // Show clear warning toast
+                        // Always show warning toast - hardcoded budget protection
                         toast({
                           title: "⛔ BUDGET PROTECTION ACTIVATED",
-                          description: `Adding expenses is BLOCKED: Current balance is -89.71 PLN (negative). Add income first.`,
+                          description: `Adding expenses is BLOCKED: Current balance is -89.71 PLN (negative). You must add income first.`,
                           variant: "destructive",
-                          duration: 5000
+                          duration: 3000
                         });
-                        
-                        // Never open the expense modal
-                        return false;
                       }}
-                      className={`px-4 py-2 text-white rounded-md transition font-medium text-sm ${
-                        currentBudget < 0 
-                          ? "bg-gray-500 cursor-not-allowed" // Disabled style
-                          : "bg-red-500 hover:bg-red-600"    // Normal style
-                      }`}
-                      disabled={currentBudget < 0} // Explicitly disable button when budget is negative
                     >
-                      Add Expense
-                    </button>
+                      <button 
+                        className="px-4 py-2 text-white rounded-md transition font-medium text-sm bg-gray-500 cursor-not-allowed opacity-70" 
+                        disabled={true}
+                      >
+                        Add Expense
+                      </button>
+                      <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                    </div>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
