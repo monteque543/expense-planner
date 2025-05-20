@@ -7,6 +7,7 @@ import ExpensePlanner from "@/pages/ExpensePlanner";
 import AuthPage from "@/pages/AuthPage";
 import { AuthProvider } from "@/hooks/useAuthNew";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ExpenseBlocker from "@/components/ExpenseBlocker";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <AuthProvider>
         <Router />
         <Toaster />
+        <ExpenseBlocker />
       </AuthProvider>
     </QueryClientProvider>
   );
