@@ -13,6 +13,7 @@ import {
   addMonths,
   addYears
 } from 'date-fns';
+import { isTransactionSkippedForMonth } from '@/utils/skipMonthUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
@@ -66,6 +67,15 @@ export default function UpcomingExpenses({
     const expenses = transactions.filter(transaction => {
       // Only include expenses
       if (!transaction.isExpense) return false;
+      
+      // Skip transactions marked as skipped for this month
+      if (transaction.isRecurring) {
+        const transactionDate = new Date(transaction.date);
+        if (isTransactionSkippedForMonth(transaction.id, transactionDate)) {
+          console.log(`[BUDGET] Excluding skipped transaction ${transaction.title} (${transaction.id}) from budget calculations`);
+          return false;
+        }
+      }
       
       const transactionDate = new Date(transaction.date);
       
