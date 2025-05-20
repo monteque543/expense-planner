@@ -53,24 +53,20 @@ export default function ManageSkippedTransactions({
       // Restore the transaction by removing its skipped status
       unskipTransactionForMonth(transaction.id, currentDate);
       
-      // Update the list
+      // Update the local list
       const updatedIds = skippedIds.filter(id => id !== transaction.id);
       setSkippedIds(updatedIds);
       setSkippedTransactions(skippedTransactions.filter(t => t.id !== transaction.id));
       
+      // Refresh data with React Query to update UI
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
       // Show confirmation toast
       toast({
         title: "Transaction Restored",
-        description: `"${transaction.title}" has been restored for ${format(currentDate, 'MMMM yyyy')}. Page will reload to update financial totals.`,
+        description: `"${transaction.title}" has been restored for ${format(currentDate, 'MMMM yyyy')}.`,
         duration: 3000,
       });
-      
-      // Direct approach - force a complete page reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      
-      // Success message is already shown above
     } catch (err) {
       console.error('Error restoring transaction:', err);
       toast({
@@ -93,7 +89,7 @@ export default function ManageSkippedTransactions({
       setSkippedIds([]);
       setSkippedTransactions([]);
       
-      // Refresh data
+      // Refresh data to update all components
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       // Close dialog
