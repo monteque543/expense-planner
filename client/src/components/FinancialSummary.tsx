@@ -13,6 +13,7 @@ import {
   addYears
 } from 'date-fns';
 import { TransactionWithCategory } from '@shared/schema';
+import { isTransactionSkippedForMonth } from '@/utils/skipMonthUtils';
 
 interface FinancialSummaryProps {
   transactions: TransactionWithCategory[];
