@@ -20,10 +20,8 @@ export function skipTransactionForMonth(transactionId: number, date: Date): void
     // Also add to master list for quick access
     updateSkippedMonthsList(transactionId, monthKey, true);
     
-    // Hard reload is the simplest solution after changing financial data
-    setTimeout(() => {
-      window.location.href = window.location.href;
-    }, 100);
+    // Force a complete hard reload to fix any stale data
+    window.location.href = "/";
   } catch (err) {
     console.error('Error saving skipped status to localStorage:', err);
   }
@@ -56,10 +54,8 @@ export function unskipTransactionForMonth(transactionId: number, date: Date): vo
     
     console.log(`[UNSKIP] Transaction ${transactionId} unskipped for ${monthKey} - will now appear again`);
     
-    // Hard reload is the simplest solution after changing financial data
-    setTimeout(() => {
-      window.location.href = window.location.href;
-    }, 100);
+    // Force a complete hard reload to fix any stale data
+    window.location.href = "/";
   } catch (err) {
     console.error('Error unskipping transaction:', err);
   }

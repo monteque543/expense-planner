@@ -58,15 +58,19 @@ export default function ManageSkippedTransactions({
       setSkippedIds(updatedIds);
       setSkippedTransactions(skippedTransactions.filter(t => t.id !== transaction.id));
       
-      // Force a refresh of financial calculations
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
-      // Show success message
+      // Show confirmation toast
       toast({
         title: "Transaction Restored",
+        description: `"${transaction.title}" has been restored for ${format(currentDate, 'MMMM yyyy')}. Page will reload to update financial totals.`,
+        duration: 3000,
+      });
+      
+      // Direct approach - force a complete page reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+      // Success is already shown above, no need for duplicate toast
         description: `"${transaction.title}" will now appear in ${format(currentDate, 'MMMM yyyy')} again.`,
         duration: 3000,
       });

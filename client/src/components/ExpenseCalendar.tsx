@@ -817,12 +817,14 @@ export default function ExpenseCalendar({
                                         // Show confirmation toast
                                         toast({
                                           title: "Month Skipped",
-                                          description: `"${transaction.title}" (${transaction.amount} PLN) will not appear in ${format(dateObj, 'MMMM yyyy')}, but will continue in other months.`,
+                                          description: `"${transaction.title}" (${transaction.amount} PLN) will not appear in ${format(dateObj, 'MMMM yyyy')}. Page will reload to update financial totals.`,
                                           duration: 3000,
                                         });
                                         
-                                        // Force data refetch to update UI
-                                        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+                                        // Direct approach - force a complete page reload
+                                        setTimeout(() => {
+                                          window.location.reload();
+                                        }, 1500);
                                       }}
                                     >
                                       <Circle className="h-3 w-3 text-amber-500" style={{ position: 'relative' }} />
