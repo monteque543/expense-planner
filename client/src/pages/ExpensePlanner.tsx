@@ -1104,7 +1104,7 @@ export default function ExpensePlanner() {
             
             {/* New Component: Manage Skipped Transactions */}
             <ManageSkippedTransactions 
-              transactions={visibleTransactions}
+              transactions={currentMonthTransactions}
               currentDate={selectedDate}
             />
             
