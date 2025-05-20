@@ -814,11 +814,6 @@ export default function ExpenseCalendar({
                                         // Skip this transaction for the current month only
                                         skipTransactionForMonth(transaction.id, dateObj);
                                         
-                                        // Set a flag in localStorage to force financial recalculation
-                                        localStorage.setItem('force_financial_recalculation', 'true');
-                                        localStorage.setItem('last_skipped_transaction', transaction.title);
-                                        localStorage.setItem('last_skipped_amount', transaction.amount.toString());
-                                        
                                         // Show confirmation toast
                                         toast({
                                           title: "Month Skipped",
@@ -826,11 +821,8 @@ export default function ExpenseCalendar({
                                           duration: 3000,
                                         });
                                         
-                                        // Force refresh all data to update financial calculations
-                                        setTimeout(() => {
-                                          // Delay to ensure changes are applied
-                                          window.location.reload(); // Hard refresh to ensure all calculations are redone
-                                        }, 500);
+                                        // Force data refetch to update UI
+                                        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
                                       }}
                                     >
                                       <Circle className="h-3 w-3 text-amber-500" style={{ position: 'relative' }} />

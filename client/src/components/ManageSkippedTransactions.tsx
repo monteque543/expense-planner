@@ -58,10 +58,8 @@ export default function ManageSkippedTransactions({
       setSkippedIds(updatedIds);
       setSkippedTransactions(skippedTransactions.filter(t => t.id !== transaction.id));
       
-      // Force a refresh to update financial calculations
-      setTimeout(() => {
-        window.location.reload(); 
-      }, 500);
+      // Force a refresh of financial calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });

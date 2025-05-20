@@ -117,7 +117,8 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     processTransactions(filteredTransactions);
     
     // Then, generate recurring instances for the relevant time periods
-    const recurringTransactions = transactions.filter(t => t.isRecurring);
+    // Only use recurring transactions that aren't skipped for the current month
+    const recurringTransactions = filteredTransactions.filter(t => t.isRecurring);
     const calculatedRecurringInstances: TransactionWithCategory[] = [];
     
     recurringTransactions.forEach(transaction => {
