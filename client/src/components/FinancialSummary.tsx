@@ -46,79 +46,60 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     let nextWeekIncome = 0;
     let totalIncome = 0;
     
-    // Process regular and recurring transactions
-    const processTransactions = (transactionList: TransactionWithCategory[]) => {
-      transactionList.forEach(transaction => {
-        const transactionDate = new Date(transaction.date);
-        
-        // Check if this transaction should be skipped (for the current month being viewed)
-        const currentMonth = currentDate || new Date();
-        const skipMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        
-        // Skip transactions that have been marked as skipped for the month being viewed
-        if (isTransactionSkippedForMonth(transaction.id, skipMonth)) {
-          console.log(`[FINANCIAL] SKIPPING: Transaction ${transaction.title} (${transaction.id}) is marked as skipped for month ${skipMonth.getMonth()+1}/${skipMonth.getFullYear()} - EXCLUDING from calculations`);
-          return; // Skip this transaction and move to the next one
-        }
-        
-        // Calculate expenses for different time periods
-        if (transaction.isExpense) {
-          if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
-            thisWeekExpenses += transaction.amount;
-          }
-          
-          if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
-            nextWeekExpenses += transaction.amount;
-          }
-          
-          if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
-            thisMonthExpenses += transaction.amount;
-          }
-          
-          if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
-            thisYearExpenses += transaction.amount;
-          }
-        } else {
-          // Calculate income for different time periods
-          if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
-            thisWeekIncome += transaction.amount;
-          }
-          
-          if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
-            nextWeekIncome += transaction.amount;
-          }
-          
-          if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
-            totalIncome += transaction.amount;
-          }
-        }
-      });
-    };
+    // Filter out all skipped transactions for current month
+    const viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    console.log(`[FINANCIAL] Filtering transactions for month: ${viewMonth.getMonth()+1}/${viewMonth.getFullYear()}`);
     
-    // Filter out skipped transactions before processing
-    const currentMonth = currentDate || new Date();
-    const skipCheckMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    
-    // Create filtered list of transactions with skipped ones removed
-    const filteredTransactions = transactions.filter(transaction => {
-      // Check if transaction is skipped for the month we're viewing
-      if (transaction.isRecurring) {
-        if (isTransactionSkippedForMonth(transaction.id, skipCheckMonth)) {
-          console.log(`[FINANCIAL ROOT] Skipping transaction ${transaction.title} (${transaction.id}) for month ${skipCheckMonth.getMonth()+1}/${skipCheckMonth.getFullYear()}`);
-          return false; // Exclude this transaction
-        }
+    const activeTransactions = transactions.filter(transaction => {
+      if (transaction.isRecurring && isTransactionSkippedForMonth(transaction.id, viewMonth)) {
+        console.log(`[FINANCIAL] Removing skipped transaction: ${transaction.title} (${transaction.id}) from financial calculations`);
+        return false;
       }
-      return true; // Include all non-skipped transactions
+      return true;
     });
     
-    console.log(`Filtered out skipped transactions: Starting with ${transactions.length}, now ${filteredTransactions.length}`);
+    console.log(`[FINANCIAL] Using ${activeTransactions.length} transactions (filtered out ${transactions.length - activeTransactions.length} skipped items)`);
     
-    // Process only non-skipped regular transactions
-    processTransactions(filteredTransactions);
+    // Process transactions
+    activeTransactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.date);
+      
+      // Calculate expenses for different time periods
+      if (transaction.isExpense) {
+        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+          thisWeekExpenses += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+          nextWeekExpenses += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
+          thisMonthExpenses += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
+          thisYearExpenses += transaction.amount;
+        }
+      } else {
+        // Calculate income for different time periods
+        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+          thisWeekIncome += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+          nextWeekIncome += transaction.amount;
+        }
+        
+        if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
+          totalIncome += transaction.amount;
+        }
+      }
+    });
     
-    // Then, generate recurring instances for the relevant time periods
-    // Only use recurring transactions that aren't skipped for the current month
-    const recurringTransactions = filteredTransactions.filter(t => t.isRecurring);
+    // Generate recurring instances for future dates
+    // Only process recurring transactions that have not been skipped
+    const recurringTransactions = activeTransactions.filter(t => t.isRecurring);
     const calculatedRecurringInstances: TransactionWithCategory[] = [];
     
     recurringTransactions.forEach(transaction => {
@@ -148,10 +129,49 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       while (nextDate <= thisYearEnd) {
         // Only include occurrences that fall within our relevant time periods and after the original date
         if (nextDate > originalDate) {
-          calculatedRecurringInstances.push({
-            ...transaction,
-            date: nextDate
-          });
+          // For each future instance, check if it's skipped for its specific month
+          const instanceMonth = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+          if (!isTransactionSkippedForMonth(transaction.id, instanceMonth)) {
+            // Add this instance only if it's not skipped
+            const futureTx = {
+              ...transaction,
+              date: new Date(nextDate)
+            };
+            
+            // Calculate expenses for different time periods
+            if (futureTx.isExpense) {
+              if (isWithinInterval(nextDate, { start: thisWeekStart, end: thisWeekEnd })) {
+                thisWeekExpenses += futureTx.amount;
+              }
+              
+              if (isWithinInterval(nextDate, { start: nextWeekStart, end: nextWeekEnd })) {
+                nextWeekExpenses += futureTx.amount;
+              }
+              
+              if (isWithinInterval(nextDate, { start: thisMonthStart, end: thisMonthEnd })) {
+                thisMonthExpenses += futureTx.amount;
+              }
+              
+              if (isWithinInterval(nextDate, { start: thisYearStart, end: thisYearEnd })) {
+                thisYearExpenses += futureTx.amount;
+              }
+            } else {
+              // Calculate income for different time periods
+              if (isWithinInterval(nextDate, { start: thisWeekStart, end: thisWeekEnd })) {
+                thisWeekIncome += futureTx.amount;
+              }
+              
+              if (isWithinInterval(nextDate, { start: nextWeekStart, end: nextWeekEnd })) {
+                nextWeekIncome += futureTx.amount;
+              }
+              
+              if (isWithinInterval(nextDate, { start: thisMonthStart, end: thisMonthEnd })) {
+                totalIncome += futureTx.amount;
+              }
+            }
+          } else {
+            console.log(`[FINANCIAL] Skipping future instance of ${transaction.title} for ${instanceMonth.getMonth()+1}/${instanceMonth.getFullYear()}`);
+          }
         }
         
         // Calculate next occurrence
@@ -173,23 +193,6 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
         }
       }
     });
-    
-    // Process the recurring instances
-    // First, filter out any recurring instances that have been skipped for their month
-    const filteredRecurringInstances = calculatedRecurringInstances.filter(transaction => {
-      // Skip transactions that have been marked as skipped for their specific month
-      if (transaction.isRecurring) {
-        const txDate = new Date(transaction.date);
-        if (isTransactionSkippedForMonth(transaction.id, txDate)) {
-          console.log(`[FINANCIAL SUMMARY] Excluding skipped transaction: ${transaction.title} (${transaction.id}) for month ${txDate.getMonth()+1}/${txDate.getFullYear()}`);
-          return false; // Don't include this transaction
-        }
-      }
-      return true; // Include all non-skipped transactions
-    });
-    
-    // Process only the non-skipped recurring instances
-    processTransactions(filteredRecurringInstances);
     
     // Calculate balance and savings
     const balance = totalIncome - thisMonthExpenses;
