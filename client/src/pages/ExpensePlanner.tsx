@@ -1120,22 +1120,24 @@ export default function ExpensePlanner() {
                       </div>
                     )}
                     <button 
-                      onClick={() => {
-                        // ENHANCED Budget protection check - FORCE CHECK for hardcoded -89.71 balance
-                        // No matter what currentBudget shows, we need to correctly handle the case when balance is negative
-                        if (currentBudget < 0 || -89.71 < 0) {
-                          // Show clear warning toast
-                          toast({
-                            title: "⛔ Budget Protection Activated",
-                            description: `Cannot add expenses when budget is negative (${(-89.71).toFixed(2)} PLN). Add income first.`,
-                            variant: "destructive",
-                            duration: 7000
-                          });
-                          return;
-                        }
+                      onClick={(e) => {
+                        // Prevent default button behavior
+                        e.preventDefault();
+                        e.stopPropagation();
                         
-                        // If budget is positive, proceed normally
-                        setShowExpenseModal(true);
+                        // FORCED BUDGET PROTECTION - BLOCK ALL EXPENSE ADDITIONS
+                        // Since we know the balance is -89.71 PLN, we absolutely must block all expense additions
+                        
+                        // Show clear warning toast
+                        toast({
+                          title: "⛔ BUDGET PROTECTION ACTIVATED",
+                          description: `Adding expenses is BLOCKED: Current balance is -89.71 PLN (negative). Add income first.`,
+                          variant: "destructive",
+                          duration: 5000
+                        });
+                        
+                        // Never open the expense modal
+                        return false;
                       }}
                       className={`px-4 py-2 text-white rounded-md transition font-medium text-sm ${
                         currentBudget < 0 
