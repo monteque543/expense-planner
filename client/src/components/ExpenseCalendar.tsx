@@ -22,7 +22,7 @@ import {
 } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { skipTransactionForMonth } from "../utils/skipMonthUtils";
+import { skipTransactionForMonth, isTransactionSkippedForMonth } from "../utils/skipMonthUtils";
 import { TransactionWithCategory } from "@shared/schema";
 import { 
   Tooltip,
@@ -117,14 +117,30 @@ export default function ExpenseCalendar({
     const grouped: Record<string, TransactionWithCategory[]> = {};
     const today = new Date();
     
+    // First filter out any skipped transactions
+    const filteredTransactions = transactions.filter(transaction => {
+      if (transaction.isRecurring) {
+        const dateToCheck = transaction.displayDate || new Date(transaction.date);
+        return !isTransactionSkippedForMonth(transaction.id, dateToCheck);
+      }
+      return true; // Keep non-recurring transactions
+    });
+    
     /****************************************************
     * FINAL FIX TO ENSURE OMEGA APPEARS IN MAY 2025    *
     * DIRECT HARDCODED APPROACH WITH NO COMPLEX LOGIC  *
     *****************************************************/
     
-    // Log recurring transactions
-    const recurringOnes = transactions.filter(t => t.isRecurring);
-    console.log('Recurring transactions:', recurringOnes);
+    // Log recurring transactions - filter out skipped ones first
+    const recurringOnes = transactions.filter(t => {
+      if (t.isRecurring) {
+        const dateToCheck = t.displayDate || new Date(t.date);
+        // Keep only non-skipped transactions
+        return !isTransactionSkippedForMonth(t.id, dateToCheck);
+      }
+      return t.isRecurring;
+    });
+    console.log('Recurring transactions (after skip filtering):', recurringOnes);
     
     // Calculate view boundaries based on active view
     let viewStart: Date;

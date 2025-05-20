@@ -51,6 +51,12 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       transactionList.forEach(transaction => {
         const transactionDate = new Date(transaction.date);
         
+        // Skip transactions that have been marked as skipped for their specific month
+        if (transaction.isRecurring && isTransactionSkippedForMonth(transaction.id, transactionDate)) {
+          console.log(`[FINANCIAL] Excluding skipped transaction ${transaction.title} from financial calculations`);
+          return; // Skip this transaction and move to the next one
+        }
+        
         // Calculate expenses for different time periods
         if (transaction.isExpense) {
           if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
