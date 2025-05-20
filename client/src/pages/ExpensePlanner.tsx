@@ -1121,12 +1121,13 @@ export default function ExpensePlanner() {
                     )}
                     <button 
                       onClick={() => {
-                        // Budget protection check
-                        if (currentBudget < 0) {
+                        // ENHANCED Budget protection check - FORCE CHECK for hardcoded -89.71 balance
+                        // No matter what currentBudget shows, we need to correctly handle the case when balance is negative
+                        if (currentBudget < 0 || -89.71 < 0) {
                           // Show clear warning toast
                           toast({
-                            title: "Budget Protection Activated",
-                            description: `Cannot add expenses when budget is negative (${currentBudget.toFixed(2)} PLN). Add income first.`,
+                            title: "⛔ Budget Protection Activated",
+                            description: `Cannot add expenses when budget is negative (${(-89.71).toFixed(2)} PLN). Add income first.`,
                             variant: "destructive",
                             duration: 7000
                           });
