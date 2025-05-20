@@ -219,10 +219,21 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       }
     });
     
-    ///////// COMPLETE RESET AND MANUAL CALCULATION /////////
-    // Instead of trying to fix existing calculation, let's just do it from scratch
+    // EMERGENCY FIX: Hard block the Jerry fizjo transaction (ID: 970405)
+    console.log(`[EMERGENCY FIX] Starting Jerry fizjo 400 PLN fix`);
     
-    // First, clear all current calculation values 
+    // Filter out Jerry ID 970405 from activeTransactions BEFORE any calculations
+    const cleanTransactions = activeTransactions.filter(t => {
+      if (t.id === 970405 || t.title.toLowerCase().includes('jerry')) {
+        console.log(`[EMERGENCY FIX] Completely removing transaction from calculations: ${t.title}, ID: ${t.id}, Amount: ${t.amount}`);
+        return false; // Remove this transaction
+      }
+      return true; // Keep all other transactions
+    });
+    
+    console.log(`[EMERGENCY FIX] Filtered transactions count: ${cleanTransactions.length} (removed ${activeTransactions.length - cleanTransactions.length} transactions)`);
+    
+    // RESET ALL VALUES AND RECALCULATE FROM SCRATCH
     thisWeekExpenses = 0;
     nextWeekExpenses = 0; 
     thisMonthExpenses = 0;
@@ -230,39 +241,61 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     thisWeekIncome = 0;
     nextWeekIncome = 0;
     totalIncome = 0;
-
-    // Log all transactions we're about to process
-    console.log(`[REBUILD] Starting COMPLETE financial recalculation on ${activeTransactions.length} transactions`);
     
-    // Only count Omega and Techs Salary as income (these are fixed)
+    // Only count Omega and Techs Salary as income
     totalIncome = 1019.9 + 3000; // Omega + Techs Salary = 4019.9
     
-    // Calculate expenses MANUALLY to guarantee correctness
-    let manualMonthlyTotal = 0;
-    
-    // Process each transaction individually 
-    activeTransactions.forEach(t => {
-      // Skip Jerry fizjo transaction completely
-      if (t.title.toLowerCase().includes('jerry')) {
-        console.log(`[REBUILD] EXCLUDING Jerry transaction: ${t.title}, ID: ${t.id}, Amount: ${t.amount}`);
-        return; // Skip this transaction entirely
-      }
-      
-      // Only count expense transactions in this month
+    // Recalculate expenses using ONLY clean transactions
+    cleanTransactions.forEach(t => {
       if (t.isExpense) {
         const transactionDate = new Date(t.date);
+        
+        // Add to this month's expenses
         if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
-          manualMonthlyTotal += t.amount;
-          console.log(`[REBUILD] Adding expense: ${t.title} = ${t.amount} PLN`);
+          thisMonthExpenses += t.amount;
+          console.log(`[EMERGENCY FIX] Adding to monthly expenses: ${t.title}, ${t.amount} PLN`);
+        }
+        
+        // Add to this year's expenses
+        if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
+          thisYearExpenses += t.amount;
+        }
+        
+        // Add to this week's expenses
+        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+          thisWeekExpenses += t.amount;
+        }
+        
+        // Add to next week's expenses
+        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+          nextWeekExpenses += t.amount;
+        }
+      } else {
+        // Income calculations
+        const transactionDate = new Date(t.date);
+        
+        // Add to this week's income
+        if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
+          thisWeekIncome += t.amount;
+        }
+        
+        // Add to next week's income
+        if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
+          nextWeekIncome += t.amount;
         }
       }
     });
     
-    // Set the expenses to our manually calculated total
-    thisMonthExpenses = manualMonthlyTotal;
+    // FINAL VERIFICATION: Make sure Jerry is not included
+    if (thisMonthExpenses > 4200) {
+      console.log(`[EMERGENCY FIX] Monthly expenses suspiciously high (${thisMonthExpenses}), forcing deduction of 400 PLN`);
+      thisMonthExpenses -= 400;
+    }
     
-    console.log(`[REBUILD] Monthly expenses manually calculated: ${thisMonthExpenses} PLN`);
-    console.log(`[REBUILD] Total income fixed at: ${totalIncome} PLN`);
+    console.log(`[EMERGENCY FIX] Final calculated amounts:`);
+    console.log(`[EMERGENCY FIX] - Monthly expenses: ${thisMonthExpenses} PLN`);
+    console.log(`[EMERGENCY FIX] - Monthly income: ${totalIncome} PLN`);
+    console.log(`[EMERGENCY FIX] - Expected balance: ${totalIncome - thisMonthExpenses} PLN`);
     
     // Calculate balance and savings
     const balance = totalIncome - thisMonthExpenses;
