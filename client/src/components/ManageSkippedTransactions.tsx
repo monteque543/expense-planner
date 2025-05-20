@@ -70,10 +70,7 @@ export default function ManageSkippedTransactions({
         window.location.reload();
       }, 1500);
       
-      // Success is already shown above, no need for duplicate toast
-        description: `"${transaction.title}" will now appear in ${format(currentDate, 'MMMM yyyy')} again.`,
-        duration: 3000,
-      });
+      // Success message is already shown above
     } catch (err) {
       console.error('Error restoring transaction:', err);
       toast({
