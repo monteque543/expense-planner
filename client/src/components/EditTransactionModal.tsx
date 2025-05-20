@@ -345,10 +345,14 @@ export default function EditTransactionModal({
           console.log(`[STRICT ISOLATION] Saved month-specific paid status for ${transaction.title} on ${formattedDate}: ${data.isPaid}`);
           
           // Special handling for "webflow" transaction
-          if (transaction.title === "webflow") {
+          if (transaction.title === "webflow" || transaction.id === 7) {
             // Add extra storage for webflow with multiple backup formats
             const yearMonth = extractYearMonth(formattedDate);
-            // Store in MANY formats to ensure it works
+            
+            // Also use our special webflow handler to ensure persistence
+            updateWebflowPaidStatus(7, data.isPaid);
+            
+            // Store in ALL formats to ensure it works
             localStorage.setItem(`webflow-${yearMonth}-paid`, data.isPaid.toString());
             localStorage.setItem(`webflow_${yearMonth}_paid`, data.isPaid.toString());
             localStorage.setItem(`txn_webflow_${yearMonth}_paid`, data.isPaid.toString());
@@ -357,6 +361,8 @@ export default function EditTransactionModal({
             localStorage.setItem(`webflow-status-${yearMonth}`, data.isPaid.toString());
             localStorage.setItem(`transaction-webflow-paid-${yearMonth}`, data.isPaid.toString());
             localStorage.setItem(`strict_paid_webflow_${yearMonth}`, data.isPaid.toString());
+            localStorage.setItem(`webflow_permanent_status`, data.isPaid.toString());
+            
             console.log(`[SPECIAL HANDLING] Extra storage keys for webflow transaction in ${yearMonth}: ${data.isPaid}`);
           }
         }
