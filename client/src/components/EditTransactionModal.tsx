@@ -31,6 +31,10 @@ import {
   saveMonthlyPaidStatus, 
   extractYearMonth 
 } from "@/utils/strict-monthly-paid-status";
+import {
+  isSpecialTransaction,
+  updateWebflowPaidStatus
+} from "@/utils/specialTransactions";
 
 interface EditTransactionModalProps {
   isOpen: boolean;

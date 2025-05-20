@@ -5,7 +5,8 @@ import { format } from 'date-fns';
 import { Transaction, TransactionWithCategory } from '@shared/schema';
 import { isPaid, isDeleted } from './monthlyStatus';
 
-import { isRecurringTransactionSkipped, getMonthlyTransactionPaidStatus } from './monthlyTracker';
+import { getMonthlyTransactionPaidStatus } from './monthlyTracker';
+import { isTransactionSkippedForMonth } from './skipMonthUtils';
 
 /**
  * Process recurring transactions applying month-specific statuses and skips
@@ -31,7 +32,7 @@ export function processTransactionsWithMonthlyStatus(transactions: TransactionWi
       const dateObj = typeof date === 'string' ? new Date(date) : date;
 
       // Check if this transaction has been skipped for this month
-      const isSkipped = isRecurringTransactionSkipped(transaction.id, dateObj);
+      const isSkipped = isTransactionSkippedForMonth(transaction.id, dateObj);
       
       if (isSkipped) {
         console.log(`[SKIP FILTER] Filtered out transaction ${transaction.title} (${transaction.id}) for month ${format(dateObj, 'yyyy-MM')} as it was skipped`);
