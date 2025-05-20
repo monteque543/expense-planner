@@ -51,9 +51,13 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       transactionList.forEach(transaction => {
         const transactionDate = new Date(transaction.date);
         
-        // Skip transactions that have been marked as skipped for their specific month
-        if (transaction.isRecurring && isTransactionSkippedForMonth(transaction.id, transactionDate)) {
-          console.log(`[FINANCIAL] Excluding skipped transaction ${transaction.title} from financial calculations`);
+        // Check if this transaction should be skipped (for the current month being viewed)
+        const currentMonth = currentDate || new Date();
+        const skipMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        
+        // Skip transactions that have been marked as skipped for the month being viewed
+        if (isTransactionSkippedForMonth(transaction.id, skipMonth)) {
+          console.log(`[FINANCIAL] SKIPPING: Transaction ${transaction.title} (${transaction.id}) is marked as skipped for month ${skipMonth.getMonth()+1}/${skipMonth.getFullYear()} - EXCLUDING from calculations`);
           return; // Skip this transaction and move to the next one
         }
         
@@ -91,8 +95,26 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
       });
     };
     
-    // First, process all regular transactions
-    processTransactions(transactions);
+    // Filter out skipped transactions before processing
+    const currentMonth = currentDate || new Date();
+    const skipCheckMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    
+    // Create filtered list of transactions with skipped ones removed
+    const filteredTransactions = transactions.filter(transaction => {
+      // Check if transaction is skipped for the month we're viewing
+      if (transaction.isRecurring) {
+        if (isTransactionSkippedForMonth(transaction.id, skipCheckMonth)) {
+          console.log(`[FINANCIAL ROOT] Skipping transaction ${transaction.title} (${transaction.id}) for month ${skipCheckMonth.getMonth()+1}/${skipCheckMonth.getFullYear()}`);
+          return false; // Exclude this transaction
+        }
+      }
+      return true; // Include all non-skipped transactions
+    });
+    
+    console.log(`Filtered out skipped transactions: Starting with ${transactions.length}, now ${filteredTransactions.length}`);
+    
+    // Process only non-skipped regular transactions
+    processTransactions(filteredTransactions);
     
     // Then, generate recurring instances for the relevant time periods
     const recurringTransactions = transactions.filter(t => t.isRecurring);
