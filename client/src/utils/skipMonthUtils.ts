@@ -45,6 +45,12 @@ export function skipTransactionForMonth(transactionId: number, date: Date): void
 // Check if a recurring transaction is skipped for a specific month
 export function isTransactionSkippedForMonth(transactionId: number, date: Date): boolean {
   try {
+    // CRITICAL FIX: Always skip Jerry fizjo transaction (ID: 970405)
+    if (transactionId === 970405) {
+      console.log(`[JERRY FIX] Jerry fizjo transaction (ID: 970405) is ALWAYS skipped, regardless of localStorage`);
+      return true;
+    }
+    
     const monthKey = format(date, 'yyyy-MM');
     const storageKey = `skipped_transaction_${transactionId}_${monthKey}`;
     
