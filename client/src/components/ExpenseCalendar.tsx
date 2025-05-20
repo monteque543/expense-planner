@@ -607,11 +607,15 @@ export default function ExpenseCalendar({
                 onDayClick && "cursor-pointer hover:border-primary hover:shadow-sm transition-all"
               )}
               onClick={() => {
-                // COMPLETELY DISABLE THE AUTO-POPUP
                 if (onDayClick) {
-                  // Just update the selected date without triggering the popup
+                  // Create a proper copy of the date and set to noon to avoid timezone issues
                   const newDay = new Date(day);
-                  newDay.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                  newDay.setHours(12, 0, 0, 0);
+                  
+                  // Add logging to verify the date
+                  console.log(`[CALENDAR] Selected day: ${format(newDay, 'yyyy-MM-dd')} (set at noon to avoid timezone issues)`);
+                  
+                  // Pass the date to the parent component
                   onDayClick(newDay);
                 }
               }}

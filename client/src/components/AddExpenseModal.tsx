@@ -122,10 +122,20 @@ export default function AddExpenseModal({
   // Important: Update form date when defaultDate changes (e.g., when switching months)
   useEffect(() => {
     if (form && defaultDate) {
-      form.setValue('date', defaultDate.toISOString().split('T')[0]);
-      console.log(`[AddExpenseModal] Updated date to: ${defaultDate.toISOString().split('T')[0]}`);
+      const formattedDate = defaultDate.toISOString().split('T')[0];
+      form.setValue('date', formattedDate);
+      
+      // Reset form when modal opens to ensure date is applied properly
+      if (isOpen) {
+        form.reset({
+          ...form.getValues(),
+          date: formattedDate
+        });
+      }
+      
+      console.log(`[AddExpenseModal] Updated date to: ${formattedDate} (modal is ${isOpen ? 'open' : 'closed'})`);
     }
-  }, [defaultDate, form]);
+  }, [defaultDate, form, isOpen]);
   
   const { watch, setValue } = form;
   
