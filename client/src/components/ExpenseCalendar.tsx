@@ -20,6 +20,9 @@ import {
   isAfter,
   isBefore
 } from "date-fns";
+import { toast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { skipTransactionForMonth } from "../utils/skipMonthUtils";
 import { TransactionWithCategory } from "@shared/schema";
 import { 
   Tooltip,
@@ -792,20 +795,15 @@ export default function ExpenseCalendar({
                                           
                                         console.log(`Skipping transaction for this month: ${transaction.title} (${transaction.id}) for month: ${format(dateObj, 'yyyy-MM')}`);
                                         
-                                        // Use our skipRecurringTransactionForMonth function
-                                        const { skipRecurringTransactionForMonth } = require('../utils/monthlyTracker');
-                                        skipRecurringTransactionForMonth(transaction.id, dateObj);
+                                        // Skip this transaction for the current month only
+                                        skipTransactionForMonth(transaction.id, dateObj);
                                         
                                         // Show confirmation toast
-                                        const toast = require('@/hooks/use-toast').toast;
                                         toast({
                                           title: "Month Skipped",
                                           description: `"${transaction.title}" will not appear in ${format(dateObj, 'MMMM yyyy')}, but will continue in other months.`,
                                           duration: 3000,
                                         });
-                                        
-                                        // Force refresh
-                                        const queryClient = require('@/lib/queryClient').queryClient;
                                         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
                                       }}
                                     >
