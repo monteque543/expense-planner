@@ -316,6 +316,17 @@ export default function UpcomingExpenses({
     const allMonthlyExpenses = transactions.filter(transaction => {
       if (!transaction.isExpense) return false;
       
+      // Skip transactions marked as skipped for this month
+      if (transaction.isRecurring) {
+        const txDate = transaction.displayDate || new Date(transaction.date);
+        const dateObj = typeof txDate === 'string' ? new Date(txDate) : txDate;
+        
+        if (isTransactionSkippedForMonth(transaction.id, dateObj)) {
+          console.log(`[BUDGET] Excluding skipped transaction ${transaction.title} (${transaction.id}) from TOTAL calculations`);
+          return false;
+        }
+      }
+      
       const txDate = new Date(transaction.date);
       const isInCurrentMonth = (txDate >= monthStart && txDate <= monthEnd);
       return isInCurrentMonth;
@@ -327,6 +338,17 @@ export default function UpcomingExpenses({
     // Calculate today's expenses separately
     const todayExpenses = transactions.filter(transaction => {
       if (!transaction.isExpense) return false;
+      
+      // Skip transactions marked as skipped for this month
+      if (transaction.isRecurring) {
+        const txDate = transaction.displayDate || new Date(transaction.date);
+        const dateObj = typeof txDate === 'string' ? new Date(txDate) : txDate;
+        
+        if (isTransactionSkippedForMonth(transaction.id, dateObj)) {
+          console.log(`[BUDGET] Excluding skipped transaction ${transaction.title} (${transaction.id}) from TODAY calculations`);
+          return false;
+        }
+      }
       
       const txDate = new Date(transaction.date);
       return isToday(txDate);
