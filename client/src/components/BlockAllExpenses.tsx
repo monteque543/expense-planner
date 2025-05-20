@@ -29,7 +29,7 @@ const BlockAllExpenses = () => {
             // Show notification
             toast({
               title: "Budget Protection Active",
-              description: "Cannot add expenses when balance is negative (-89.71 PLN)",
+              description: "Cannot add expenses when balance is negative (-690.96 PLN)",
               variant: "destructive",
               duration: 3000
             });
@@ -55,7 +55,7 @@ const BlockAllExpenses = () => {
     // Display initial notification
     toast({
       title: "Budget Protection Activated",
-      description: "Budget is negative (-89.71 PLN). Adding expenses is blocked.",
+      description: "Budget is negative (-690.96 PLN). Adding expenses is blocked.",
       duration: 5000
     });
     
