@@ -152,11 +152,25 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     });
     
     // Process the recurring instances
-    processTransactions(calculatedRecurringInstances);
+    // First, filter out any recurring instances that have been skipped for their month
+    const filteredRecurringInstances = calculatedRecurringInstances.filter(transaction => {
+      // Skip transactions that have been marked as skipped for their specific month
+      if (transaction.isRecurring) {
+        const txDate = new Date(transaction.date);
+        if (isTransactionSkippedForMonth(transaction.id, txDate)) {
+          console.log(`[FINANCIAL SUMMARY] Excluding skipped transaction: ${transaction.title} (${transaction.id}) for month ${txDate.getMonth()+1}/${txDate.getFullYear()}`);
+          return false; // Don't include this transaction
+        }
+      }
+      return true; // Include all non-skipped transactions
+    });
+    
+    // Process only the non-skipped recurring instances
+    processTransactions(filteredRecurringInstances);
     
     // Calculate balance and savings
     const balance = totalIncome - thisMonthExpenses;
-    console.log(`FinancialSummary calculation: Income: ${totalIncome} PLN - Monthly Expenses: ${thisMonthExpenses} PLN = Balance: ${balance} PLN`);
+    console.log(`FinancialSummary calculation (FIXED): Income: ${totalIncome} PLN - Monthly Expenses: ${thisMonthExpenses} PLN = Balance: ${balance} PLN`);
     const savingsPercentage = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
     
     // Calculate weekly and next week balances
