@@ -814,15 +814,17 @@ export default function ExpenseCalendar({
                                         // Skip this transaction for the current month only
                                         skipTransactionForMonth(transaction.id, dateObj);
                                         
-                                        // Refresh data with React Query to update UI
-                                        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-                                        
-                                        // Show confirmation toast
+                                        // Force a full page reload to completely refresh all financial calculations
                                         toast({
                                           title: "Month Skipped",
-                                          description: `"${transaction.title}" (${transaction.amount} PLN) will not appear in ${format(dateObj, 'MMMM yyyy')}.`,
+                                          description: `"${transaction.title}" (${transaction.amount} PLN) will not appear in ${format(dateObj, 'MMMM yyyy')}. Page will refresh to update all financial calculations.`,
                                           duration: 3000,
                                         });
+                                        
+                                        // Give the toast time to display before refreshing
+                                        setTimeout(() => {
+                                          window.location.reload();
+                                        }, 1500);
                                       }}
                                     >
                                       <Circle className="h-3 w-3 text-amber-500" style={{ position: 'relative' }} />

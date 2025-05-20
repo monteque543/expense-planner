@@ -46,6 +46,9 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     let nextWeekIncome = 0;
     let totalIncome = 0;
     
+    console.log("===== FINANCIAL SUMMARY RECALCULATION =====");
+    console.log(`Total transactions to process: ${transactions.length}`);
+    
     // Filter out all skipped transactions for current month
     const viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     console.log(`[FINANCIAL] Filtering transactions for month: ${viewMonth.getMonth()+1}/${viewMonth.getFullYear()}`);
