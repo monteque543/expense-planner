@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 
 /**
  * Utils for skipping recurring transactions in specific months
+ * Includes functions to skip and unskip transactions for specific months
  */
 
 // Mark a recurring transaction as skipped for a specific month
@@ -33,6 +34,49 @@ export function isTransactionSkippedForMonth(transactionId: number, date: Date):
   } catch (err) {
     console.error('Error retrieving skipped status:', err);
     return false;
+  }
+}
+
+// Unskip a transaction for a specific month (restore it)
+export function unskipTransactionForMonth(transactionId: number, date: Date): void {
+  try {
+    const monthKey = format(date, 'yyyy-MM');
+    const storageKey = `skipped_transaction_${transactionId}_${monthKey}`;
+    
+    // Remove from localStorage
+    localStorage.removeItem(storageKey);
+    
+    // Update master list
+    updateSkippedMonthsList(transactionId, monthKey, false);
+    
+    console.log(`[UNSKIP] Transaction ${transactionId} unskipped for ${monthKey} - will now appear again`);
+  } catch (err) {
+    console.error('Error unskipping transaction:', err);
+  }
+}
+
+// Get all skipped transactions for the current month
+export function getSkippedTransactionsForMonth(date: Date): number[] {
+  try {
+    const monthKey = format(date, 'yyyy-MM');
+    const skippedIds: number[] = [];
+    
+    // Scan localStorage for all skipped transactions in this month
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(`skipped_transaction_`) && key.endsWith(`_${monthKey}`)) {
+        // Extract transaction ID from the key
+        const idMatch = key.match(/skipped_transaction_(\d+)_/);
+        if (idMatch && idMatch[1]) {
+          skippedIds.push(parseInt(idMatch[1], 10));
+        }
+      }
+    }
+    
+    return skippedIds;
+  } catch (err) {
+    console.error('Error getting skipped transactions for month:', err);
+    return [];
   }
 }
 
