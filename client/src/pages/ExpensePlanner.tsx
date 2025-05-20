@@ -1102,6 +1102,12 @@ export default function ExpensePlanner() {
               </button>
             </div>
             
+            {/* New Component: Manage Skipped Transactions */}
+            <ManageSkippedTransactions 
+              transactions={visibleTransactions}
+              currentDate={selectedDate}
+            />
+            
 
             <TooltipProvider>
               <Tooltip>
