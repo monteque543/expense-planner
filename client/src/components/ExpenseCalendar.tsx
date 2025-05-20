@@ -745,12 +745,86 @@ export default function ExpenseCalendar({
                                     className="h-5 w-5" 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onEditTransaction(transaction);
+                                      
+                                      // Special handling for webflow transaction
+                                      if (transaction.title === "webflow") {
+                                        console.log("[WEBFLOW EDIT] Direct handling for webflow from calendar");
+                                        
+                                        // Create enhanced transaction object for editing
+                                        const enhancedTransaction = {
+                                          ...transaction,
+                                          isRecurring: true, // Ensure it's marked recurring
+                                          // Add any other needed fields
+                                        };
+                                        
+                                        onEditTransaction(enhancedTransaction);
+                                      } else {
+                                        // Regular handling for other transactions
+                                        onEditTransaction(transaction);
+                                      }
                                     }}
                                   >
                                     <Edit className="h-3 w-3" />
                                   </Button>
                                   
+                                  {/* Skip this month button (only for recurring transactions) */}
+                                  {transaction.isRecurring && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-5 w-5 text-amber-500" 
+                                      title="Skip this month only"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        
+                                        // Get date for this occurrence
+                                        let dateToSkip = transaction.date; // Default to transaction date
+                                        
+                                        // For recurring instances, use displayDate if available
+                                        if ('displayDate' in transaction && transaction.displayDate) {
+                                          dateToSkip = transaction.displayDate;
+                                        }
+                                        
+                                        // Ensure we have a proper Date object
+                                        const dateObj = typeof dateToSkip === 'string' 
+                                          ? new Date(dateToSkip) 
+                                          : dateToSkip;
+                                          
+                                        console.log(`Skipping transaction for this month: ${transaction.title} (${transaction.id}) for month: ${format(dateObj, 'yyyy-MM')}`);
+                                        
+                                        // Use our skipRecurringTransactionForMonth function
+                                        const { skipRecurringTransactionForMonth } = require('../utils/monthlyTracker');
+                                        skipRecurringTransactionForMonth(transaction.id, dateObj);
+                                        
+                                        // Show confirmation toast
+                                        const toast = require('@/hooks/use-toast').toast;
+                                        toast({
+                                          title: "Month Skipped",
+                                          description: `"${transaction.title}" will not appear in ${format(dateObj, 'MMMM yyyy')}, but will continue in other months.`,
+                                          duration: 3000,
+                                        });
+                                        
+                                        // Force refresh
+                                        const queryClient = require('@/lib/queryClient').queryClient;
+                                        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+                                      }}
+                                    >
+                                      <Circle className="h-3 w-3 text-amber-500" style={{ position: 'relative' }} />
+                                      {/* Simple X overlay to create a "banned" icon effect */}
+                                      <div style={{ 
+                                        position: 'absolute', 
+                                        width: '12px', 
+                                        height: '1px', 
+                                        backgroundColor: 'currentColor',
+                                        transform: 'rotate(45deg)',
+                                        top: '50%',
+                                        left: '50%',
+                                        marginLeft: '-6px'
+                                      }}></div>
+                                    </Button>
+                                  )}
+                                  
+                                  {/* Regular delete button */}
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
