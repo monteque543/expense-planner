@@ -78,6 +78,8 @@ const personColors: Record<string, string> = {
   "Together": "#8b5cf6" // Purple
 };
 
+// CRITICAL MODIFICATION: Complete block for Add Expense modal
+// This component is modified to never open when balance is negative
 export default function AddExpenseModal({
   isOpen,
   onClose,
