@@ -14,6 +14,7 @@ import RecurringExpensesSummary from "@/components/RecurringExpensesSummary";
 import MonthlySavingsSummary from "@/components/MonthlySavingsSummary";
 import SavingsSummary from "@/components/SavingsSummary";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
+import JuneBirthdayFix from "@/components/JuneBirthdayFix";
 import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
 import ExpensesPieChart from "@/components/ExpensesPieChart";
 import ExpensesByCategoryChart from "@/components/ExpensesByCategoryChart";
