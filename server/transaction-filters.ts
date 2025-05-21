@@ -52,13 +52,13 @@ export function filterProblematicTransactions(transactions: Transaction[]): Tran
       return false;
     }
     
-    // 4. Permanently remove birthday transactions for Beni and Fabi - direct ID filtering
-    if (transaction.id === 36 || (transaction.title === "Beni Birthdays" && transaction.isRecurring)) {
+    // 4. Permanently remove birthday transactions for Beni and Fabi - much more precise targeting
+    if ((transaction.id === 36 || transaction.id === 37) && transaction.title.includes("Beni")) {
       console.log(`[PERMANENT REMOVAL] Removing Beni birthday transaction (ID: ${transaction.id})`);
       return false;
     }
     
-    if (transaction.id === 38 || (transaction.title === "Fabi Birthdays" && transaction.isRecurring)) {
+    if ((transaction.id === 38 || transaction.id === 39) && transaction.title.includes("Fabi")) {
       console.log(`[PERMANENT REMOVAL] Removing Fabi birthday transaction (ID: ${transaction.id})`);
       return false;
     }
