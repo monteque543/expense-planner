@@ -867,9 +867,14 @@ export default function ExpenseCalendar({
                                       const dateObj = typeof dateToDelete === 'string' 
                                         ? new Date(dateToDelete) 
                                         : dateToDelete;
-                                        
-                                      console.log(`Deleting transaction: ${transaction.title} (${transaction.id}) for date: ${format(dateObj, 'yyyy-MM-dd')}`);
-                                      onDeleteTransaction(transaction.id, dateObj);
+                                      
+                                      // Add confirmation dialog before proceeding with deletion
+                                      if (confirm(`Are you sure you want to delete "${transaction.title}" (${formatCurrency(transaction.amount || 0, 'PLN')})?\n\nThis action cannot be undone.`)) {
+                                        console.log(`Deleting transaction: ${transaction.title} (${transaction.id}) for date: ${format(dateObj, 'yyyy-MM-dd')}`);
+                                        onDeleteTransaction(transaction.id, dateObj);
+                                      } else {
+                                        console.log(`Deletion cancelled for transaction: ${transaction.title} (${transaction.id})`);
+                                      }
                                     }}
                                   >
                                     <Trash className="h-3 w-3" />
