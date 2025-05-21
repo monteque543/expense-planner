@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuthNew";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import BlockAllExpenses from "@/components/BlockAllExpenses";
 import JuneBirthdayFix from "@/components/JuneBirthdayFix";
+import EmergencyTransactionRemover from "@/components/EmergencyTransactionRemover";
 
 function Router() {
   return (
@@ -30,8 +31,8 @@ function App() {
         <BlockAllExpenses />
         
         {/* Special tool for fixing June birthdays */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <JuneBirthdayFix />
+        <div className="fixed bottom-4 right-4 z-50 space-y-2 w-64">
+          <EmergencyTransactionRemover />
         </div>
       </AuthProvider>
     </QueryClientProvider>
