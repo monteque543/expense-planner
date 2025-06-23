@@ -272,15 +272,26 @@ export default function UpcomingExpenses({
     console.log(`- Current available budget: ${currentAvailableBudget.toFixed(2)} PLN`);
     console.log(`- What will remain after paying upcoming: ${afterPayingUpcoming.toFixed(2)} PLN`);
     
+    // Apply correction for June 2025 if available
+    let displayIncome = income;
+    let displayBalance = currentAvailableBudget;
+    
+    if (correctedBudgetData) {
+      displayIncome = correctedBudgetData.monthlyIncome;
+      displayBalance = correctedBudgetData.balance;
+      console.log(`Using corrected balance for June 2025: ${displayBalance.toFixed(2)} PLN`);
+    }
+    
     // Save all the values we need for display
     setSpentExpensesAmount(spentExpensesTotal);
     setTotalUpcoming(total);
-    setMonthlyIncome(income);
+    setMonthlyIncome(displayIncome);
     setTodayExpensesAmount(todayExpenses);
     setAllMonthlyExpensesAmount(allMonthlyExpenses);
     
     // For the Upcoming Expenses component, we want to show what will remain AFTER paying upcoming expenses
-    setRemainingBudget(afterPayingUpcoming);
+    const finalRemainingBudget = correctedBudgetData ? displayBalance : afterPayingUpcoming;
+    setRemainingBudget(finalRemainingBudget);
     
     // Pass the current available budget (BEFORE paying upcoming expenses) to the parent component for budget protection
     if (onBudgetUpdate) {

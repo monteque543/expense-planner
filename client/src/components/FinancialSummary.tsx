@@ -338,13 +338,13 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     return {
       thisWeekExpenses,
       nextWeekExpenses,
-      thisMonthExpenses,
-      totalIncome,
+      thisMonthExpenses: correctedBudgetData ? correctedBudgetData.monthlyExpenses : thisMonthExpenses,
+      totalIncome: correctedBudgetData ? correctedBudgetData.monthlyIncome : totalIncome,
       thisWeekIncome,
       nextWeekIncome,
       thisWeekBalance,
       nextWeekBalance,
-      balance,
+      balance: correctedBudgetData ? correctedBudgetData.balance : balance,
       savingsPercentage: Math.max(0, Math.min(100, savingsPercentage)), // Ensure between 0 and 100
     };
   }, [transactions, currentDate]);
