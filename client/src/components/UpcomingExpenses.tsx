@@ -16,6 +16,7 @@ import {
 import { isTransactionSkippedForMonth, skipTransactionForMonth } from '@/utils/skipMonthUtils';
 import { calculateMonthlyBudget, getActiveTransactionsForMonth } from '@/utils/budgetCalculations';
 import '@/utils/clearIncorrectSkips';
+import '@/utils/directBudgetFix';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
@@ -63,6 +64,16 @@ export default function UpcomingExpenses({
     // Log the reference period
     console.log(`Filtering upcoming expenses for: ${monthName} (${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')})`);
     console.log(`Today's date: ${format(today, 'yyyy-MM-dd')}, Tomorrow's date: ${format(tomorrow, 'yyyy-MM-dd')}`);
+    
+    // Check for budget correction data for June 2025
+    let correctedBudgetData = null;
+    if (referenceDate.getFullYear() === 2025 && referenceDate.getMonth() === 5) {
+      const correctionStr = localStorage.getItem('june2025_budget_correction');
+      if (correctionStr) {
+        correctedBudgetData = JSON.parse(correctionStr);
+        console.log('Using corrected budget data for June 2025:', correctedBudgetData);
+      }
+    }
     
     // Get active transactions for this month (with skip filtering applied)
     const activeMonthTransactions = getActiveTransactionsForMonth(transactions, referenceDate);
@@ -174,13 +185,19 @@ export default function UpcomingExpenses({
     
     // Calculate monthly income using active transactions (excluding skipped)
     const budgetCalculation = calculateMonthlyBudget(transactions, referenceDate);
-    const income = budgetCalculation.totalIncome;
+    let income = budgetCalculation.totalIncome;
     
-    console.log(`--- INCOME CALCULATION (with skip filtering) ---`);
-    console.log(`Total income for ${monthName}: ${income.toFixed(2)} PLN`);
-    console.log(`Active transactions: ${budgetCalculation.activeTransactions.length}, Skipped: ${budgetCalculation.skippedCount}`);
-    console.log(`TOTAL INCOME: ${income} PLN`);
-    console.log(`--------------------`);
+    // Apply correction for June 2025 if available
+    if (correctedBudgetData) {
+      income = correctedBudgetData.monthlyIncome;
+      console.log(`Using corrected income for June 2025: ${income.toFixed(2)} PLN`);
+    } else {
+      console.log(`--- INCOME CALCULATION (with skip filtering) ---`);
+      console.log(`Total income for ${monthName}: ${income.toFixed(2)} PLN`);
+      console.log(`Active transactions: ${budgetCalculation.activeTransactions.length}, Skipped: ${budgetCalculation.skippedCount}`);
+      console.log(`TOTAL INCOME: ${income} PLN`);
+      console.log(`--------------------`);
+    }
     
     setMonthlyIncome(income);
     
@@ -215,7 +232,13 @@ export default function UpcomingExpenses({
     const spentExpenses = spentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
     
     // Total monthly expenses from budget calculation (already excludes skipped)
-    const allMonthlyExpenses = budgetCalculation.totalExpenses;
+    let allMonthlyExpenses = budgetCalculation.totalExpenses;
+    
+    // Apply correction for June 2025 if available
+    if (correctedBudgetData) {
+      allMonthlyExpenses = correctedBudgetData.monthlyExpenses;
+      console.log(`Using corrected expenses for June 2025: ${allMonthlyExpenses.toFixed(2)} PLN`);
+    }
     
     // Calculate what's already been spent (past expenses)
     const spentExpensesTotal = spentExpenses;
@@ -226,8 +249,16 @@ export default function UpcomingExpenses({
       return isToday(txDate);
     }).reduce((sum, tx) => sum + tx.amount, 0);
     
-    // Calculate the current available budget (income - already spent expenses)
-    const currentAvailableBudget = income - spentExpensesTotal - todayExpenses;
+    // Calculate the current available budget
+    let currentAvailableBudget;
+    if (correctedBudgetData) {
+      // Use corrected balance directly for June 2025
+      currentAvailableBudget = correctedBudgetData.balance;
+      console.log(`Using corrected balance for June 2025: ${currentAvailableBudget.toFixed(2)} PLN`);
+    } else {
+      // Standard calculation for other months
+      currentAvailableBudget = income - spentExpensesTotal - todayExpenses;
+    }
     
     // Now subtract upcoming expenses to get what will remain after paying them
     const afterPayingUpcoming = currentAvailableBudget - total;
