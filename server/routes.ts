@@ -302,6 +302,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Transaction not found" });
       }
       
+      // Check if this was a recurring transaction update
+      if (updatedTransaction.isRecurring) {
+        console.log(`[RECURRING UPDATE] Updated recurring transaction: ${updatedTransaction.title} (ID: ${id})`);
+        console.log(`[RECURRING UPDATE] This will affect current month and all future occurrences`);
+        
+        // Log the key changes that will affect budget calculations
+        if (validFields.amount !== undefined) {
+          console.log(`[BUDGET IMPACT] Amount changed to: ${updatedTransaction.amount} PLN`);
+        }
+        if (validFields.recurringInterval !== undefined) {
+          console.log(`[BUDGET IMPACT] Recurring interval changed to: ${updatedTransaction.recurringInterval}`);
+        }
+        if (validFields.isRecurring === false) {
+          console.log(`[BUDGET IMPACT] Transaction is no longer recurring - future occurrences will not appear`);
+        }
+      }
+      
       res.json(updatedTransaction);
     } catch (error) {
       if (error instanceof ZodError) {

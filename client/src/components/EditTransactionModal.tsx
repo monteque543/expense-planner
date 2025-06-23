@@ -418,6 +418,25 @@ export default function EditTransactionModal({
     // For regular transactions or base recurring transactions, update normally
     onUpdateTransaction(transaction.id, updateData);
     
+    // If this is a recurring transaction update, force refresh of all budget components
+    if (transaction.isRecurring) {
+      console.log(`[RECURRING UPDATE] Transaction "${transaction.title}" is recurring - invalidating all budget caches`);
+      
+      // Invalidate transaction cache to refresh all budget calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // Force refresh of any dependent queries
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/transactions'] });
+      }, 100);
+      
+      toast({
+        title: "Recurring Transaction Updated",
+        description: `Changes to "${transaction.title}" will affect current and future months`,
+        duration: 4000,
+      });
+    }
+    
     // Reset currency after submission
     setSelectedCurrency('PLN');
     setConvertedAmount(null);

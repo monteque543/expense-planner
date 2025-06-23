@@ -28,11 +28,21 @@ export function skipTransactionForMonth(transactionId: number, date: Date): void
     const isSkipped = localStorage.getItem(storageKey) === 'true';
     console.log(`[VERIFICATION] Transaction ${transactionId} is now skipped: ${isSkipped}`);
     
-    // This is a full reload approach - sometimes React's state management
-    // gets confused with complex financial calculations
-    console.log('[RELOAD] Page will reload to apply changes');
+    // Invalidate React Query cache to force budget recalculations
+    console.log('[SKIP] Invalidating transaction cache to update budget calculations');
     
-    // Delay reload to ensure storage is committed
+    // Import queryClient dynamically to avoid circular dependencies
+    import('@/lib/queryClient').then(({ queryClient }) => {
+      // Invalidate all transaction-related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // Force immediate refetch to update budget components
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/transactions'] });
+      }, 100);
+    });
+    
+    // Delay reload to ensure all budget components update
     setTimeout(() => {
       window.location.reload();
     }, 1000);
@@ -75,9 +85,24 @@ export function unskipTransactionForMonth(transactionId: number, date: Date): vo
     
     console.log(`[UNSKIP] Transaction ${transactionId} unskipped for ${monthKey} - will now appear again`);
     
-    // This is a full reload approach - sometimes React's state management
-    // gets confused with complex financial calculations
-    window.location.reload();
+    // Invalidate React Query cache to force budget recalculations
+    console.log('[UNSKIP] Invalidating transaction cache to update budget calculations');
+    
+    // Import queryClient dynamically to avoid circular dependencies
+    import('@/lib/queryClient').then(({ queryClient }) => {
+      // Invalidate all transaction-related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // Force immediate refetch to update budget components
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/transactions'] });
+      }, 100);
+    });
+    
+    // Delay reload to ensure all budget components update
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   } catch (err) {
     console.error('Error unskipping transaction:', err);
   }
