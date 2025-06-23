@@ -13,6 +13,7 @@ A modern expense management application that transforms financial tracking into 
 - ✓ Applied missing transaction skips (363.14 PLN total) to resolve budget balance discrepancy
 - ✓ Enhanced budget calculation to include recurring transaction instances for accurate monthly totals
 - ✓ Resolved infinite loop issue in skip functionality by removing auto-refresh mechanism
+- ✓ Corrected skip detection to only apply user's actual 47 PLN skip, not incorrect 322.30 PLN
 
 ## Tech Stack
 - React.js frontend with TypeScript
