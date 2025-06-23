@@ -63,8 +63,25 @@ export function isTransactionSkippedForMonth(transactionId: number, date: Date):
     
     const monthKey = format(date, 'yyyy-MM');
     const storageKey = `skipped_transaction_${transactionId}_${monthKey}`;
+    const storedValue = localStorage.getItem(storageKey);
+    const isSkipped = storedValue === 'true';
     
-    return localStorage.getItem(storageKey) === 'true';
+    console.log(`[SKIP CHECK] Transaction ID: ${transactionId}, Month: ${monthKey}, Storage Key: ${storageKey}, Stored Value: "${storedValue}", Is Skipped: ${isSkipped}`);
+    
+    // Also log all localStorage keys that start with "skipped_transaction" for debugging
+    if (typeof localStorage !== 'undefined') {
+      const allSkippedKeys = Object.keys(localStorage).filter(key => key.startsWith('skipped_transaction'));
+      if (allSkippedKeys.length > 0) {
+        console.log(`[SKIP DEBUG] All skipped transaction keys in localStorage:`, allSkippedKeys);
+        allSkippedKeys.forEach(key => {
+          console.log(`[SKIP DEBUG] ${key} = ${localStorage.getItem(key)}`);
+        });
+      } else {
+        console.log(`[SKIP DEBUG] No skipped transactions found in localStorage`);
+      }
+    }
+    
+    return isSkipped;
   } catch (err) {
     console.error('Error retrieving skipped status:', err);
     return false;

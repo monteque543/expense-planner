@@ -1,6 +1,6 @@
 import { TransactionWithCategory } from '@shared/schema';
 import { isTransactionSkippedForMonth } from './skipMonthUtils';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, addYears } from 'date-fns';
 
 /**
  * Centralized budget calculation utilities that properly handle skipped transactions
@@ -27,26 +27,87 @@ export function calculateMonthlyBudget(
   
   console.log(`[BUDGET CALC] Calculating budget for ${format(targetDate, 'MMMM yyyy')}`);
   
-  // Filter transactions to only include those in the target month
-  const monthTransactions = transactions.filter(transaction => {
+  // Include both regular transactions in this month AND recurring transaction instances
+  const monthTransactions: TransactionWithCategory[] = [];
+  
+  // First, add regular transactions that fall in this month
+  transactions.forEach(transaction => {
     const txDate = new Date(transaction.date);
-    return txDate >= monthStart && txDate <= monthEnd;
+    if (txDate >= monthStart && txDate <= monthEnd) {
+      monthTransactions.push(transaction);
+    }
   });
   
-  console.log(`[BUDGET CALC] Found ${monthTransactions.length} transactions in ${monthKey}`);
+  // Then, add recurring transaction instances for this month
+  transactions.forEach(transaction => {
+    if (!transaction.isRecurring) return;
+    
+    const originalDate = new Date(transaction.date);
+    const interval = transaction.recurringInterval || 'monthly';
+    
+    // Skip if the original date is already in this month (already added above)
+    if (originalDate >= monthStart && originalDate <= monthEnd) {
+      return;
+    }
+    
+    // Calculate if this recurring transaction has an occurrence in this month
+    let nextDate = new Date(originalDate);
+    
+    // Find the first occurrence in the current month
+    while (nextDate < monthStart) {
+      switch (interval) {
+        case 'daily': 
+          nextDate = new Date(nextDate.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case 'weekly': 
+          nextDate = new Date(nextDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'monthly': 
+          nextDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, nextDate.getDate());
+          break;
+        case 'yearly': 
+          nextDate = new Date(nextDate.getFullYear() + 1, nextDate.getMonth(), nextDate.getDate());
+          break;
+        default: 
+          nextDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, nextDate.getDate());
+      }
+    }
+    
+    // If it falls in this month, add it as a recurring instance
+    if (nextDate <= monthEnd) {
+      const recurringInstance: TransactionWithCategory = {
+        ...transaction,
+        displayDate: nextDate,
+        displayDateStr: format(nextDate, 'yyyy-MM-dd'),
+        isRecurringInstance: true
+      };
+      monthTransactions.push(recurringInstance);
+      console.log(`[BUDGET CALC] Added recurring instance: ${transaction.title} for ${format(nextDate, 'yyyy-MM-dd')} - ${transaction.amount} PLN`);
+    }
+  });
+  
+  console.log(`[BUDGET CALC] Found ${monthTransactions.length} transactions (including recurring instances) in ${monthKey}`);
   
   // Apply skip filtering
   const activeTransactions: TransactionWithCategory[] = [];
   let skippedCount = 0;
   
   monthTransactions.forEach(transaction => {
+    // For recurring instances, use the display date for skip checking
+    const checkDate = transaction.isRecurringInstance && transaction.displayDate 
+      ? transaction.displayDate 
+      : targetDate;
+    
     // Check if this transaction is skipped for this month
-    const isSkipped = isTransactionSkippedForMonth(transaction.id, targetDate);
+    const isSkipped = isTransactionSkippedForMonth(transaction.id, checkDate);
+    
+    console.log(`[BUDGET CALC] Transaction: ${transaction.title} (ID: ${transaction.id}), Amount: ${transaction.amount} PLN, IsExpense: ${transaction.isExpense}, IsRecurring: ${transaction.isRecurringInstance}, CheckDate: ${format(checkDate, 'yyyy-MM-dd')}, IsSkipped: ${isSkipped}`);
     
     if (isSkipped) {
-      console.log(`[BUDGET CALC] Excluding skipped transaction: ${transaction.title} (ID: ${transaction.id}) for ${monthKey}`);
+      console.log(`[BUDGET CALC] ✓ Excluding skipped transaction: ${transaction.title} (ID: ${transaction.id}) for ${monthKey} - Amount: ${transaction.amount} PLN`);
       skippedCount++;
     } else {
+      console.log(`[BUDGET CALC] ✓ Including active transaction: ${transaction.title} (ID: ${transaction.id}) - Amount: ${transaction.amount} PLN`);
       activeTransactions.push(transaction);
     }
   });

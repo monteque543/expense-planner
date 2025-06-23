@@ -13,8 +13,9 @@ import {
   addMonths,
   addYears
 } from 'date-fns';
-import { isTransactionSkippedForMonth } from '@/utils/skipMonthUtils';
+import { isTransactionSkippedForMonth, skipTransactionForMonth } from '@/utils/skipMonthUtils';
 import { calculateMonthlyBudget, getActiveTransactionsForMonth } from '@/utils/budgetCalculations';
+import '@/utils/applyMissingSkips';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
