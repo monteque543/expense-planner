@@ -43,17 +43,12 @@ export function applyMissingSkips() {
   console.log(`Total amount skipped: ${totalSkipped.toFixed(2)} PLN`);
   console.log('Expected impact: Budget should increase by this amount');
   
-  // Force a page refresh to ensure all components recalculate
-  setTimeout(() => {
-    console.log('Refreshing to apply budget changes...');
-    window.location.reload();
-  }, 1000);
+  // No need to refresh - cache invalidation handles the updates
+  console.log('Budget changes applied successfully - no refresh needed');
   
   return { totalSkipped, skippedTransactions: allSkips };
 }
 
-// Auto-apply the skips when this module loads
-if (typeof window !== 'undefined') {
-  // Apply after a short delay to ensure all components are loaded
-  setTimeout(applyMissingSkips, 1000);
-}
+// Auto-apply disabled - skips have been successfully applied
+// To re-run manually, call applyMissingSkips() from the console
+console.log('Skip fix utility loaded - auto-apply disabled to prevent loops');
