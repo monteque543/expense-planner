@@ -16,6 +16,8 @@ A modern expense management application that transforms financial tracking into 
 - ✓ Corrected skip detection to only apply user's actual 47 PLN skip, not incorrect 322.30 PLN
 - ✓ Fixed June 2025 balance calculation to show accurate -364.30 PLN instead of incorrect positive balance
 - ✓ Implemented budget correction system for June 2025 with proper income/expense totals
+- ✓ Updated skip functionality to properly reflect 30 PLN Fabi Phone Play skip in balance calculation
+- ✓ Balance now correctly shows -287.30 PLN after accounting for both 47 PLN and 30 PLN skipped transactions
 
 ## Tech Stack
 - React.js frontend with TypeScript
