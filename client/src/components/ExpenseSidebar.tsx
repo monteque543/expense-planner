@@ -186,7 +186,9 @@ export default function ExpenseSidebar({
             All
           </button>
           
-          {categories.map((category) => (
+          {categories
+            .filter(category => categoryCounts[category.name]?.count > 0)
+            .map((category) => (
             <button 
               key={category.id}
               className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap flex items-center`}
@@ -198,11 +200,9 @@ export default function ExpenseSidebar({
             >
               {category.emoji && <span className="mr-1">{category.emoji}</span>}
               {category.name}
-              {categoryCounts[category.name] && (
-                <span className="ml-1 bg-background/50 rounded-full px-1.5 py-0.5 text-[10px] font-normal">
-                  {categoryCounts[category.name].count}
-                </span>
-              )}
+              <span className="ml-1 bg-background/50 rounded-full px-1.5 py-0.5 text-[10px] font-normal">
+                {categoryCounts[category.name].count}
+              </span>
             </button>
           ))}
         </div>
@@ -217,7 +217,9 @@ export default function ExpenseSidebar({
             All
           </button>
           
-          {persons.map((person) => (
+          {persons
+            .filter(person => personCounts[person] > 0)
+            .map((person) => (
             <button 
               key={person}
               className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap flex items-center`}
@@ -228,11 +230,9 @@ export default function ExpenseSidebar({
               onClick={() => onPersonFilterChange(person)}
             >
               {person}
-              {personCounts[person] > 0 && (
-                <span className="ml-1 bg-background/50 rounded-full px-1.5 py-0.5 text-[10px] font-normal">
-                  {personCounts[person]}
-                </span>
-              )}
+              <span className="ml-1 bg-background/50 rounded-full px-1.5 py-0.5 text-[10px] font-normal">
+                {personCounts[person]}
+              </span>
             </button>
           ))}
         </div>
