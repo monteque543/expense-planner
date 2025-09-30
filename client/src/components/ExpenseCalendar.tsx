@@ -854,26 +854,54 @@ export default function ExpenseCalendar({
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       
-                                      // Always pass a date when deleting, which ensures recurring transactions
-                                      // only get deleted for the specific month
-                                      let dateToDelete = transaction.date; // Default to transaction date
-                                      
-                                      // For recurring instances, use displayDate if available
-                                      if (transaction.isRecurring && 'displayDate' in transaction && transaction.displayDate) {
-                                        dateToDelete = transaction.displayDate;
-                                      }
-                                      
-                                      // Ensure we have a proper Date object
-                                      const dateObj = typeof dateToDelete === 'string' 
-                                        ? new Date(dateToDelete) 
-                                        : dateToDelete;
-                                      
-                                      // Add confirmation dialog before proceeding with deletion
-                                      if (confirm(`Are you sure you want to delete "${transaction.title}" (${formatCurrency(transaction.amount || 0, 'PLN')})?\n\nThis action cannot be undone.`)) {
-                                        console.log(`Deleting transaction: ${transaction.title} (${transaction.id}) for date: ${format(dateObj, 'yyyy-MM-dd')}`);
-                                        onDeleteTransaction(transaction.id, dateObj);
+                                      // For recurring transactions, ask if they want to delete permanently or just this month
+                                      if (transaction.isRecurring) {
+                                        // Get the date for this occurrence
+                                        let dateToDelete = transaction.date;
+                                        if ('displayDate' in transaction && transaction.displayDate) {
+                                          dateToDelete = transaction.displayDate;
+                                        }
+                                        const dateObj = typeof dateToDelete === 'string' 
+                                          ? new Date(dateToDelete) 
+                                          : dateToDelete;
+                                        
+                                        const monthStr = format(dateObj, 'MMMM yyyy');
+                                        
+                                        // Ask user how they want to delete
+                                        const choice = confirm(
+                                          `"${transaction.title}" is a recurring transaction.\n\n` +
+                                          `Click OK to delete PERMANENTLY (all future occurrences)\n` +
+                                          `Click Cancel to skip only ${monthStr}`
+                                        );
+                                        
+                                        if (choice) {
+                                          // User chose to delete permanently
+                                          const finalConfirm = confirm(
+                                            `Are you sure you want to PERMANENTLY delete "${transaction.title}"?\n\n` +
+                                            `This will remove it from all current and future months.`
+                                          );
+                                          
+                                          if (finalConfirm) {
+                                            console.log(`Permanently deleting recurring transaction: ${transaction.title} (${transaction.id})`);
+                                            // Call without date parameter to permanently delete
+                                            onDeleteTransaction(transaction.id);
+                                          }
+                                        } else {
+                                          // User chose to skip just this month
+                                          console.log(`Skipping transaction for ${monthStr}: ${transaction.title} (${transaction.id})`);
+                                          onDeleteTransaction(transaction.id, dateObj);
+                                        }
                                       } else {
-                                        console.log(`Deletion cancelled for transaction: ${transaction.title} (${transaction.id})`);
+                                        // Non-recurring transaction - normal delete
+                                        let dateToDelete = transaction.date;
+                                        const dateObj = typeof dateToDelete === 'string' 
+                                          ? new Date(dateToDelete) 
+                                          : dateToDelete;
+                                        
+                                        if (confirm(`Are you sure you want to delete "${transaction.title}" (${formatCurrency(transaction.amount || 0, 'PLN')})?\n\nThis action cannot be undone.`)) {
+                                          console.log(`Deleting transaction: ${transaction.title} (${transaction.id})`);
+                                          onDeleteTransaction(transaction.id, dateObj);
+                                        }
                                       }
                                     }}
                                   >
