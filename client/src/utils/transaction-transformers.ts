@@ -6,6 +6,7 @@ import {
   getMonthlyPaidStatus, 
   saveMonthlyPaidStatus 
 } from "./strict-monthly-paid-status";
+import { isTransactionDeleted } from "./user-preferences";
 
 // Define local copy of the problematic transaction check
 // for improved reliability and error prevention
@@ -380,6 +381,12 @@ export function filterTransactions(transactions: TransactionWithCategory[]): Tra
   });
   
   return transactions.filter(transaction => {
+    // FIRST: Check if this transaction has been permanently deleted by the user
+    if (isTransactionDeleted(transaction.id)) {
+      console.log(`[DELETED FILTER] Removing permanently deleted transaction: "${transaction.title}" (ID: ${transaction.id})`);
+      return false;
+    }
+    
     // Ultra aggressive filtering with multiple approaches
     
     // Approach 1: Exact title match with specific titles
