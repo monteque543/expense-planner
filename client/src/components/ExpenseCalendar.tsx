@@ -668,7 +668,11 @@ export default function ExpenseCalendar({
                                 "transition-all duration-150 overflow-hidden text-ellipsis",
                                 // Use more noticeable styling for paid transactions
                                 isPaid && "border-green-500 border bg-green-100/80 dark:bg-green-900/40",
-                                !isPaid && isInPast && "bg-red-100 dark:bg-red-900/30",
+                                !isPaid && isInPast && (
+                                  transaction.isExpense 
+                                    ? "bg-red-100 dark:bg-red-900/30" 
+                                    : "bg-green-100 dark:bg-green-900/30"
+                                ),
                                 !isPaid && !isInPast && (
                                   transaction.isExpense 
                                     ? "bg-destructive/10 hover:bg-destructive/20" 
