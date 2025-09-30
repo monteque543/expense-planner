@@ -40,13 +40,13 @@ export function createHardcodedIncomeTransactions(
       isExpense: false
     };
     
-    // Add Omega for early 2026 (maintaining the updated amount from July 2025)
+    // Add Omega for early 2026
     const omegaTransaction: TransactionWithCategory = {
       id: 990000 + ((month + 12) * 100) + 1, // Unique ID that continues from Dec 2025
       title: "Omega",
-      amount: 2600, // Updated to match July 2025 change
+      amount: 3195,
       date: new Date(2026, month, 10, 12, 0, 0),
-      notes: `Monthly income for ${monthName} 2026 (hardcoded) - Updated amount`,
+      notes: `Monthly income for ${monthName} 2026 (hardcoded)`,
       isExpense: false,
       isPaid: false,
       personLabel: "Michał",
@@ -133,15 +133,12 @@ export function createHardcodedIncomeTransactions(
     
     // Add Omega if needed with a unique ID for each month
     if (!hasOmega) {
-      // Special handling for July 2025 - update Omega to 2600 PLN
-      const omegaAmount = (month === 6) ? 2600 : 1019.9; // July is month 6 (0-indexed)
-      
       const omegaTransaction: TransactionWithCategory = {
         id: 990000 + (month * 100) + 1, // Unique ID like 990401 for May
         title: "Omega",
-        amount: omegaAmount,
+        amount: 3195,
         date: new Date(2025, month, 10, 12, 0, 0),
-        notes: `Monthly income for ${monthName} 2025 (hardcoded)${month === 6 ? ' - Updated to 2600 PLN' : ''}`,
+        notes: `Monthly income for ${monthName} 2025 (hardcoded)`,
         isExpense: false,
         isPaid: false,
         personLabel: "Michał",
