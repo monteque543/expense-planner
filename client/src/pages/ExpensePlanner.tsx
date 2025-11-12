@@ -38,23 +38,24 @@ import {
   applyTransactionPreferences,
   filterTransactions
 } from "@/utils/transaction-transformers";
-import { 
+import {
   markPaid,
   isPaid,
   markDeleted,
   isDeleted,
   applyMonthlyStatuses
 } from "../utils/monthlyStatus";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
 } from "@/components/ui/tooltip";
 import { Keyboard } from "lucide-react";
 import { getUniqueTitles } from "@/utils/titleUtils";
 import IdleSessionHandler from "@/components/IdleSessionHandler";
 import SecurityOverlay from "@/components/SecurityOverlay";
+import { expandRecurringTransactions } from "@/utils/expand-recurring";
 
 
 
@@ -157,14 +158,20 @@ export default function ExpensePlanner() {
   // This includes filtering out problematic transactions and applying user preferences
   const transactions = useMemo(() => {
     console.log(`[TRANSFORM] Processing ${rawTransactions.length} transactions from server`);
-    
+
     // First filter out problematic transactions (RP training app in May, etc.)
     const filteredResults = filterTransactions(rawTransactions);
-    
+
+    // Expand recurring transactions to show instances
+    const today = new Date();
+    const startRange = new Date(today.getFullYear() - 1, 0, 1);
+    const endRange = new Date(today.getFullYear() + 2, 11, 31);
+    const expandedResults = expandRecurringTransactions(filteredResults, startRange, endRange);
+
     // Then apply user preferences for transaction amounts (like Replit preferred amount)
-    const transformedResults = applyTransactionPreferences(filteredResults);
-    
-    console.log(`[TRANSFORM] Returned ${transformedResults.length} transactions after filtering/transforming`);
+    const transformedResults = applyTransactionPreferences(expandedResults);
+
+    console.log(`[TRANSFORM] Returned ${transformedResults.length} transactions after filtering/transforming (expanded from ${rawTransactions.length})`);
     return transformedResults;
   }, [rawTransactions]);
 
