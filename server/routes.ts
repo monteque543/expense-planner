@@ -30,7 +30,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   const router = express.Router();
-  
+
+  // Test endpoint to directly query Supabase
+  router.get("/test-supabase", async (_req: Request, res: Response) => {
+    try {
+      const { supabase } = await import("./supabase");
+      console.log('[TEST] Querying Supabase directly...');
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*');
+
+      console.log('[TEST] Supabase response:', { dataCount: data?.length, error });
+
+      if (error) {
+        return res.status(500).json({ error: error.message, details: error });
+      }
+
+      res.json({ count: data?.length || 0, data });
+    } catch (error) {
+      console.error('[TEST] Error:', error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Transactions endpoints
   router.get("/recurring-transactions", requireAuth, async (_req: Request, res: Response) => {
     try {
