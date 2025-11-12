@@ -1251,9 +1251,9 @@ export default function ExpensePlanner() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="flex-1 overflow-auto flex flex-col w-full">
         {/* Calendar and Sidebar */}
-        <main className="flex-1 overflow-auto flex flex-col md:flex-row">
+        <main className="flex-1 overflow-auto flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4">
           {/* Calendar View */}
           <ExpenseCalendar 
             transactions={filteredTransactions}
