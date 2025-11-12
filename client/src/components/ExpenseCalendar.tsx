@@ -185,28 +185,36 @@ export default function ExpenseCalendar({
     
     // First add all normal (non-recurring) transactions to grouped object
     // For recurring ones, we only add them here if they have a date within our view period
+    console.log(`[CALENDAR] Processing ${transactions.length} transactions for calendar display`);
     transactions.forEach(transaction => {
       // Handle transaction date - if it's a string, parse it to Date
       const transactionDate = typeof transaction.date === 'string'
         ? parseISO(transaction.date)
         : transaction.date;
-      
+
       const isInView = transactionDate >= viewStart && transactionDate <= viewEnd;
-      
+
+      console.log(`[CALENDAR] Transaction "${transaction.title}": date=${format(transactionDate, 'yyyy-MM-dd')}, isRecurring=${transaction.isRecurring}, isInView=${isInView}`);
+
       // For normal (non-recurring) transactions, we add them directly if in view
       // For recurring transactions, we'll handle them in a dedicated section below
       if (isInView && !transaction.isRecurring) {
         // Convert date to YYYY-MM-DD format for consistent grouping
         const dateStr = format(transactionDate, 'yyyy-MM-dd');
-        
+
         // Initialize empty array for this date if not already present
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         grouped[dateStr].push(transaction);
+        console.log(`[CALENDAR] Added "${transaction.title}" to ${dateStr}`);
       } else {
         // For debugging purposes
-        console.log(`Skipping non-recurring transaction "${transaction.title}" (${format(transactionDate, 'yyyy-MM-dd')}) - outside view period`);
+        if (!isInView) {
+          console.log(`[CALENDAR] Skipping "${transaction.title}" - outside view period (${format(transactionDate, 'yyyy-MM-dd')} not in ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')})`);
+        } else if (transaction.isRecurring) {
+          console.log(`[CALENDAR] Skipping "${transaction.title}" - is recurring, will be processed separately`);
+        }
       }
     });
     
