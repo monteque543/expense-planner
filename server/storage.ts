@@ -644,7 +644,8 @@ async function initializeDatabase() {
 }
 
 // Initialize database with default data
-initializeDatabase().catch(console.error);
+// Commented out to prevent connection issues - database is initialized via migrations
+// initializeDatabase().catch(console.error);
 
 // Export the storage instance
 export const storage = new DatabaseStorage();
