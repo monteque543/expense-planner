@@ -8,11 +8,18 @@ export function expandRecurringTransactions(
 ): TransactionWithCategory[] {
   const expanded: TransactionWithCategory[] = [];
 
+  console.log(`[EXPAND] Expanding ${transactions.length} transactions from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
   for (const transaction of transactions) {
     if (!transaction.isRecurring || !transaction.recurringInterval) {
       expanded.push(transaction);
+      console.log(`[EXPAND] Adding non-recurring transaction: ${transaction.title}`);
       continue;
     }
+
+    console.log(`[EXPAND] Expanding recurring transaction: ${transaction.title}, interval: ${transaction.recurringInterval}, base date: ${transaction.date}`);
+
+    let instanceCount = 0;
 
     const baseDate = new Date(transaction.date);
     let currentDate = new Date(baseDate);
@@ -26,11 +33,13 @@ export function expandRecurringTransactions(
         (isAfter(currentDate, startDate) || currentDate.getTime() === startDate.getTime()) &&
         (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime())
       ) {
+        instanceCount++;
         expanded.push({
           ...transaction,
           displayDate: new Date(currentDate),
           isRecurringInstance: true,
         });
+        console.log(`[EXPAND] Created instance ${instanceCount} of ${transaction.title} for ${currentDate.toISOString()}`);
       }
 
       switch (transaction.recurringInterval) {
@@ -54,7 +63,10 @@ export function expandRecurringTransactions(
         break;
       }
     }
+
+    console.log(`[EXPAND] Completed expanding ${transaction.title}: created ${instanceCount} instances`);
   }
 
+  console.log(`[EXPAND] Total expanded transactions: ${expanded.length}`);
   return expanded;
 }

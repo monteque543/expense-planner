@@ -61,22 +61,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   router.get("/transactions", requireAuth, async (req: Request, res: Response) => {
     try {
       const transactions = await storage.getTransactions();
-      
+      console.log(`[SERVER] Fetched ${transactions.length} transactions from storage`);
+
       // Get all categories in a single query
       const allCategories = await storage.getCategories();
+      console.log(`[SERVER] Fetched ${allCategories.length} categories`);
       const categoriesMap = new Map(allCategories.map(cat => [cat.id, cat]));
-      
+
       // Join transactions with categories efficiently
       const transactionsWithCategories = transactions.map(transaction => {
         if (transaction.categoryId) {
           const category = categoriesMap.get(transaction.categoryId);
           if (category) {
             return { ...transaction, category };
+          } else {
+            console.warn(`[SERVER] No category found for transaction ${transaction.title} with categoryId ${transaction.categoryId}`);
           }
         }
         return transaction;
       });
-      
+
+      console.log(`[SERVER] Returning ${transactionsWithCategories.length} transactions with categories`);
       res.json(transactionsWithCategories);
     } catch (error) {
       console.error("Error getting transactions:", error);
