@@ -767,67 +767,15 @@ export default function ExpensePlanner() {
   };
 
   // Get hardcoded income transactions for critical months (May 2025-Mar 2026)
-  // Filter out any transactions that have been marked as deleted
+  // DISABLED: Hardcoded income - now using real database recurring transactions
   const hardcodedIncome = useMemo(() => {
-    // Get month and year for current view
-    const viewMonth = selectedDate.getMonth();
-    const viewYear = selectedDate.getFullYear();
-    
-    // Check if we're viewing May 2025 through March 2026
-    if ((viewYear === 2025 && viewMonth >= 4) || (viewYear === 2026 && viewMonth <= 2)) {
-      // Create hardcoded transactions for this view
-      const hardcodedMap = createHardcodedIncomeTransactions(viewMonth, viewYear, transactions);
-      
-      // Convert the hardcoded map into an array of transactions
-      const allTransactions = Object.values(hardcodedMap).flat();
-      
-      // Filter out any transactions that have been marked as deleted
-      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
-      
-      // Log for debugging
-      console.log(`🔥 Created ${result.length} hardcoded income transactions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
-      if (allTransactions.length !== result.length) {
-        console.log(`[Income] Filtered out ${allTransactions.length - result.length} deleted transactions`);
-      }
-      
-      return result;
-    }
-    
-    // For normal months, return empty array
     return [];
-  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
+  }, []);
   
-  // Get hardcoded recurring expenses/subscriptions for all months
-  // Filter out any transactions that have been marked as deleted
+  // DISABLED: Hardcoded expenses - now using real database recurring transactions
   const hardcodedExpenses = useMemo(() => {
-    // Get month and year for current view
-    const viewMonth = selectedDate.getMonth();
-    const viewYear = selectedDate.getFullYear();
-    
-    // Apply for all view months, focusing on 2025 and early 2026
-    if ((viewYear === 2025) || (viewYear === 2026 && viewMonth <= 2)) {
-      // Create hardcoded expense transactions for this view
-      const hardcodedMap = createHardcodedExpenseTransactions(viewMonth, viewYear, transactions);
-      
-      // Convert the map into an array of transactions
-      const allTransactions = Object.values(hardcodedMap).flat();
-      
-      // Filter out any transactions that have been marked as deleted
-      const result = allTransactions.filter(tx => !isTransactionDeleted(tx.id));
-      
-      if (result.length > 0) {
-        console.log(`🔄 Added ${result.length} hardcoded recurring expenses/subscriptions for ${format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}`);
-        if (allTransactions.length !== result.length) {
-          console.log(`[Expenses] Filtered out ${allTransactions.length - result.length} deleted transactions`);
-        }
-      }
-      
-      return result;
-    }
-    
-    // For other months, return empty array
     return [];
-  }, [transactions, selectedDate, deletedHardcodedTransactionIds]);
+  }, []);
   
   // Filter transactions to only show ones from the current month in the sidebar
   const currentMonthTransactions = useMemo(() => {
