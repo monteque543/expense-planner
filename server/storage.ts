@@ -11,6 +11,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { filterProblematicTransactions, transformTransactionAmounts } from "./transaction-filters";
+import { supabase } from "./supabase";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
@@ -317,24 +318,75 @@ export class DatabaseStorage implements IStorage {
   
   // Transaction operations
   async getTransactions(): Promise<Transaction[]> {
+    // Use Supabase client if db is not available
+    if (!db) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      const allTransactions = (data || []).map(t => ({
+        ...t,
+        date: new Date(t.date),
+        recurringEndDate: t.recurring_end_date ? new Date(t.recurring_end_date) : null,
+        isExpense: t.is_expense,
+        categoryId: t.category_id,
+        personLabel: t.person_label,
+        isRecurring: t.is_recurring,
+        recurringInterval: t.recurring_interval,
+        isPaid: t.is_paid
+      })) as Transaction[];
+
+      const filteredTransactions = filterProblematicTransactions(allTransactions);
+      return transformTransactionAmounts(filteredTransactions);
+    }
+
     // Get all transactions from the database
     const allTransactions = await db.select().from(transactions);
-    
+
     // First apply our special filters to remove problematic transactions
     const filteredTransactions = filterProblematicTransactions(allTransactions);
-    
+
     // Then transform any amounts that need to be fixed
     return transformTransactionAmounts(filteredTransactions);
   }
   
   async getRecurringTransactions(): Promise<Transaction[]> {
+    // Use Supabase client if db is not available
+    if (!db) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('is_recurring', true)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      const recurringTransactions = (data || []).map(t => ({
+        ...t,
+        date: new Date(t.date),
+        recurringEndDate: t.recurring_end_date ? new Date(t.recurring_end_date) : null,
+        isExpense: t.is_expense,
+        categoryId: t.category_id,
+        personLabel: t.person_label,
+        isRecurring: t.is_recurring,
+        recurringInterval: t.recurring_interval,
+        isPaid: t.is_paid
+      })) as Transaction[];
+
+      const filteredTransactions = filterProblematicTransactions(recurringTransactions);
+      return transformTransactionAmounts(filteredTransactions);
+    }
+
     // Get all recurring transactions
     const recurringTransactions = await db.select().from(transactions)
       .where(eq(transactions.isRecurring, true));
-    
+
     // First apply our special filters to remove problematic transactions
     const filteredTransactions = filterProblematicTransactions(recurringTransactions);
-    
+
     // Then transform any amounts that need to be fixed
     return transformTransactionAmounts(filteredTransactions);
   }
@@ -553,6 +605,20 @@ export class DatabaseStorage implements IStorage {
   
   // Category operations
   async getCategories(): Promise<Category[]> {
+    // Use Supabase client if db is not available
+    if (!db) {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (error) throw error;
+
+      return (data || []).map(c => ({
+        ...c,
+        isExpense: c.is_expense
+      })) as Category[];
+    }
+
     return await db.select().from(categories);
   }
   
@@ -586,6 +652,21 @@ export class DatabaseStorage implements IStorage {
   
   // Savings operations
   async getSavings(): Promise<Savings[]> {
+    // Use Supabase client if db is not available
+    if (!db) {
+      const { data, error } = await supabase
+        .from('savings')
+        .select('*');
+
+      if (error) throw error;
+
+      return (data || []).map(s => ({
+        ...s,
+        date: new Date(s.date),
+        personLabel: s.person_label
+      })) as Savings[];
+    }
+
     return await db.select().from(savings);
   }
   
