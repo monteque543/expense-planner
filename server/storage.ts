@@ -320,10 +320,13 @@ export class DatabaseStorage implements IStorage {
   async getTransactions(): Promise<Transaction[]> {
     // Use Supabase client if db is not available
     if (!db) {
+      console.log('[STORAGE] Using Supabase client to fetch transactions');
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .order('date', { ascending: true });
+
+      console.log('[STORAGE] Supabase response - data:', data?.length || 0, 'error:', error);
 
       if (error) throw error;
 
@@ -339,8 +342,12 @@ export class DatabaseStorage implements IStorage {
         isPaid: t.is_paid
       })) as Transaction[];
 
+      console.log('[STORAGE] Mapped transactions:', allTransactions.length);
       const filteredTransactions = filterProblematicTransactions(allTransactions);
-      return transformTransactionAmounts(filteredTransactions);
+      console.log('[STORAGE] After filtering:', filteredTransactions.length);
+      const transformed = transformTransactionAmounts(filteredTransactions);
+      console.log('[STORAGE] After transformation:', transformed.length);
+      return transformed;
     }
 
     // Get all transactions from the database
