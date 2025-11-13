@@ -36,6 +36,7 @@ export function expandRecurringTransactions(
         instanceCount++;
         expanded.push({
           ...transaction,
+          date: new Date(currentDate),
           displayDate: new Date(currentDate),
           isRecurringInstance: true,
         });
