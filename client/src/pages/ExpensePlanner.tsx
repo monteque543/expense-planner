@@ -172,7 +172,31 @@ export default function ExpensePlanner() {
       }
 
       console.log('[SUPABASE] Got transactions:', data?.length);
-      return data as TransactionWithCategory[];
+
+      const mapped = data?.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        amount: t.amount,
+        date: t.date,
+        notes: t.notes,
+        isExpense: t.is_expense,
+        categoryId: t.category_id,
+        personLabel: t.person_label,
+        isRecurring: t.is_recurring,
+        recurringInterval: t.recurring_interval,
+        recurringEndDate: t.recurring_end_date,
+        isPaid: t.is_paid,
+        category: t.category ? {
+          id: t.category.id,
+          name: t.category.name,
+          color: t.category.color,
+          isExpense: t.category.is_expense,
+          emoji: t.category.emoji,
+        } : undefined,
+      })) || [];
+
+      console.log('[SUPABASE] Sample mapped transaction:', mapped[0]);
+      return mapped as TransactionWithCategory[];
     },
     staleTime: 0,
   });

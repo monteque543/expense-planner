@@ -17,7 +17,7 @@ export function expandRecurringTransactions(
       continue;
     }
 
-    console.log(`[EXPAND] Expanding recurring transaction: ${transaction.title}, interval: ${transaction.recurringInterval}, base date: ${transaction.date}`);
+    console.log(`[EXPAND] 🔁 Expanding recurring transaction: ${transaction.title}, interval: ${transaction.recurringInterval}, base date: ${transaction.date}, isRecurring: ${transaction.isRecurring}`);
 
     let instanceCount = 0;
 
