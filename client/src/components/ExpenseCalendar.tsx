@@ -219,7 +219,12 @@ export default function ExpenseCalendar({
     });
     
     // Then, separately process recurring transactions to show future occurrences
+    // Skip if this is already an instance (created by expand-recurring.ts)
     recurringOnes.forEach(transaction => {
+      if (transaction.isRecurringInstance) {
+        console.log(`[CALENDAR] Skipping "${transaction.title}" - already a recurring instance from expand-recurring`);
+        return;
+      }
       // Safely parse the original transaction date, ensuring we always have a valid Date object
       const originalDate = typeof transaction.date === 'string' 
         ? parseISO(transaction.date) 
