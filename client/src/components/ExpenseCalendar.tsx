@@ -197,23 +197,30 @@ export default function ExpenseCalendar({
       console.log(`[CALENDAR] Transaction "${transaction.title}": date=${format(transactionDate, 'yyyy-MM-dd')}, isRecurring=${transaction.isRecurring}, isInView=${isInView}`);
 
       // For normal (non-recurring) transactions, we add them directly if in view
-      // For recurring transactions, we'll handle them in a dedicated section below
+      // For recurring instances (already expanded), add them if in view
+      // For base recurring transactions, we'll handle them in a dedicated section below
       if (isInView && !transaction.isRecurring) {
-        // Convert date to YYYY-MM-DD format for consistent grouping
+        // Non-recurring transaction
         const dateStr = format(transactionDate, 'yyyy-MM-dd');
-
-        // Initialize empty array for this date if not already present
         if (!grouped[dateStr]) {
           grouped[dateStr] = [];
         }
         grouped[dateStr].push(transaction);
-        console.log(`[CALENDAR] Added "${transaction.title}" to ${dateStr}`);
+        console.log(`[CALENDAR] Added non-recurring "${transaction.title}" to ${dateStr}`);
+      } else if (isInView && transaction.isRecurring && transaction.isRecurringInstance) {
+        // Recurring instance (already expanded by expand-recurring.ts)
+        const dateStr = format(transactionDate, 'yyyy-MM-dd');
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = [];
+        }
+        grouped[dateStr].push(transaction);
+        console.log(`[CALENDAR] Added recurring instance "${transaction.title}" to ${dateStr}`);
       } else {
         // For debugging purposes
         if (!isInView) {
           console.log(`[CALENDAR] Skipping "${transaction.title}" - outside view period (${format(transactionDate, 'yyyy-MM-dd')} not in ${format(viewStart, 'yyyy-MM-dd')} to ${format(viewEnd, 'yyyy-MM-dd')})`);
-        } else if (transaction.isRecurring) {
-          console.log(`[CALENDAR] Skipping "${transaction.title}" - is recurring, will be processed separately`);
+        } else if (transaction.isRecurring && !transaction.isRecurringInstance) {
+          console.log(`[CALENDAR] Skipping "${transaction.title}" - is base recurring transaction, will be processed separately`);
         }
       }
     });

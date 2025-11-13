@@ -36,10 +36,12 @@ export function expandRecurringTransactions(
       : endDate;
 
     while (isBefore(currentDate, endLimit) || currentDate.getTime() === endLimit.getTime()) {
-      if (
-        (isAfter(currentDate, startDate) || currentDate.getTime() === startDate.getTime()) &&
-        (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime())
-      ) {
+      const isWithinRange = (isAfter(currentDate, startDate) || currentDate.getTime() === startDate.getTime()) &&
+        (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime());
+
+      const isBaseDate = currentDate.getTime() === baseDate.getTime();
+
+      if (isWithinRange && !isBaseDate) {
         instanceCount++;
         expanded.push({
           ...transaction,
@@ -48,6 +50,8 @@ export function expandRecurringTransactions(
           isRecurringInstance: true,
         });
         console.log(`[EXPAND] Created instance ${instanceCount} of ${transaction.title} for ${currentDate.toISOString()}`);
+      } else if (isBaseDate) {
+        console.log(`[EXPAND] Skipping base date ${currentDate.toISOString()} for ${transaction.title} (already added as base transaction)`);
       }
 
       switch (transaction.recurringInterval) {
