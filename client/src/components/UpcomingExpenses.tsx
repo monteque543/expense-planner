@@ -336,10 +336,10 @@ export default function UpcomingExpenses({
             {transactions
               .filter(tx => tx.isRecurring && tx.isExpense && tx.category?.name === 'Subscription')
               .map((subscription) => (
-                <div 
-                  key={subscription.id} 
+                <div
+                  key={subscription.id}
                   className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer group"
-                  onClick={() => onEditTransaction(subscription)}
+                  onClick={() => onEditTransaction({ ...subscription, fromSubscriptionList: true } as any)}
                 >
                   <div className="flex items-center">
                     <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
@@ -426,10 +426,10 @@ export default function UpcomingExpenses({
               const isDueSoon = !isExactlyToday && isBefore(dueDate, addDays(today, 3));
               
               return (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="flex justify-between items-center p-2 rounded hover:bg-muted/50 cursor-pointer"
-                  onClick={() => onEditTransaction(expense)}
+                  onClick={() => onEditTransaction({ ...expense, fromSubscriptionList: true } as any)}
                 >
                   <div className="flex items-center gap-3">
                     {isExactlyToday ? (

@@ -563,9 +563,10 @@ export default function ExpensePlanner() {
   });
   
   // Handler for editing a transaction
-  const handleEditTransaction = (transaction: TransactionWithCategory) => {
+  const handleEditTransaction = (transaction: TransactionWithCategory, isPaidToggle: boolean = false) => {
     // Check if this is a "Mark as Paid" toggle from the calendar view
-    if ('displayDate' in transaction && transaction.isPaid !== undefined) {
+    // Only treat as paid toggle if explicitly flagged OR if it has displayDate and isPaid is defined
+    if (isPaidToggle || ('displayDate' in transaction && transaction.isPaid !== undefined && !('fromSubscriptionList' in transaction))) {
       console.log(`[MARK AS PAID] Handling paid toggle for ${transaction.title} (${transaction.id}): ${transaction.isPaid}`);
       
       // For recurring transactions, save to localStorage with month-specific key

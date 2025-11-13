@@ -93,23 +93,31 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
     console.log(`[FINANCIAL] Using ${activeTransactions.length} transactions (filtered out ${transactions.length - activeTransactions.length} skipped items)`);
     
     // Process transactions
+    // IMPORTANT: Only process base recurring transactions OR non-recurring transactions
+    // Skip recurring instances (they're already expanded by expand-recurring.ts)
     activeTransactions.forEach(transaction => {
+      // Skip recurring instances - they are duplicates created by expand-recurring.ts
+      if (transaction.isRecurringInstance) {
+        console.log(`[FINANCIAL] Skipping recurring instance: ${transaction.title}`);
+        return;
+      }
+
       const transactionDate = new Date(transaction.date);
-      
+
       // Calculate expenses for different time periods
       if (transaction.isExpense) {
         if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
           thisWeekExpenses += transaction.amount;
         }
-        
+
         if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
           nextWeekExpenses += transaction.amount;
         }
-        
+
         if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
           thisMonthExpenses += transaction.amount;
         }
-        
+
         if (isWithinInterval(transactionDate, { start: thisYearStart, end: thisYearEnd })) {
           thisYearExpenses += transaction.amount;
         }
@@ -118,11 +126,11 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
         if (isWithinInterval(transactionDate, { start: thisWeekStart, end: thisWeekEnd })) {
           thisWeekIncome += transaction.amount;
         }
-        
+
         if (isWithinInterval(transactionDate, { start: nextWeekStart, end: nextWeekEnd })) {
           nextWeekIncome += transaction.amount;
         }
-        
+
         // Only add to totalIncome for INCOME transactions (not expenses)
         if (isWithinInterval(transactionDate, { start: thisMonthStart, end: thisMonthEnd })) {
           totalIncome += transaction.amount;
@@ -130,10 +138,10 @@ export default function FinancialSummary({ transactions, currentDate }: Financia
         }
       }
     });
-    
+
     // Generate recurring instances for future dates
-    // Only process recurring transactions that have not been skipped
-    const recurringTransactions = activeTransactions.filter(t => t.isRecurring);
+    // Only process BASE recurring transactions (not instances) that have not been skipped
+    const recurringTransactions = activeTransactions.filter(t => t.isRecurring && !t.isRecurringInstance);
     const calculatedRecurringInstances: TransactionWithCategory[] = [];
     
     recurringTransactions.forEach(transaction => {
