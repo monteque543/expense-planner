@@ -19,6 +19,13 @@ export function expandRecurringTransactions(
 
     console.log(`[EXPAND] 🔁 Expanding recurring transaction: ${transaction.title}, interval: ${transaction.recurringInterval}, base date: ${transaction.date}, isRecurring: ${transaction.isRecurring}`);
 
+    // Add the base recurring transaction first (for SubscriptionSummary and RecurringExpensesSummary)
+    expanded.push({
+      ...transaction,
+      isRecurringInstance: false,
+    });
+    console.log(`[EXPAND] Added base recurring transaction: ${transaction.title}`);
+
     let instanceCount = 0;
 
     const baseDate = new Date(transaction.date);
