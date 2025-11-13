@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { createClient } from '@supabase/supabase-js';
 import ExpenseCalendar from "@/components/ExpenseCalendar";
 import ExpenseSidebar from "@/components/ExpenseSidebar";
 import SubscriptionSummary from "@/components/SubscriptionSummary";
@@ -58,6 +59,11 @@ import SecurityOverlay from "@/components/SecurityOverlay";
 import { expandRecurringTransactions } from "@/utils/expand-recurring";
 
 
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 export default function ExpensePlanner() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -148,10 +154,27 @@ export default function ExpensePlanner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showExpenseModal, showIncomeModal, showSavingsModal]);
 
-  // Fetch transactions
+  // Fetch transactions DIRECTLY from Supabase
   const { data: rawTransactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionWithCategory[]>({
-    queryKey: ['/api/transactions'],
-    staleTime: 0, // Always refetch to ensure fresh data
+    queryKey: ['supabase-transactions'],
+    queryFn: async () => {
+      console.log('[SUPABASE] Fetching transactions directly...');
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          category:categories(*)
+        `);
+
+      if (error) {
+        console.error('[SUPABASE] Error:', error);
+        throw error;
+      }
+
+      console.log('[SUPABASE] Got transactions:', data?.length);
+      return data as TransactionWithCategory[];
+    },
+    staleTime: 0,
   });
   
   // Apply our client-side transformations to transactions
