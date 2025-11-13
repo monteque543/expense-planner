@@ -15,11 +15,12 @@ export default function SubscriptionSummary({ transactions, isLoading }: Subscri
   // Filter subscription transactions
   const subscriptions = useMemo(() => {
     if (!transactions.length) return [];
-    
-    return transactions.filter(transaction => 
-      transaction.isRecurring && 
-      transaction.categoryId && 
-      transaction.category && 
+
+    return transactions.filter(transaction =>
+      transaction.isRecurring &&
+      !transaction.isRecurringInstance &&
+      transaction.categoryId &&
+      transaction.category &&
       transaction.category.name === 'Subscription'
     );
   }, [transactions]);
