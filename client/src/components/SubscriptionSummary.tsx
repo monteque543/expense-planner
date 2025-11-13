@@ -16,13 +16,22 @@ export default function SubscriptionSummary({ transactions, isLoading }: Subscri
   const subscriptions = useMemo(() => {
     if (!transactions.length) return [];
 
-    return transactions.filter(transaction =>
-      transaction.isRecurring &&
-      !transaction.isRecurringInstance &&
-      transaction.categoryId &&
-      transaction.category &&
-      transaction.category.name === 'Subscription'
-    );
+    const filtered = transactions.filter(transaction => {
+      const result = transaction.isRecurring &&
+        !transaction.isRecurringInstance &&
+        transaction.categoryId &&
+        transaction.category &&
+        transaction.category.name === 'Subscription';
+
+      if (result) {
+        console.log('[SUBSCRIPTION FOUND]:', transaction.title, transaction.category?.name);
+      }
+
+      return result;
+    });
+
+    console.log('[SUBSCRIPTION] Total found:', filtered.length, 'out of', transactions.length, 'transactions');
+    return filtered;
   }, [transactions]);
 
   // Calculate next payment dates

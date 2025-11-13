@@ -14,8 +14,9 @@ export function createHardcodedIncomeTransactions(
 ): Record<string, TransactionWithCategory[]> {
   const result: Record<string, TransactionWithCategory[]> = {};
   
-  // Only apply to 2025 and early 2026 - for months May 2025 through March 2026 (inclusive)
-  if ((year !== 2025 && year !== 2026) || (year === 2025 && month < 4) || (year === 2026 && month > 2)) {
+  // Only apply to 2025 - for months May 2025 through October 2025 (inclusive)
+  // November onwards should use the real recurring transactions from the database
+  if (year !== 2025 || month < 4 || month > 9) {
     return result;
   }
   
