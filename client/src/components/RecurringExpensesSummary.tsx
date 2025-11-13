@@ -17,16 +17,19 @@ export default function RecurringExpensesSummary({ transactions, isLoading }: Re
   
   useEffect(() => {
     // Filter for recurring expenses that are not subscriptions
-    const filteredRecurring = transactions.filter(transaction => 
-      transaction.isRecurring && 
-      transaction.isExpense && 
+    // ONLY show base recurring transactions, not expanded instances
+    const filteredRecurring = transactions.filter(transaction =>
+      transaction.isRecurring &&
+      transaction.isExpense &&
+      !transaction.isRecurringInstance && // Exclude expanded instances
       transaction.category?.name !== 'Subscription' // Exclude subscription category
     );
     
-    // Filter for subscription expenses
-    const subscriptionExpenses = transactions.filter(transaction => 
-      transaction.isRecurring && 
-      transaction.isExpense && 
+    // Filter for subscription expenses (also exclude instances)
+    const subscriptionExpenses = transactions.filter(transaction =>
+      transaction.isRecurring &&
+      transaction.isExpense &&
+      !transaction.isRecurringInstance &&
       transaction.category?.name === 'Subscription'
     );
     
