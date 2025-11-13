@@ -450,6 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: z.string().optional(),
         color: z.string().optional(),
         isExpense: z.boolean().optional(),
+        emoji: z.string().optional(),
       }).parse(req.body);
       
       const updatedCategory = await storage.updateCategory(id, validFields);

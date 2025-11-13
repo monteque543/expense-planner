@@ -20,6 +20,7 @@ import BudgetCoachingCompanion from "@/components/BudgetCoachingCompanion";
 import ExpensesPieChart from "@/components/ExpensesPieChart";
 import ExpensesByCategoryChart from "@/components/ExpensesByCategoryChart";
 import ManageSkippedTransactions from "@/components/ManageSkippedTransactions";
+import CategoryManager from "@/components/CategoryManager";
 import type { Category, Transaction, TransactionWithCategory, Savings } from "@shared/schema";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -1325,6 +1326,9 @@ export default function ExpensePlanner() {
               currentDate={selectedDate}
               isLoading={isLoadingTransactions}
             />
+
+            {/* Category Manager */}
+            <CategoryManager />
           </div>
         </div>
       </div>
